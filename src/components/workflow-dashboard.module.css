@@ -57,6 +57,45 @@
   margin-top: 28px;
 }
 
+.heroSignalRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.signalCard,
+.storyCard,
+.readinessItem,
+.selectionSnapshot,
+.highlightBanner {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(12px);
+}
+
+.signalCard {
+  padding: 16px 18px;
+  border-radius: 22px;
+}
+
+.signalCard strong,
+.selectionSnapshot strong,
+.readinessItem strong {
+  display: block;
+  margin-top: 6px;
+}
+
+.signalCard p,
+.storyCard p,
+.readinessItem p,
+.selectionSnapshot p,
+.highlightBanner p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 .intakeForm {
   margin-top: 24px;
 }
@@ -131,6 +170,23 @@
   gap: 14px;
 }
 
+.heroPanelBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.readinessStack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.readinessItem {
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+
 .jobPicker {
   display: flex;
   flex-wrap: wrap;
@@ -179,6 +235,11 @@
 .eventStatus {
   background: rgba(45, 125, 70, 0.12);
   color: var(--success);
+}
+
+.eventStatusFailed {
+  background: rgba(163, 50, 42, 0.12);
+  color: #9b3026;
 }
 
 .eventEmpty {
@@ -241,7 +302,7 @@
 
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
   margin-top: 22px;
 }
@@ -265,6 +326,38 @@
   padding: 28px;
   border: 1px solid var(--line);
   background: rgba(255, 248, 240, 0.74);
+}
+
+.storySection {
+  margin-top: 32px;
+}
+
+.storyGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.storyCard {
+  border-radius: 24px;
+  padding: 22px;
+}
+
+.storyCard h3 {
+  margin: 10px 0 0;
+  letter-spacing: -0.03em;
+}
+
+.storyStep {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(175, 77, 29, 0.12);
+  color: var(--accent-deep);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .sectionHeading,
@@ -334,6 +427,26 @@
   flex-direction: column;
   gap: 8px;
   margin-top: 18px;
+}
+
+.selectionSnapshot,
+.highlightBanner {
+  margin-top: 18px;
+  border-radius: 22px;
+  padding: 16px 18px;
+}
+
+.highlightBanner span {
+  display: inline-flex;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-deep);
+}
+
+.highlightBanner strong {
+  display: block;
+  margin-top: 8px;
 }
 
 .seedBox input {
@@ -453,6 +566,11 @@
   flex-wrap: wrap;
 }
 
+.timelineTime {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
 .sourceHead {
   display: flex;
   align-items: center;
@@ -475,6 +593,8 @@
   .contentGrid,
   .editorShell,
   .kpiGrid,
+  .heroSignalRow,
+  .storyGrid,
   .infoGrid,
   .dualColumn,
   .metaPanel,

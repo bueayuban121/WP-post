@@ -2,8 +2,44 @@
 
 import { type FormEvent, useCallback, useEffect, useState, useTransition } from "react";
 import { workflowStages } from "@/data/mock-workflow";
-import { WorkflowAutomationType, WorkflowJob } from "@/types/workflow";
+import {
+  WorkflowAutomationStatus,
+  WorkflowAutomationType,
+  WorkflowJob,
+  WorkflowStage
+} from "@/types/workflow";
 import styles from "./workflow-dashboard.module.css";
+
+const stageLabels: Record<WorkflowStage, string> = {
+  idea_pool: "Idea Pool",
+  selected: "Topic Selected",
+  researching: "Researching",
+  brief_ready: "Brief Ready",
+  drafting: "Drafting",
+  review: "Review",
+  approved: "Approved",
+  published: "Published"
+};
+
+const automationStatusLabel: Record<WorkflowAutomationStatus, string> = {
+  queued: "Queued",
+  running: "Running",
+  succeeded: "Completed",
+  failed: "Needs attention"
+};
+
+function formatStage(stage: WorkflowStage) {
+  return stageLabels[stage];
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
 
 export function WorkflowDashboard() {
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
@@ -14,6 +50,9 @@ export function WorkflowDashboard() {
   const [statusMessage, setStatusMessage] = useState("Loading content jobs...");
   const [isPending, startTransition] = useTransition();
   const job = jobs.find((item) => item.id === activeJobId) ?? jobs[0] ?? null;
+  const latestEvent = job?.automationEvents?.[0];
+  const fallbackEvents =
+    job?.automationEvents?.filter((event) => event.payload?.fallback === "app").length ?? 0;
   const kpiCards = [
     {
       label: "Ideas generated",
@@ -29,6 +68,13 @@ export function WorkflowDashboard() {
       label: "Drafts in review",
       value: jobs.filter((current) => ["drafting", "review"].includes(current.stage)).length.toString(),
       note: "Drafts progressing toward editorial review"
+    },
+    {
+      label: "Automation stability",
+      value: latestEvent ? automationStatusLabel[latestEvent.status] : "Idle",
+      note: latestEvent
+        ? `${latestEvent.type} updated ${formatDateTime(latestEvent.updatedAt)}`
+        : "No workflow activity yet"
     }
   ];
 
@@ -98,7 +144,7 @@ export function WorkflowDashboard() {
         const data = (await response.json()) as {
           error?: string;
           job?: WorkflowJob;
-          automation?: { accepted: boolean; message?: string };
+          automation?: { accepted: boolean; message?: string; fallbackApplied?: boolean };
         };
 
         if (!response.ok) {
@@ -173,8 +219,9 @@ export function WorkflowDashboard() {
             <span className={styles.eyebrow}>SEO Content Operating System</span>
             <h1>Create the first content job to start the keyword workflow.</h1>
             <p>
-              This round is focused on the app layer: real job creation form, API routes, and
-              in-memory pipeline state. PostgreSQL and Prisma are already scaffolded next.
+              This demo is built around the flow your client asked for: expand one keyword into
+              article ideas, choose the winning topic, research it, build the brief, and move into
+              draft production.
             </p>
             <form className={styles.intakeForm} onSubmit={handleCreateJob}>
               <label>
@@ -200,6 +247,46 @@ export function WorkflowDashboard() {
   }
 
   const selectedIdea = job.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? job.ideas[0];
+  const readinessItems = [
+    {
+      label: "Idea shortlist",
+      value: `${job.ideas.length} options`,
+      note: "Client can compare article directions before any writing starts."
+    },
+    {
+      label: "Research coverage",
+      value: `${job.research.sources.length} sources`,
+      note: "Thai and global source packs are combined into one view."
+    },
+    {
+      label: "Delivery stage",
+      value: formatStage(job.stage),
+      note: "Every article stays traceable from keyword intake to draft."
+    }
+  ];
+  const flowMoments = [
+    {
+      step: "01",
+      title: "Expand the seed keyword",
+      detail: "Turn one keyword into content opportunities with search intent, difficulty, and angle."
+    },
+    {
+      step: "02",
+      title: "Research before writing",
+      detail: "Blend Thai and global inputs so the article is not just generic AI output."
+    },
+    {
+      step: "03",
+      title: "Approve the SEO brief",
+      detail: "Lock title, outline, metadata, FAQs, and internal links before drafting."
+    },
+    {
+      step: "04",
+      title: "Draft and hand off",
+      detail: "Generate the first article version, then hand it to editorial review and publishing."
+    }
+  ];
+  const recentEvents = job.automationEvents?.slice(0, 4) ?? [];
 
   return (
     <main className={styles.page}>
@@ -208,10 +295,35 @@ export function WorkflowDashboard() {
           <span className={styles.eyebrow}>SEO Content Operating System</span>
           <h1>Turn one keyword into client-approved blog content with traceable research.</h1>
           <p>
-            This MVP is designed for the workflow you described: keyword expansion, client topic
-            selection, Thai and global research, content brief creation, draft writing, and
-            publishing handoff through n8n.
+            This demo follows the workflow you described: keyword expansion, client topic
+            selection, Thai and global research, SEO brief creation, draft writing, and publishing
+            handoff.
           </p>
+          <div className={styles.heroSignalRow}>
+            <div className={styles.signalCard}>
+              <span className={styles.panelLabel}>Demo focus</span>
+              <strong>Keyword to article pipeline</strong>
+              <p>Everything a client needs to understand is visible in one screen.</p>
+            </div>
+            <div className={styles.signalCard}>
+              <span className={styles.panelLabel}>Current status</span>
+              <strong>{formatStage(job.stage)}</strong>
+              <p>
+                {latestEvent
+                  ? `${latestEvent.type} is ${automationStatusLabel[latestEvent.status].toLowerCase()}.`
+                  : "Ready to queue the first automation."}
+              </p>
+            </div>
+            <div className={styles.signalCard}>
+              <span className={styles.panelLabel}>Automation mode</span>
+              <strong>{fallbackEvents > 0 ? "App fallback active" : "n8n-ready"}</strong>
+              <p>
+                {fallbackEvents > 0
+                  ? "The app keeps the workflow moving even if the n8n bridge is unavailable."
+                  : "Webhook-ready for research, briefing, drafting, and publish steps."}
+              </p>
+            </div>
+          </div>
           <form className={styles.intakeForm} onSubmit={handleCreateJob}>
             <div className={styles.formGrid}>
               <label>
@@ -253,20 +365,40 @@ export function WorkflowDashboard() {
           </div>
           <strong>{job.client}</strong>
           <span className={styles.seedKeyword}>Seed keyword: {job.seedKeyword}</span>
-          <div className={styles.stagePill}>{job.stage.replace("_", " ")}</div>
+          <div className={styles.stagePill}>{formatStage(job.stage)}</div>
           <ul className={styles.miniChecklist}>
             <li>Keyword expanded into opportunity pool</li>
             <li>Client selected article direction</li>
             <li>Research pack combined from TH + Global sources</li>
             <li>Brief ready for editorial approval</li>
           </ul>
+          <div className={styles.heroPanelBlock}>
+            <span className={styles.infoLabel}>System readiness</span>
+            <div className={styles.readinessStack}>
+              {readinessItems.map((item) => (
+                <article key={item.label} className={styles.readinessItem}>
+                  <div>
+                    <span className={styles.panelLabel}>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                  <p>{item.note}</p>
+                </article>
+              ))}
+            </div>
+          </div>
           <div className={styles.eventSummary}>
             <span className={styles.infoLabel}>Latest automation events</span>
             <ul className={styles.eventList}>
-              {(job.automationEvents?.slice(0, 3) ?? []).map((event) => (
+              {recentEvents.map((event) => (
                 <li key={event.id} className={styles.eventItem}>
                   <span className={styles.eventType}>{event.type}</span>
-                  <span className={styles.eventStatus}>{event.status}</span>
+                  <span
+                    className={`${styles.eventStatus} ${
+                      event.status === "failed" ? styles.eventStatusFailed : ""
+                    }`}
+                  >
+                    {automationStatusLabel[event.status]}
+                  </span>
                 </li>
               ))}
               {!job.automationEvents?.length ? (
@@ -287,6 +419,28 @@ export function WorkflowDashboard() {
         ))}
       </section>
 
+      <section className={styles.storySection}>
+        <div className={styles.sectionHeading}>
+          <div>
+            <span className={styles.eyebrow}>Demo narrative</span>
+            <h2>What the client sees in under one minute</h2>
+          </div>
+          <p>
+            This walkthrough is arranged to show business value first: choose a content direction,
+            validate the research, approve the SEO brief, then review the article draft.
+          </p>
+        </div>
+        <div className={styles.storyGrid}>
+          {flowMoments.map((moment) => (
+            <article key={moment.step} className={styles.storyCard}>
+              <span className={styles.storyStep}>{moment.step}</span>
+              <h3>{moment.title}</h3>
+              <p>{moment.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className={styles.pipelineSection}>
         <div className={styles.sectionHeading}>
           <div>
@@ -294,8 +448,8 @@ export function WorkflowDashboard() {
             <h2>Operational flow for client work</h2>
           </div>
           <p>
-            The front end keeps humans in control. n8n should automate the transitions after each
-            approval, not replace the app state.
+            Humans stay in control of approvals, while automation handles the repetitive transitions
+            between research, briefing, drafting, and publishing.
           </p>
         </div>
         <div className={styles.stageRail}>
@@ -332,6 +486,13 @@ export function WorkflowDashboard() {
             Start from one seed keyword, then generate content opportunities that clients can
             actually approve.
           </p>
+          <div className={styles.selectionSnapshot}>
+            <div>
+              <span className={styles.infoLabel}>Selected direction</span>
+              <strong>{selectedIdea.title}</strong>
+            </div>
+            <p>{selectedIdea.whyItMatters}</p>
+          </div>
           <div className={styles.seedBox}>
             <label htmlFor="seedKeyword">Seed keyword</label>
             <input id="seedKeyword" value={job.seedKeyword} readOnly />
@@ -392,6 +553,11 @@ export function WorkflowDashboard() {
             </div>
           </div>
           <p className={styles.cardLead}>{job.research.objective}</p>
+          <div className={styles.highlightBanner}>
+            <span>Research mode</span>
+            <strong>TH + Global source blend</strong>
+            <p>Designed to give the client confidence before the writing phase starts.</p>
+          </div>
           <div className={styles.infoGrid}>
             <div>
               <span className={styles.infoLabel}>Audience</span>
@@ -464,6 +630,13 @@ export function WorkflowDashboard() {
           <div className={styles.briefHeader}>
             <h4>{job.brief.title}</h4>
             <p>{job.brief.angle}</p>
+          </div>
+          <div className={styles.selectionSnapshot}>
+            <div>
+              <span className={styles.infoLabel}>Editorial audience</span>
+              <strong>{job.brief.audience}</strong>
+            </div>
+            <p>The brief locks the article direction before anyone spends time editing the draft.</p>
           </div>
           <div className={styles.metaPanel}>
             <div>
@@ -548,10 +721,10 @@ export function WorkflowDashboard() {
             <aside className={styles.heroPanel}>
               <span className={styles.infoLabel}>Automation checkpoints</span>
               <ul className={styles.bulletList}>
-                <li>n8n webhook receives approved brief</li>
-                <li>Research trace saved to database before generation</li>
-                <li>WordPress publish node waits for final approval</li>
-                <li>Telegram notification fires after publish or failure</li>
+                <li>n8n or app automation can move the job into the next stage</li>
+                <li>Research trace stays attached to the job before draft generation</li>
+                <li>Publishing can stay gated behind approval</li>
+                <li>Every workflow result is recorded in the event log</li>
               </ul>
               <div className={styles.inlineActions}>
                 <button
@@ -576,9 +749,17 @@ export function WorkflowDashboard() {
                     <li key={event.id} className={styles.timelineItem}>
                       <div className={styles.timelineTop}>
                         <span className={styles.eventType}>{event.type}</span>
-                        <span className={styles.eventStatus}>{event.status}</span>
+                        <span
+                          className={`${styles.eventStatus} ${
+                            event.status === "failed" ? styles.eventStatusFailed : ""
+                          }`}
+                        >
+                          {automationStatusLabel[event.status]}
+                        </span>
+                        <span className={styles.panelLabel}>{event.source}</span>
                       </div>
                       <p>{event.message ?? "No message from automation yet."}</p>
+                      <span className={styles.timelineTime}>{formatDateTime(event.updatedAt)}</span>
                     </li>
                   ))}
                   {!job.automationEvents?.length ? (
@@ -589,8 +770,8 @@ export function WorkflowDashboard() {
               <div className={styles.sourceCard}>
                 <strong>Recommended next build step</strong>
                 <p>
-                  Persist jobs in PostgreSQL, then wire `approve brief` and `publish` buttons into
-                  backend endpoints that trigger n8n webhooks.
+                  Finish the n8n bridge, then add approval controls and WordPress publish actions on
+                  top of this same client-facing flow.
                 </p>
               </div>
             </aside>
