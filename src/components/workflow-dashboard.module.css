@@ -374,6 +374,16 @@
   line-height: 1.6;
 }
 
+.visualPlacement {
+  display: inline-flex;
+  margin-top: 12px;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(175, 77, 29, 0.08);
+  color: var(--accent-deep);
+  font-size: 0.8rem;
+}
+
 .visualFrame {
   overflow: hidden;
   border-radius: 18px;
@@ -625,6 +635,12 @@
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.8);
   padding: 22px;
+}
+
+.articleImageSection {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(133, 96, 74, 0.14);
 }
 
 .articleSection + .articleSection {

@@ -48,43 +48,118 @@ const difficultyLabels = {
   high: "ยาก"
 } as const;
 
-const demoVisuals = [
+const articleVisualsByTheme = {
+  health: [
+    {
+      src: "/article-images/goldfish-health-1.svg",
+      alt: "ภาพโคลสอัปปลาทองว่ายในตู้เลี้ยงสะอาด",
+      title: "ภาพเปิดบทความ",
+      description: "ใช้เป็นภาพ hero ของบทความเพื่อเปิดเรื่องให้ดูน่าเชื่อถือและเป็นมิตร",
+      placement: "ส่วนเปิดบทความ"
+    },
+    {
+      src: "/article-images/goldfish-health-2.svg",
+      alt: "ภาพปลาทองในตู้พร้อมมุมสังเกตอาการและพฤติกรรม",
+      title: "ภาพสังเกตอาการ",
+      description: "เหมาะกับช่วงอธิบายสัญญาณเริ่มต้นหรืออาการที่ควรเฝ้าดู",
+      placement: "หัวข้ออาการและการสังเกต"
+    },
+    {
+      src: "/article-images/goldfish-health-3.svg",
+      alt: "ภาพอุปกรณ์ดูแลตู้ปลาและการเช็กสภาพน้ำ",
+      title: "ภาพการดูแลตู้",
+      description: "ใช้คู่กับเนื้อหาที่อธิบายการดูแลเบื้องต้นและการป้องกันปัญหา",
+      placement: "หัวข้อการดูแลและป้องกัน"
+    }
+  ],
+  water: [
+    {
+      src: "/article-images/goldfish-water-1.svg",
+      alt: "ภาพปลาทองในตู้เลี้ยงที่มีน้ำใสและแสงธรรมชาติอ่อน",
+      title: "ภาพเปิดบทความ",
+      description: "ใช้เป็นภาพหลักของบทความเพื่อสื่อเรื่องคุณภาพน้ำและสภาพแวดล้อมที่ดี",
+      placement: "ส่วนเปิดบทความ"
+    },
+    {
+      src: "/article-images/goldfish-water-2.svg",
+      alt: "ภาพการทดสอบค่าน้ำด้วยชุดวัดและตัวอย่างน้ำในตู้ปลา",
+      title: "ภาพตรวจค่าน้ำ",
+      description: "เหมาะกับเนื้อหาที่อธิบายค่า pH, KH และขั้นตอนการเช็กค่าน้ำ",
+      placement: "หัวข้อการวัดค่าและวิเคราะห์น้ำ"
+    },
+    {
+      src: "/article-images/goldfish-water-3.svg",
+      alt: "ภาพการเปลี่ยนน้ำและดูแลตู้ปลาอย่างนุ่มนวล",
+      title: "ภาพขั้นตอนดูแลตู้",
+      description: "ใช้รองรับหัวข้อการเปลี่ยนน้ำ ปรับค่าน้ำ และดูแลตู้ปลาอย่างปลอดภัย",
+      placement: "หัวข้อการดูแลและปรับน้ำ"
+    }
+  ],
+  food: [
+    {
+      src: "/article-images/goldfish-food-1.svg",
+      alt: "ภาพปลาทองกำลังกินอาหารในตู้ปลาอย่างเป็นธรรมชาติ",
+      title: "ภาพเปิดบทความ",
+      description: "ใช้เป็นภาพนำสำหรับบทความเรื่องอาหารและพฤติกรรมการกิน",
+      placement: "ส่วนเปิดบทความ"
+    },
+    {
+      src: "/article-images/goldfish-food-2.svg",
+      alt: "ภาพอาหารเม็ดและอาหารเสริมสำหรับปลาทองจัดวางเป็นชุด",
+      title: "ภาพประเภทอาหาร",
+      description: "เหมาะกับช่วงอธิบายอาหารหลัก อาหารเสริม และการเลือกอาหาร",
+      placement: "หัวข้อเปรียบเทียบอาหาร"
+    },
+    {
+      src: "/article-images/goldfish-food-3.svg",
+      alt: "ภาพการให้อาหารปลาทองในปริมาณเหมาะสม",
+      title: "ภาพวิธีให้อาหาร",
+      description: "ใช้คู่กับเนื้อหาที่อธิบายความถี่และข้อควรระวังเรื่องการให้อาหาร",
+      placement: "หัวข้อการให้อาหารอย่างเหมาะสม"
+    }
+  ]
+} as const;
+
+const sharedArticleVisuals = [
   {
-    src: "/demo/idea-board.svg",
-    alt: "ภาพกระดานรวมไอเดียคอนเทนต์จาก seed keyword",
-    title: "Idea board",
-    description: "ใช้เล่าให้ลูกค้าเห็นว่า 1 keyword ถูกแตกเป็นหลายมุมบทความได้"
+    src: "/article-images/goldfish-detail-1.svg",
+    alt: "ภาพระยะใกล้ของปลาทองในตู้ที่แสงนุ่ม",
+    title: "ภาพ close-up เพิ่มอารมณ์บทความ",
+    description: "ใช้คั่นช่วงเนื้อหาเพื่อให้บทความอ่านสบายขึ้นและดูไม่เป็นบล็อกข้อความยาว",
+    placement: "ช่วงกลางบทความ"
   },
   {
-    src: "/demo/client-approval.svg",
-    alt: "ภาพขั้นตอนให้ลูกค้าเลือกหัวข้อและอนุมัติ",
-    title: "Client selection",
-    description: "แสดงช่วงที่ลูกค้าเลือกหัวข้อก่อนเข้าสู่รีเสิร์ชจริง"
-  },
-  {
-    src: "/demo/research-pack.svg",
-    alt: "ภาพชุดรีเสิร์ชจากไทยและต่างประเทศ",
-    title: "Research pack",
-    description: "ใช้สื่อว่าบทความมีข้อมูลไทยและต่างประเทศรองรับ"
-  },
-  {
-    src: "/demo/brief-map.svg",
-    alt: "ภาพแผนผัง SEO brief และโครงบทความ",
-    title: "SEO brief",
-    description: "สรุป title, outline, FAQ และ internal links ในมุมเดียว"
-  },
-  {
-    src: "/demo/draft-editor.svg",
-    alt: "ภาพหน้าจอดราฟต์บทความพร้อมเนื้อหา",
-    title: "Draft editor",
-    description: "ช่วยให้เดโมดูใกล้เคียงงานจริงเวลาพรีเซนต์ลูกค้า"
-  },
-  {
-    src: "/demo/publish-flow.svg",
-    alt: "ภาพขั้นตอนอนุมัติและส่งเผยแพร่บทความ",
-    title: "Approve to publish",
-    description: "ใช้ปิดเดโมให้เห็นว่าระบบพร้อมต่อไปยัง WordPress หรือ workflow publish"
+    src: "/article-images/goldfish-detail-2.svg",
+    alt: "ภาพบรรยากาศตู้ปลาที่สะอาดพร้อมองค์ประกอบการดูแล",
+    title: "ภาพสรุปท้ายบทความ",
+    description: "เหมาะกับช่วงสรุปหรือ callout เพื่อปิดบทความให้นุ่มและสมบูรณ์ขึ้น",
+    placement: "ท้ายบทความ"
   }
+] as const;
+
+function getArticleImagePack(title: string) {
+  const lowerTitle = title.toLowerCase();
+
+  if (lowerTitle.includes("โรค")) {
+    return [...articleVisualsByTheme.health, ...sharedArticleVisuals];
+  }
+
+  if (lowerTitle.includes("น้ำ") || lowerTitle.includes("pH")) {
+    return [...articleVisualsByTheme.water, ...sharedArticleVisuals];
+  }
+
+  return [...articleVisualsByTheme.food, ...sharedArticleVisuals];
+}
+
+function getProjectLabel(name: string) {
+  return name.trim() ? name : "โปรเจกต์ใหม่";
+}
+
+const draftToneNotes = [
+  "ภาษาโดยรวมควรอ่านง่าย สุภาพ และไม่แข็งเกินไป",
+  "ควรตอบคำถามหลักให้เร็วในช่วงต้นบทความ แล้วค่อยขยายรายละเอียด",
+  "แต่ละภาพควรช่วยอธิบายบริบท ไม่ใช่ใส่เพื่อความสวยอย่างเดียว",
+  "ก่อนเผยแพร่ควรตรวจความถูกต้องเฉพาะทางอีกหนึ่งรอบ"
 ] as const;
 
 function formatStage(stage: WorkflowStage) {
@@ -109,6 +184,7 @@ export function WorkflowDashboard() {
 
   const job = jobs.find((item) => item.id === activeJobId) ?? jobs[0] ?? null;
   const selectedIdea = job?.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? job?.ideas[0] ?? null;
+  const articleImagePack = selectedIdea ? getArticleImagePack(selectedIdea.title) : [];
   const latestEvent = job?.automationEvents?.[0];
   const fallbackEvents =
     job?.automationEvents?.filter((event) => event.payload?.fallback === "app").length ?? 0;
@@ -163,7 +239,7 @@ export function WorkflowDashboard() {
     {
       step: "01",
       title: "แตก seed keyword เป็นหลายไอเดีย",
-      detail: "เริ่มจากคีย์เวิร์ดเดียว แล้วค่อยๆ แตกเป็นหัวข้อพร้อม intent และมุมเล่นให้ลูกค้าเลือก"
+      detail: "เริ่มจากคีย์เวิร์ดเดียว แล้วค่อยๆ แตกเป็นหัวข้อพร้อม intent และมุมเล่นให้ทีมเลือกใช้งาน"
     },
     {
       step: "02",
@@ -366,9 +442,9 @@ export function WorkflowDashboard() {
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
           <span className={styles.eyebrow}>SEO Content Workflow</span>
-          <h1>เปลี่ยน 1 keyword ให้ค่อยๆ กลายเป็นบทความพร้อมส่งลูกค้าแบบมีรีเสิร์ชรองรับ</h1>
+          <h1>เปลี่ยน 1 keyword ให้ค่อยๆ กลายเป็นบทความพร้อมใช้งานแบบมีรีเสิร์ชรองรับ</h1>
           <p>
-            หน้านี้เล่า flow จริงตั้งแต่แตกคีย์เวิร์ด ให้ลูกค้าเลือกหัวข้อ รีเสิร์ชข้อมูลไทยและต่างประเทศ
+            หน้านี้เล่า flow จริงตั้งแต่แตกคีย์เวิร์ด เลือกหัวข้อ รีเสิร์ชข้อมูลไทยและต่างประเทศ
             ทำบรีฟ SEO และต่อยอดเป็นดราฟต์บทความในระบบเดียว
           </p>
 
@@ -376,7 +452,7 @@ export function WorkflowDashboard() {
             <div className={styles.signalCard}>
               <span className={styles.panelLabel}>มุมเดโม</span>
               <strong>จาก keyword สู่ draft</strong>
-              <p>ลูกค้าเห็นภาพการทำงานครบทั้ง pipeline ภายในหน้าเดียว</p>
+              <p>เห็นภาพการทำงานครบทั้ง pipeline ภายในหน้าเดียว</p>
             </div>
             <div className={styles.signalCard}>
               <span className={styles.panelLabel}>สถานะงานล่าสุด</span>
@@ -392,7 +468,7 @@ export function WorkflowDashboard() {
               <strong>{fallbackEvents > 0 ? "มี fallback ในแอป" : "พร้อมเชื่อม n8n"}</strong>
               <p>
                 {fallbackEvents > 0
-                  ? "ถ้า n8n ยังไม่พร้อม ระบบยังพาเดโมเดินต่อได้อย่างนุ่มนวลเพื่อไม่ให้ flow สะดุด"
+                  ? "ถ้า n8n ยังไม่พร้อม ระบบยังเดินงานต่อได้อย่างนุ่มนวลเพื่อไม่ให้ flow สะดุด"
                   : "พร้อมยิง workflow ไปยัง n8n สำหรับรีเสิร์ช บรีฟ ดราฟต์ และเผยแพร่"}
               </p>
             </div>
@@ -401,9 +477,9 @@ export function WorkflowDashboard() {
           <form className={styles.intakeForm} onSubmit={handleCreateJob}>
             <div className={styles.formGrid}>
               <label>
-                ชื่อลูกค้า
-                <input value={client} onChange={(event) => setClient(event.target.value)} />
-              </label>
+                  ชื่อโปรเจกต์
+                  <input value={client} onChange={(event) => setClient(event.target.value)} />
+                </label>
               <label>
                 Seed keyword
                 <input
@@ -428,7 +504,7 @@ export function WorkflowDashboard() {
         <aside className={styles.heroPanel}>
           <div className={styles.heroPanelBlock}>
             <span className={styles.panelLabel}>งานที่กำลังดู</span>
-            <strong>{job.client}</strong>
+            <strong>{getProjectLabel(job.client)}</strong>
             <span className={styles.seedKeyword}>{job.seedKeyword}</span>
           </div>
 
@@ -442,7 +518,7 @@ export function WorkflowDashboard() {
                   onClick={() => setActiveJobId(item.id)}
                   type="button"
                 >
-                  {item.client}
+                  {getProjectLabel(item.client)}
                 </button>
               ))}
             </div>
@@ -501,7 +577,7 @@ export function WorkflowDashboard() {
             <h2>สิ่งที่ลูกค้าจะเข้าใจได้เร็วจากเดโมชุดนี้</h2>
           </div>
           <p>
-            โครงนี้ออกแบบให้เล่า value ก่อน ไม่ใช่โชว์เทคนิคอย่างเดียว ลูกค้าจะเห็นว่าเลือกหัวข้อได้
+            โครงนี้ออกแบบให้เล่า value ก่อน ไม่ใช่โชว์เทคนิคอย่างเดียว ทีมงานจะเห็นว่าเลือกหัวข้อได้
             มีรีเสิร์ชรองรับ อนุมัติงานได้ และมองกระบวนการสร้างดราฟต์ต่อได้แบบชัดเจน
           </p>
         </div>
@@ -511,36 +587,6 @@ export function WorkflowDashboard() {
               <span className={styles.storyStep}>{moment.step}</span>
               <h3>{moment.title}</h3>
               <p>{moment.detail}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className={styles.visualSection}>
-        <div className={styles.sectionHeading}>
-          <div>
-            <span className={styles.eyebrow}>Visual support</span>
-            <h2>ภาพประกอบสำหรับใช้พรีเซนต์งานกับลูกค้า</h2>
-          </div>
-          <p>
-            ชุดภาพนี้ช่วยให้การอธิบายระบบนุ่มขึ้นและจับต้องง่ายขึ้น โดยเฉพาะตอนอธิบาย flow
-            ตั้งแต่เลือกไอเดีย รีเสิร์ช ไปจนถึงอนุมัติและส่งเผยแพร่
-          </p>
-        </div>
-        <div className={styles.visualGrid}>
-          {demoVisuals.map((visual) => (
-            <article key={visual.src} className={styles.visualCard}>
-              <div className={styles.visualFrame}>
-                <Image
-                  alt={visual.alt}
-                  className={styles.visualImage}
-                  height={720}
-                  src={visual.src}
-                  width={1280}
-                />
-              </div>
-              <strong>{visual.title}</strong>
-              <p>{visual.description}</p>
             </article>
           ))}
         </div>
@@ -581,7 +627,7 @@ export function WorkflowDashboard() {
             </button>
           </div>
           <p className={styles.cardLead}>
-            เริ่มจาก seed keyword แล้วแตกเป็นหัวข้อที่ลูกค้าเลือกได้จริง พร้อมดู intent และความยากของแต่ละหัวข้อ
+            เริ่มจาก seed keyword แล้วแตกเป็นหัวข้อที่เลือกใช้งานได้จริง พร้อมดู intent และความยากของแต่ละหัวข้อ
           </p>
           <div className={styles.selectionSnapshot}>
             <div>
@@ -606,7 +652,7 @@ export function WorkflowDashboard() {
                   onClick={() =>
                     updateJob(
                       `/api/jobs/${job.id}/ideas/select`,
-                      `เลือกหัวข้อ "${idea.title}" สำหรับ ${job.client} แล้ว`,
+                      `เลือกหัวข้อ "${idea.title}" สำหรับ ${getProjectLabel(job.client)} แล้ว`,
                       { ideaId: idea.id }
                     )
                   }
@@ -635,7 +681,7 @@ export function WorkflowDashboard() {
               <button
                 className={styles.textButton}
                 onClick={() =>
-                  updateJob(`/api/jobs/${job.id}/research`, `อัปเดตรีเสิร์ชสำหรับ ${job.client} แล้ว`)
+                  updateJob(`/api/jobs/${job.id}/research`, `อัปเดตรีเสิร์ชสำหรับ ${getProjectLabel(job.client)} แล้ว`)
                 }
                 type="button"
               >
@@ -706,7 +752,7 @@ export function WorkflowDashboard() {
               <button
                 className={styles.textButton}
                 onClick={() =>
-                  updateJob(`/api/jobs/${job.id}/brief`, `สร้างบรีฟสำหรับ ${job.client} แล้ว`)
+                  updateJob(`/api/jobs/${job.id}/brief`, `สร้างบรีฟสำหรับ ${getProjectLabel(job.client)} แล้ว`)
                 }
                 type="button"
               >
@@ -782,7 +828,7 @@ export function WorkflowDashboard() {
               <button
                 className={styles.secondaryButton}
                 onClick={() =>
-                  updateJob(`/api/jobs/${job.id}/approve`, `อนุมัติดราฟต์ของ ${job.client} แล้ว`)
+                  updateJob(`/api/jobs/${job.id}/approve`, `อนุมัติดราฟต์ของ ${getProjectLabel(job.client)} แล้ว`)
                 }
                 type="button"
               >
@@ -793,7 +839,9 @@ export function WorkflowDashboard() {
               </button>
               <button
                 className={styles.primaryButton}
-                onClick={() => updateJob(`/api/jobs/${job.id}/draft`, `อัปเดตดราฟต์สำหรับ ${job.client} แล้ว`)}
+                onClick={() =>
+                  updateJob(`/api/jobs/${job.id}/draft`, `อัปเดตดราฟต์สำหรับ ${getProjectLabel(job.client)} แล้ว`)
+                }
                 type="button"
               >
                 สร้างดราฟต์ในระบบ
@@ -810,20 +858,54 @@ export function WorkflowDashboard() {
                 </section>
               ))}
               <p className={styles.editorConclusion}>{job.draft.conclusion}</p>
+
+              <div className={styles.articleImageSection}>
+                <div className={styles.cardHeader}>
+                  <div>
+                    <span className={styles.eyebrow}>Image Pack</span>
+                    <h3>ชุดภาพสำหรับบทความนี้</h3>
+                  </div>
+                  <span className={styles.panelLabel}>พร้อมวางในบทความ 5-6 ภาพ</span>
+                </div>
+                <p className={styles.cardLead}>
+                  ภาพชุดนี้ออกแบบให้สอดคล้องกับบริบทของหัวข้อที่เลือก เพื่อช่วยให้บทความอ่านง่ายขึ้น
+                  และไม่รู้สึกว่าเป็นบล็อกข้อความยาวเกินไป
+                </p>
+                <div className={styles.visualGrid}>
+                  {articleImagePack.map((visual) => (
+                    <article key={visual.src} className={styles.visualCard}>
+                      <div className={styles.visualFrame}>
+                        <Image
+                          alt={visual.alt}
+                          className={styles.visualImage}
+                          height={720}
+                          src={visual.src}
+                          width={1280}
+                        />
+                      </div>
+                      <strong>{visual.title}</strong>
+                      <p>{visual.description}</p>
+                      <span className={styles.visualPlacement}>{visual.placement}</span>
+                    </article>
+                  ))}
+                </div>
+              </div>
             </div>
             <aside className={styles.heroPanel}>
               <span className={styles.infoLabel}>สถานะงานอัตโนมัติ</span>
               <ul className={styles.bulletList}>
-                <li>ต่อเข้า n8n ได้เมื่อ workflow ฝั่ง automation พร้อมจริง</li>
-                <li>ถ้า webhook มีปัญหา ระบบยังเดินงานต่อด้วย in-app fallback ได้</li>
-                <li>ทุกครั้งที่รันจะมี event log เก็บสถานะไว้ตรวจย้อนหลัง</li>
-                <li>ขั้น publish ต่อ WordPress หรือ workflow อื่นได้ใน phase ถัดไป</li>
+                {draftToneNotes.map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
               </ul>
               <div className={styles.inlineActions}>
                 <button
                   className={styles.secondaryButton}
                   onClick={() =>
-                    updateJob(`/api/jobs/${job.id}/publish`, `ทำเครื่องหมายพร้อมเผยแพร่สำหรับ ${job.client} แล้ว`)
+                    updateJob(
+                      `/api/jobs/${job.id}/publish`,
+                      `ทำเครื่องหมายพร้อมเผยแพร่สำหรับ ${getProjectLabel(job.client)} แล้ว`
+                    )
                   }
                   type="button"
                 >
@@ -865,7 +947,7 @@ export function WorkflowDashboard() {
                 <strong>ขั้นต่อไปที่แนะนำ</strong>
                 <p>
                   ตอนนี้มีทั้งปุ่มอนุมัติและปุ่มส่งเผยแพร่แล้ว รอบถัดไปค่อยเชื่อม publish ไปยัง WordPress
-                  หรือ workflow content ops ตัวจริงได้ต่อจากหน้าเดียวกัน
+                  และเพิ่มการสร้างภาพจริงจาก prompt ได้ต่อจาก flow เดียวกัน
                 </p>
               </div>
             </aside>
