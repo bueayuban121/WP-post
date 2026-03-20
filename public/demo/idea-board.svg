@@ -1,0 +1,31 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="720" rx="36" fill="#F6EBDD"/>
+  <rect x="52" y="52" width="1176" height="616" rx="28" fill="#FFFDF9" stroke="#D7B89A"/>
+  <text x="92" y="118" fill="#8A4B21" font-family="Arial, sans-serif" font-size="34" font-weight="700">Keyword Expansion Board</text>
+  <text x="92" y="162" fill="#7A6B5F" font-family="Arial, sans-serif" font-size="20">Seed keyword turns into multiple client-ready article directions.</text>
+  <rect x="92" y="210" width="248" height="156" rx="24" fill="#FFF1E4" stroke="#E0B792"/>
+  <rect x="374" y="210" width="248" height="156" rx="24" fill="#F8F3EA" stroke="#D9C8AF"/>
+  <rect x="656" y="210" width="248" height="156" rx="24" fill="#FFF1E4" stroke="#E0B792"/>
+  <rect x="938" y="210" width="248" height="156" rx="24" fill="#F8F3EA" stroke="#D9C8AF"/>
+  <rect x="92" y="402" width="340" height="204" rx="24" fill="#FBF8F2" stroke="#D9C8AF"/>
+  <rect x="466" y="402" width="340" height="204" rx="24" fill="#FFF1E4" stroke="#E0B792"/>
+  <rect x="840" y="402" width="346" height="204" rx="24" fill="#FBF8F2" stroke="#D9C8AF"/>
+  <text x="120" y="264" fill="#513A2A" font-family="Arial, sans-serif" font-size="24" font-weight="700">Goldfish diseases</text>
+  <text x="120" y="300" fill="#7A6B5F" font-family="Arial, sans-serif" font-size="18">Problem-solving</text>
+  <text x="402" y="264" fill="#513A2A" font-family="Arial, sans-serif" font-size="24" font-weight="700">Water pH care</text>
+  <text x="402" y="300" fill="#7A6B5F" font-family="Arial, sans-serif" font-size="18">Informational</text>
+  <text x="684" y="264" fill="#513A2A" font-family="Arial, sans-serif" font-size="24" font-weight="700">Best food guide</text>
+  <text x="684" y="300" fill="#7A6B5F" font-family="Arial, sans-serif" font-size="18">Commercial</text>
+  <text x="966" y="264" fill="#513A2A" font-family="Arial, sans-serif" font-size="24" font-weight="700">FAQ cluster</text>
+  <text x="966" y="300" fill="#7A6B5F" font-family="Arial, sans-serif" font-size="18">Supporting topic</text>
+  <text x="120" y="448" fill="#8A4B21" font-family="Arial, sans-serif" font-size="22" font-weight="700">Client-facing notes</text>
+  <text x="120" y="488" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="18">- Intent and difficulty</text>
+  <text x="120" y="520" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="18">- Why this topic matters</text>
+  <text x="120" y="552" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="18">- Thai and global signals</text>
+  <text x="494" y="448" fill="#8A4B21" font-family="Arial, sans-serif" font-size="22" font-weight="700">Selection goal</text>
+  <text x="494" y="488" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="18">Client picks direction before writing begins.</text>
+  <text x="494" y="520" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="18">This reduces waste and improves approval speed.</text>
+  <text x="868" y="448" fill="#8A4B21" font-family="Arial, sans-serif" font-size="22" font-weight="700">Output</text>
+  <text x="868" y="488" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="18">A shortlist of article opportunities</text>
+  <text x="868" y="520" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="18">ready for client review.</text>
+</svg>

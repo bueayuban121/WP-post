@@ -332,6 +332,10 @@
   margin-top: 32px;
 }
 
+.visualSection {
+  margin-top: 32px;
+}
+
 .storyGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -339,9 +343,48 @@
   margin-top: 20px;
 }
 
+.visualGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
 .storyCard {
   border-radius: 24px;
   padding: 22px;
+}
+
+.visualCard {
+  border-radius: 24px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow);
+}
+
+.visualCard strong {
+  display: block;
+  margin-top: 14px;
+}
+
+.visualCard p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.visualFrame {
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(133, 96, 74, 0.16);
+  background: linear-gradient(180deg, rgba(255, 252, 247, 0.95), rgba(249, 241, 230, 0.92));
+}
+
+.visualImage {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .storyCard h3 {
@@ -595,6 +638,7 @@
   .kpiGrid,
   .heroSignalRow,
   .storyGrid,
+  .visualGrid,
   .infoGrid,
   .dualColumn,
   .metaPanel,

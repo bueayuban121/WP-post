@@ -1,0 +1,22 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="720" rx="36" fill="#F8EEE2"/>
+  <rect x="66" y="58" width="1148" height="604" rx="30" fill="#FFFCF7" stroke="#D9B99A"/>
+  <text x="104" y="122" fill="#8A4B21" font-family="Arial, sans-serif" font-size="34" font-weight="700">Client Selection and Approval</text>
+  <text x="104" y="164" fill="#7A6B5F" font-family="Arial, sans-serif" font-size="20">The client chooses one topic, then the workflow moves into research and briefing.</text>
+  <rect x="104" y="216" width="510" height="328" rx="24" fill="#FFF5EA" stroke="#E2C09E"/>
+  <rect x="664" y="216" width="446" height="328" rx="24" fill="#FBF8F2" stroke="#D9C8AF"/>
+  <circle cx="178" cy="282" r="22" fill="#C87A39"/>
+  <text x="214" y="290" fill="#513A2A" font-family="Arial, sans-serif" font-size="26" font-weight="700">Topic chosen</text>
+  <text x="148" y="340" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="22">Goldfish water pH guide</text>
+  <text x="148" y="384" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="18">Client intent: educational, safe, practical</text>
+  <text x="148" y="416" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="18">Decision owner: marketing + client</text>
+  <rect x="146" y="456" width="188" height="52" rx="26" fill="#C87A39"/>
+  <text x="183" y="490" fill="#FFF9F1" font-family="Arial, sans-serif" font-size="20" font-weight="700">Approved</text>
+  <text x="704" y="280" fill="#8A4B21" font-family="Arial, sans-serif" font-size="24" font-weight="700">What happens next</text>
+  <text x="704" y="330" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="19">1. Build Thai + Global research pack</text>
+  <text x="704" y="366" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="19">2. Lock SEO brief before drafting</text>
+  <text x="704" y="402" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="19">3. Generate draft for editorial review</text>
+  <text x="704" y="438" fill="#6F5C4C" font-family="Arial, sans-serif" font-size="19">4. Approve and publish when ready</text>
+  <rect x="104" y="578" width="1006" height="48" rx="24" fill="#F3E1CF"/>
+  <text x="144" y="609" fill="#7A5638" font-family="Arial, sans-serif" font-size="18">This stage keeps the process calm: the client validates direction before the team spends time writing.</text>
+</svg>

@@ -472,6 +472,32 @@ export async function generateJobDraft(jobId: string) {
   return updateStoredWorkflow(jobId, "drafting", { draft });
 }
 
+export async function approveJob(jobId: string) {
+  const job = await getJob(jobId);
+  if (!job) return null;
+
+  if (!isDatabaseConfigured()) {
+    job.stage = "approved";
+    jobs.set(job.id, job);
+    return cloneJob(job);
+  }
+
+  return updateStoredWorkflow(jobId, "approved", {});
+}
+
+export async function publishJob(jobId: string) {
+  const job = await getJob(jobId);
+  if (!job) return null;
+
+  if (!isDatabaseConfigured()) {
+    job.stage = "published";
+    jobs.set(job.id, job);
+    return cloneJob(job);
+  }
+
+  return updateStoredWorkflow(jobId, "published", {});
+}
+
 export async function applyAutomationResult(input: {
   jobId: string;
   type: "research" | "brief" | "draft" | "publish";

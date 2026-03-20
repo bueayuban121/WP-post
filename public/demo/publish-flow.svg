@@ -1,0 +1,21 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="720" rx="36" fill="#F7EEE6"/>
+  <rect x="58" y="56" width="1164" height="608" rx="28" fill="#FFFCF9" stroke="#D9BBA2"/>
+  <text x="98" y="118" fill="#8C5630" font-family="Arial, sans-serif" font-size="34" font-weight="700">Approve and Publish Flow</text>
+  <text x="98" y="160" fill="#7D695A" font-family="Arial, sans-serif" font-size="20">The final stage can stay calm and simple: approve, hand off, publish, and log the result.</text>
+  <circle cx="214" cy="372" r="72" fill="#FFF1E4" stroke="#E1BE9E" stroke-width="8"/>
+  <circle cx="500" cy="372" r="72" fill="#FFF1E4" stroke="#E1BE9E" stroke-width="8"/>
+  <circle cx="786" cy="372" r="72" fill="#FFF1E4" stroke="#E1BE9E" stroke-width="8"/>
+  <circle cx="1072" cy="372" r="72" fill="#FFF1E4" stroke="#E1BE9E" stroke-width="8"/>
+  <path d="M286 372H428" stroke="#D19A6E" stroke-width="10" stroke-linecap="round"/>
+  <path d="M572 372H714" stroke="#D19A6E" stroke-width="10" stroke-linecap="round"/>
+  <path d="M858 372H1000" stroke="#D19A6E" stroke-width="10" stroke-linecap="round"/>
+  <text x="168" y="380" fill="#8C5630" font-family="Arial, sans-serif" font-size="20" font-weight="700">Draft</text>
+  <text x="444" y="380" fill="#8C5630" font-family="Arial, sans-serif" font-size="20" font-weight="700">Approve</text>
+  <text x="736" y="380" fill="#8C5630" font-family="Arial, sans-serif" font-size="20" font-weight="700">Queue</text>
+  <text x="1032" y="380" fill="#8C5630" font-family="Arial, sans-serif" font-size="20" font-weight="700">Publish</text>
+  <text x="154" y="496" fill="#7D695A" font-family="Arial, sans-serif" font-size="18">Writer and reviewer align</text>
+  <text x="414" y="496" fill="#7D695A" font-family="Arial, sans-serif" font-size="18">Content is approved internally</text>
+  <text x="698" y="496" fill="#7D695A" font-family="Arial, sans-serif" font-size="18">Send to n8n or app workflow</text>
+  <text x="996" y="496" fill="#7D695A" font-family="Arial, sans-serif" font-size="18">Push to CMS and record status</text>
+</svg>

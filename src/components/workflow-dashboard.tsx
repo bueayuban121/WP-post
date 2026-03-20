@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { type FormEvent, useCallback, useEffect, useState, useTransition } from "react";
 import { workflowStages } from "@/data/mock-workflow";
 import {
@@ -46,6 +47,45 @@ const difficultyLabels = {
   medium: "กลาง",
   high: "ยาก"
 } as const;
+
+const demoVisuals = [
+  {
+    src: "/demo/idea-board.svg",
+    alt: "ภาพกระดานรวมไอเดียคอนเทนต์จาก seed keyword",
+    title: "Idea board",
+    description: "ใช้เล่าให้ลูกค้าเห็นว่า 1 keyword ถูกแตกเป็นหลายมุมบทความได้"
+  },
+  {
+    src: "/demo/client-approval.svg",
+    alt: "ภาพขั้นตอนให้ลูกค้าเลือกหัวข้อและอนุมัติ",
+    title: "Client selection",
+    description: "แสดงช่วงที่ลูกค้าเลือกหัวข้อก่อนเข้าสู่รีเสิร์ชจริง"
+  },
+  {
+    src: "/demo/research-pack.svg",
+    alt: "ภาพชุดรีเสิร์ชจากไทยและต่างประเทศ",
+    title: "Research pack",
+    description: "ใช้สื่อว่าบทความมีข้อมูลไทยและต่างประเทศรองรับ"
+  },
+  {
+    src: "/demo/brief-map.svg",
+    alt: "ภาพแผนผัง SEO brief และโครงบทความ",
+    title: "SEO brief",
+    description: "สรุป title, outline, FAQ และ internal links ในมุมเดียว"
+  },
+  {
+    src: "/demo/draft-editor.svg",
+    alt: "ภาพหน้าจอดราฟต์บทความพร้อมเนื้อหา",
+    title: "Draft editor",
+    description: "ช่วยให้เดโมดูใกล้เคียงงานจริงเวลาพรีเซนต์ลูกค้า"
+  },
+  {
+    src: "/demo/publish-flow.svg",
+    alt: "ภาพขั้นตอนอนุมัติและส่งเผยแพร่บทความ",
+    title: "Approve to publish",
+    description: "ใช้ปิดเดโมให้เห็นว่าระบบพร้อมต่อไปยัง WordPress หรือ workflow publish"
+  }
+] as const;
 
 function formatStage(stage: WorkflowStage) {
   return stageLabels[stage];
@@ -123,22 +163,22 @@ export function WorkflowDashboard() {
     {
       step: "01",
       title: "แตก seed keyword เป็นหลายไอเดีย",
-      detail: "เริ่มจากคีย์เวิร์ดเดียว แล้วแตกเป็นหัวข้อพร้อม intent และมุมเล่นให้ลูกค้าเลือก"
+      detail: "เริ่มจากคีย์เวิร์ดเดียว แล้วค่อยๆ แตกเป็นหัวข้อพร้อม intent และมุมเล่นให้ลูกค้าเลือก"
     },
     {
       step: "02",
       title: "รีเสิร์ชก่อนเขียน",
-      detail: "รวมข้อมูลไทยและต่างประเทศเพื่อกันบทความ AI ที่กว้างเกินและไม่มีหลักฐานรองรับ"
+      detail: "รวมข้อมูลไทยและต่างประเทศเพื่อให้บทความมีน้ำหนักและไม่เป็น AI output แบบกว้างๆ"
     },
     {
       step: "03",
       title: "ล็อกบรีฟให้ชัดก่อนสร้างดราฟต์",
-      detail: "กำหนด title, outline, meta, FAQ และ internal links ก่อนใช้เวลาแก้บทความ"
+      detail: "กำหนด title, outline, meta, FAQ และ internal links ให้ชัดก่อนใช้เวลาแก้บทความ"
     },
     {
       step: "04",
       title: "ส่งต่อดราฟต์และเตรียมเผยแพร่",
-      detail: "สร้างดราฟต์แรก ตรวจทาน แล้วต่อเข้าระบบ publish หรือ WordPress ภายหลังได้"
+      detail: "สร้างดราฟต์แรก ตรวจทาน อนุมัติ แล้วค่อยส่งต่อเข้าระบบ publish หรือ WordPress"
     }
   ];
 
@@ -326,7 +366,7 @@ export function WorkflowDashboard() {
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
           <span className={styles.eyebrow}>SEO Content Workflow</span>
-          <h1>เปลี่ยน 1 keyword ให้กลายเป็นบทความพร้อมส่งลูกค้าแบบมีรีเสิร์ชรองรับ</h1>
+          <h1>เปลี่ยน 1 keyword ให้ค่อยๆ กลายเป็นบทความพร้อมส่งลูกค้าแบบมีรีเสิร์ชรองรับ</h1>
           <p>
             หน้านี้เล่า flow จริงตั้งแต่แตกคีย์เวิร์ด ให้ลูกค้าเลือกหัวข้อ รีเสิร์ชข้อมูลไทยและต่างประเทศ
             ทำบรีฟ SEO และต่อยอดเป็นดราฟต์บทความในระบบเดียว
@@ -352,7 +392,7 @@ export function WorkflowDashboard() {
               <strong>{fallbackEvents > 0 ? "มี fallback ในแอป" : "พร้อมเชื่อม n8n"}</strong>
               <p>
                 {fallbackEvents > 0
-                  ? "ถ้า n8n ยังไม่พร้อม ระบบยังเดินงานต่อได้เพื่อใช้เดโมและทำงานภายใน"
+                  ? "ถ้า n8n ยังไม่พร้อม ระบบยังพาเดโมเดินต่อได้อย่างนุ่มนวลเพื่อไม่ให้ flow สะดุด"
                   : "พร้อมยิง workflow ไปยัง n8n สำหรับรีเสิร์ช บรีฟ ดราฟต์ และเผยแพร่"}
               </p>
             </div>
@@ -461,8 +501,8 @@ export function WorkflowDashboard() {
             <h2>สิ่งที่ลูกค้าจะเข้าใจได้เร็วจากเดโมชุดนี้</h2>
           </div>
           <p>
-            โครงนี้ออกแบบให้เล่า value ก่อน ไม่ใช่โชว์เทคนิคอย่างเดียว ลูกค้าจะเห็นว่าเลือกหัวข้อได้,
-            มีรีเสิร์ชรองรับ, อนุมัติบรีฟได้ และดูกระบวนการสร้างดราฟต์ต่อได้ทันที
+            โครงนี้ออกแบบให้เล่า value ก่อน ไม่ใช่โชว์เทคนิคอย่างเดียว ลูกค้าจะเห็นว่าเลือกหัวข้อได้
+            มีรีเสิร์ชรองรับ อนุมัติงานได้ และมองกระบวนการสร้างดราฟต์ต่อได้แบบชัดเจน
           </p>
         </div>
         <div className={styles.storyGrid}>
@@ -471,6 +511,36 @@ export function WorkflowDashboard() {
               <span className={styles.storyStep}>{moment.step}</span>
               <h3>{moment.title}</h3>
               <p>{moment.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.visualSection}>
+        <div className={styles.sectionHeading}>
+          <div>
+            <span className={styles.eyebrow}>Visual support</span>
+            <h2>ภาพประกอบสำหรับใช้พรีเซนต์งานกับลูกค้า</h2>
+          </div>
+          <p>
+            ชุดภาพนี้ช่วยให้การอธิบายระบบนุ่มขึ้นและจับต้องง่ายขึ้น โดยเฉพาะตอนอธิบาย flow
+            ตั้งแต่เลือกไอเดีย รีเสิร์ช ไปจนถึงอนุมัติและส่งเผยแพร่
+          </p>
+        </div>
+        <div className={styles.visualGrid}>
+          {demoVisuals.map((visual) => (
+            <article key={visual.src} className={styles.visualCard}>
+              <div className={styles.visualFrame}>
+                <Image
+                  alt={visual.alt}
+                  className={styles.visualImage}
+                  height={720}
+                  src={visual.src}
+                  width={1280}
+                />
+              </div>
+              <strong>{visual.title}</strong>
+              <p>{visual.description}</p>
             </article>
           ))}
         </div>
@@ -709,6 +779,15 @@ export function WorkflowDashboard() {
               <h3>พื้นที่ดราฟต์บทความ</h3>
             </div>
             <div className={styles.heroActions}>
+              <button
+                className={styles.secondaryButton}
+                onClick={() =>
+                  updateJob(`/api/jobs/${job.id}/approve`, `อนุมัติดราฟต์ของ ${job.client} แล้ว`)
+                }
+                type="button"
+              >
+                อนุมัติบทความ
+              </button>
               <button className={styles.secondaryButton} onClick={() => void runAutomation("draft")} type="button">
                 ส่งดราฟต์เข้า n8n
               </button>
@@ -738,9 +817,18 @@ export function WorkflowDashboard() {
                 <li>ต่อเข้า n8n ได้เมื่อ workflow ฝั่ง automation พร้อมจริง</li>
                 <li>ถ้า webhook มีปัญหา ระบบยังเดินงานต่อด้วย in-app fallback ได้</li>
                 <li>ทุกครั้งที่รันจะมี event log เก็บสถานะไว้ตรวจย้อนหลัง</li>
-                <li>ขั้น publish ยังต่อ WordPress เพิ่มได้ใน phase ถัดไป</li>
+                <li>ขั้น publish ต่อ WordPress หรือ workflow อื่นได้ใน phase ถัดไป</li>
               </ul>
               <div className={styles.inlineActions}>
+                <button
+                  className={styles.secondaryButton}
+                  onClick={() =>
+                    updateJob(`/api/jobs/${job.id}/publish`, `ทำเครื่องหมายพร้อมเผยแพร่สำหรับ ${job.client} แล้ว`)
+                  }
+                  type="button"
+                >
+                  ส่งเผยแพร่ในระบบ
+                </button>
                 <button className={styles.secondaryButton} onClick={() => void runAutomation("publish")} type="button">
                   ส่งเผยแพร่เข้า n8n
                 </button>
@@ -776,8 +864,8 @@ export function WorkflowDashboard() {
               <div className={styles.sourceCard}>
                 <strong>ขั้นต่อไปที่แนะนำ</strong>
                 <p>
-                  หลังเดโม flow นี้นิ่งแล้ว ค่อยเพิ่มปุ่มอนุมัติและส่งต่อ publish ไปยัง WordPress
-                  ในหน้าเดียวกันได้ทันที
+                  ตอนนี้มีทั้งปุ่มอนุมัติและปุ่มส่งเผยแพร่แล้ว รอบถัดไปค่อยเชื่อม publish ไปยัง WordPress
+                  หรือ workflow content ops ตัวจริงได้ต่อจากหน้าเดียวกัน
                 </p>
               </div>
             </aside>
