@@ -34,6 +34,10 @@ function cloneEvent(event: WorkflowAutomationEvent): WorkflowAutomationEvent {
 
 type StoredEvent = Prisma.WorkflowEventGetPayload<Record<string, never>>;
 
+function toPrismaJson(payload?: Record<string, unknown>) {
+  return payload as Prisma.InputJsonValue | undefined;
+}
+
 function fromStoredEvent(event: StoredEvent): WorkflowAutomationEvent {
   return {
     id: event.id,
@@ -112,7 +116,7 @@ export async function createWorkflowEvent(input: {
       source: input.source,
       workflowRunId: input.workflowRunId,
       message: input.message,
-      payload: input.payload
+      payload: toPrismaJson(input.payload)
     }
   });
 
@@ -161,7 +165,7 @@ export async function updateWorkflowEvent(
       ...(input.status ? { status: mapStatusToDb(input.status) } : {}),
       ...(input.workflowRunId ? { workflowRunId: input.workflowRunId } : {}),
       ...(input.message ? { message: input.message } : {}),
-      ...(input.payload ? { payload: input.payload } : {})
+      ...(input.payload ? { payload: toPrismaJson(input.payload) } : {})
     }
   });
 
