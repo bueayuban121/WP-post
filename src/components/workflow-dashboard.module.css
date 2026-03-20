@@ -1,14 +1,14 @@
 .page {
-  width: min(1400px, calc(100% - 32px));
+  width: min(1460px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 20px 0 40px;
+  padding: 20px 0 44px;
 }
 
 .shell,
 .sidebar,
 .content,
-.ideaList,
-.actionGrid {
+.actionGrid,
+.ideaList {
   display: flex;
   flex-direction: column;
 }
@@ -21,16 +21,16 @@
 
 .workspace {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 18px;
 }
 
 .topbar,
 .panel,
 .articleLayout {
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(8, 10, 14, 0.96);
-  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+  background: rgba(7, 9, 12, 0.98);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.28);
 }
 
 .topbar,
@@ -54,7 +54,8 @@
 .jobRow,
 .ideaMeta,
 .miniStats,
-.briefMeta {
+.briefMeta,
+.contentTabs {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -70,18 +71,19 @@
 
 .title {
   margin: 6px 0 0;
-  font-size: clamp(1.85rem, 3vw, 2.8rem);
+  font-size: clamp(1.9rem, 3vw, 2.8rem);
   letter-spacing: -0.05em;
 }
 
 .statusChip,
 .statusChipMuted,
 .keywordChip,
-.jobChip {
+.jobChip,
+.contentTab {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 9px 13px;
+  padding: 10px 14px;
   font-size: 0.84rem;
 }
 
@@ -91,18 +93,21 @@
 }
 
 .statusChipMuted,
-.jobChip {
+.jobChip,
+.contentTab {
   background: rgba(255, 255, 255, 0.04);
   color: #9ca4b1;
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.jobChip {
+.jobChip,
+.contentTab {
   cursor: pointer;
 }
 
-.jobChipActive {
-  background: rgba(240, 139, 62, 0.14);
+.jobChipActive,
+.contentTabActive {
+  background: rgba(240, 139, 62, 0.15);
   color: #f0c37e;
   border-color: rgba(240, 139, 62, 0.26);
 }
@@ -132,8 +137,12 @@
 
 .primaryButton,
 .secondaryButton,
-.ideaCard {
-  transition: 160ms ease;
+.topicTab {
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .primaryButton,
@@ -155,6 +164,14 @@
   color: #f5f7fb;
 }
 
+.primaryButton:hover,
+.secondaryButton:hover,
+.contentTab:hover,
+.jobChip:hover,
+.topicTab:hover {
+  transform: translateY(-1px);
+}
+
 .jobRow {
   margin-top: 14px;
 }
@@ -162,7 +179,7 @@
 .sectionHead h2,
 .briefStrip h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.08rem;
 }
 
 .miniStats {
@@ -188,14 +205,14 @@
   color: #f0c37e;
 }
 
-.ideaList,
-.actionGrid {
+.topicTabs {
+  display: grid;
   gap: 10px;
 }
 
-.ideaCard {
+.topicTab {
   width: 100%;
-  padding: 14px;
+  padding: 14px 15px;
   text-align: left;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -204,33 +221,28 @@
   cursor: pointer;
 }
 
-.ideaCardSelected {
+.topicTab strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.96rem;
+}
+
+.topicTab span {
+  color: #8e98a8;
+  line-height: 1.55;
+  font-size: 0.86rem;
+}
+
+.topicTabActive {
   border-color: rgba(240, 139, 62, 0.28);
   background: rgba(240, 139, 62, 0.08);
-}
-
-.ideaMeta {
-  color: #8e98a8;
-  font-size: 0.79rem;
-}
-
-.ideaCard strong {
-  display: block;
-  margin-top: 10px;
-}
-
-.ideaCard p,
-.subtle,
-.imageCard p,
-.articleBody p {
-  margin: 8px 0 0;
-  color: #9aa3af;
-  line-height: 1.75;
+  box-shadow: inset 0 0 0 1px rgba(240, 139, 62, 0.08);
 }
 
 .actionGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
 .simpleList,
@@ -248,19 +260,50 @@
   color: #c0c7d1;
 }
 
+.subtle,
+.articleBody p,
+.featuredImageMeta p,
+.imageCard p {
+  color: #9aa3af;
+  line-height: 1.75;
+}
+
+.contentTabs {
+  position: sticky;
+  top: 14px;
+  z-index: 2;
+  padding: 8px;
+  border-radius: 18px;
+  background: rgba(7, 9, 12, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+}
+
 .articleLayout {
-  border-radius: 24px;
+  border-radius: 26px;
   overflow: hidden;
 }
 
-.heroImage {
+.motionBlock {
+  animation: fadeUp 260ms ease;
+}
+
+.heroImage,
+.featuredImageFrame,
+.inlineImage,
+.imageThumbLarge {
+  overflow: hidden;
   background: #0d1015;
+}
+
+.heroImage {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .heroImage img,
+.featuredImageFrame img,
 .inlineImage img,
-.imageThumb img {
+.imageThumbLarge img {
   display: block;
   width: 100%;
   height: auto;
@@ -274,7 +317,7 @@
 }
 
 .articleBody {
-  padding: 24px 20px 28px;
+  padding: 28px 24px 32px;
 }
 
 .articleIntro,
@@ -283,7 +326,7 @@
 }
 
 .articleSection + .articleSection {
-  margin-top: 24px;
+  margin-top: 28px;
 }
 
 .articleSection h3,
@@ -293,15 +336,12 @@
 }
 
 .inlineFigure {
-  margin: 16px 0 0;
+  margin: 18px 0 0;
 }
 
-.inlineImage,
-.imageThumb {
-  overflow: hidden;
-  border-radius: 16px;
+.inlineImage {
+  border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: #11161d;
 }
 
 .inlineFigure figcaption {
@@ -313,29 +353,54 @@
   font-size: 0.82rem;
 }
 
-.imageGrid {
+.featuredImageCard {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 16px;
+  margin-top: 4px;
 }
 
-.imageCard {
+.featuredImageFrame,
+.imageThumbLarge {
+  border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 18px;
-  padding: 14px;
+}
+
+.featuredImageMeta,
+.imageCard {
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.025);
 }
 
+.featuredImageMeta strong,
 .imageCard strong {
   display: block;
-  margin-top: 12px;
+  margin-bottom: 8px;
 }
 
+.featuredImageMeta span,
 .imageCard span {
   display: inline-flex;
-  margin-top: 10px;
+  margin-top: 12px;
   color: #f0c37e;
   font-size: 0.82rem;
+}
+
+.imageGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.imageThumbLarge {
+  margin: -16px -16px 14px;
+  border-radius: 20px 20px 0 0;
+  border-right: 0;
+  border-left: 0;
+  border-top: 0;
 }
 
 .twoColumn {
@@ -349,9 +414,22 @@
   margin-top: 6px;
 }
 
-@media (max-width: 1100px) {
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1150px) {
   .workspace,
   .createForm,
+  .featuredImageCard,
   .twoColumn,
   .actionGrid,
   .imageGrid {
@@ -379,5 +457,9 @@
   .latestRow {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .contentTabs {
+    top: 8px;
   }
 }

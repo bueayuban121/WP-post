@@ -17,6 +17,8 @@ type ArticleImage = {
   placement: string;
 };
 
+type ContentView = "article" | "images" | "structure";
+
 const stageLabels: Record<WorkflowStage, string> = {
   idea_pool: "คลังหัวข้อ",
   selected: "เลือกหัวข้อแล้ว",
@@ -54,6 +56,12 @@ const difficultyLabels = {
   high: "Hard"
 } as const;
 
+const contentViewLabels: Record<ContentView, string> = {
+  article: "บทความ",
+  images: "ภาพ",
+  structure: "โครง"
+};
+
 const imageThemes = {
   health: [
     "/article-images/goldfish-health-1.svg",
@@ -74,14 +82,8 @@ const imageThemes = {
 } as const;
 
 function getTheme(title: string) {
-  if (title.includes("โรค")) {
-    return "health" as const;
-  }
-
-  if (title.includes("น้ำ") || title.toLowerCase().includes("ph")) {
-    return "water" as const;
-  }
-
+  if (title.includes("โรค")) return "health" as const;
+  if (title.includes("น้ำ") || title.toLowerCase().includes("ph")) return "water" as const;
   return "food" as const;
 }
 
@@ -104,7 +106,7 @@ function getArticleImages(title: string): ArticleImage[] {
     },
     {
       src: base[2],
-      alt: `ภาพอธิบายวิธีดูแลหรือวิธีทำสำหรับหัวข้อ ${title}`,
+      alt: `ภาพอธิบายวิธีดูแลสำหรับหัวข้อ ${title}`,
       caption: "ภาพอธิบายวิธีดูแล",
       placement: "หลัง H2 ที่สอง"
     },
@@ -139,6 +141,7 @@ export function WorkflowDashboard() {
   const [activeJobId, setActiveJobId] = useState("");
   const [client, setClient] = useState("AquaCare Thailand");
   const [seedKeyword, setSeedKeyword] = useState("ปลาทอง");
+  const [contentView, setContentView] = useState<ContentView>("article");
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("กำลังโหลดข้อมูล...");
   const [isPending, startTransition] = useTransition();
@@ -274,6 +277,124 @@ export function WorkflowDashboard() {
     });
   }
 
+  function renderArticle() {
+    return (
+      <article className={`${styles.articleLayout} ${styles.motionBlock}`}>
+        <div className={styles.heroImage}>
+          <Image
+            alt={articleImages[0]?.alt ?? job?.brief.title ?? "Hero image"}
+            height={900}
+            priority
+            src={articleImages[0]?.src ?? "/article-images/goldfish-water-1.svg"}
+            width={1600}
+          />
+        </div>
+
+        <div className={styles.articleMeta}>
+          <span>{articleImages[0]?.caption}</span>
+          <span>{articleImages[0]?.placement}</span>
+        </div>
+
+        <div className={styles.articleBody}>
+          <p className={styles.articleIntro}>{job?.draft.intro}</p>
+
+          {job?.draft.sections.map((section, index) => {
+            const image = articleImages[index + 1];
+
+            return (
+              <section key={section.heading} className={styles.articleSection}>
+                <h3>{section.heading}</h3>
+                <p>{section.body}</p>
+                {image ? (
+                  <figure className={styles.inlineFigure}>
+                    <div className={styles.inlineImage}>
+                      <Image alt={image.alt} height={840} src={image.src} width={1400} />
+                    </div>
+                    <figcaption>
+                      <strong>{image.caption}</strong>
+                      <span>{image.placement}</span>
+                    </figcaption>
+                  </figure>
+                ) : null}
+              </section>
+            );
+          })}
+
+          <p className={styles.articleConclusion}>{job?.draft.conclusion}</p>
+        </div>
+      </article>
+    );
+  }
+
+  function renderImages() {
+    return (
+      <div className={`${styles.panel} ${styles.motionBlock}`}>
+        <div className={styles.sectionHead}>
+          <div>
+            <span className={styles.label}>Article images</span>
+            <h2>ภาพที่ใช้ในบทความ</h2>
+          </div>
+        </div>
+
+        <div className={styles.featuredImageCard}>
+          <div className={styles.featuredImageFrame}>
+            <Image alt={articleImages[0]?.alt ?? "Featured image"} height={920} src={articleImages[0]?.src ?? "/article-images/goldfish-water-1.svg"} width={1600} />
+          </div>
+          <div className={styles.featuredImageMeta}>
+            <strong>{articleImages[0]?.caption}</strong>
+            <p>{articleImages[0]?.alt}</p>
+            <span>{articleImages[0]?.placement}</span>
+          </div>
+        </div>
+
+        <div className={styles.imageGrid}>
+          {articleImages.slice(1).map((image) => (
+            <article key={image.src} className={styles.imageCard}>
+              <div className={styles.imageThumbLarge}>
+                <Image alt={image.alt} height={840} src={image.src} width={1400} />
+              </div>
+              <strong>{image.caption}</strong>
+              <p>{image.alt}</p>
+              <span>{image.placement}</span>
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function renderStructure() {
+    return (
+      <div className={`${styles.panel} ${styles.motionBlock}`}>
+        <div className={styles.sectionHead}>
+          <div>
+            <span className={styles.label}>Structure</span>
+            <h2>โครงบทความ</h2>
+          </div>
+        </div>
+
+        <div className={styles.twoColumn}>
+          <div>
+            <h3 className={styles.smallHeading}>Outline</h3>
+            <ol className={styles.simpleListOrdered}>
+              {job?.brief.outline.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ol>
+          </div>
+          <div>
+            <h3 className={styles.smallHeading}>FAQ</h3>
+            <ul className={styles.simpleList}>
+              {job?.brief.faqs.map((faq) => (
+                <li key={faq}>{faq}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!job || !selectedIdea) {
     return (
       <main className={styles.page}>
@@ -366,7 +487,7 @@ export function WorkflowDashboard() {
                   <strong>{stageLabels[job.stage]}</strong>
                 </div>
                 <div>
-                  <span className={styles.label}>อัปเดตล่าสุด</span>
+                  <span className={styles.label}>ล่าสุด</span>
                   <strong>{latestEvent ? formatDateTime(latestEvent.updatedAt) : "-"}</strong>
                 </div>
               </div>
@@ -374,17 +495,20 @@ export function WorkflowDashboard() {
 
             <div className={styles.panel}>
               <div className={styles.sectionHead}>
-                <h2>เลือกหัวข้อ</h2>
+                <div>
+                  <span className={styles.label}>Topics</span>
+                  <h2>เลือกหัวข้อ</h2>
+                </div>
               </div>
 
-              <div className={styles.ideaList}>
+              <div className={styles.topicTabs}>
                 {job.ideas.map((idea) => {
                   const selected = idea.id === job.selectedIdeaId;
 
                   return (
                     <button
                       key={idea.id}
-                      className={`${styles.ideaCard} ${selected ? styles.ideaCardSelected : ""}`}
+                      className={`${styles.topicTab} ${selected ? styles.topicTabActive : ""}`}
                       disabled={isPending}
                       onClick={() =>
                         updateJob(`/api/jobs/${job.id}/ideas/select`, `เลือกหัวข้อ "${idea.title}" แล้ว`, {
@@ -393,13 +517,8 @@ export function WorkflowDashboard() {
                       }
                       type="button"
                     >
-                      <div className={styles.ideaMeta}>
-                        <span>{searchIntentLabels[idea.searchIntent]}</span>
-                        <span>{difficultyLabels[idea.difficulty]}</span>
-                        <span>{idea.confidence}%</span>
-                      </div>
                       <strong>{idea.title}</strong>
-                      <p>{idea.angle}</p>
+                      <span>{idea.angle}</span>
                     </button>
                   );
                 })}
@@ -408,7 +527,10 @@ export function WorkflowDashboard() {
 
             <div className={styles.panel}>
               <div className={styles.sectionHead}>
-                <h2>ลำดับงาน</h2>
+                <div>
+                  <span className={styles.label}>Workflow</span>
+                  <h2>ลำดับงาน</h2>
+                </div>
               </div>
 
               <div className={styles.actionGrid}>
@@ -459,7 +581,10 @@ export function WorkflowDashboard() {
 
             <div className={styles.panel}>
               <div className={styles.sectionHead}>
-                <h2>Research notes</h2>
+                <div>
+                  <span className={styles.label}>Research</span>
+                  <h2>Key notes</h2>
+                </div>
               </div>
 
               <ul className={styles.simpleList}>
@@ -474,6 +599,7 @@ export function WorkflowDashboard() {
             <div className={styles.panel}>
               <div className={styles.briefStrip}>
                 <div>
+                  <span className={styles.label}>SEO brief</span>
                   <h2>{job.brief.title}</h2>
                   <p className={styles.subtle}>{job.brief.angle}</p>
                 </div>
@@ -484,99 +610,28 @@ export function WorkflowDashboard() {
               </div>
             </div>
 
-            <article className={styles.articleLayout}>
-              <div className={styles.heroImage}>
-                <Image
-                  alt={articleImages[0]?.alt ?? job.brief.title}
-                  height={720}
-                  src={articleImages[0]?.src ?? "/article-images/goldfish-water-1.svg"}
-                  width={1280}
-                />
-              </div>
-
-              <div className={styles.articleMeta}>
-                <span>{articleImages[0]?.caption}</span>
-                <span>{articleImages[0]?.placement}</span>
-              </div>
-
-              <div className={styles.articleBody}>
-                <p className={styles.articleIntro}>{job.draft.intro}</p>
-
-                {job.draft.sections.map((section, index) => {
-                  const image = articleImages[index + 1];
-
-                  return (
-                    <section key={section.heading} className={styles.articleSection}>
-                      <h3>{section.heading}</h3>
-                      <p>{section.body}</p>
-                      {image ? (
-                        <figure className={styles.inlineFigure}>
-                          <div className={styles.inlineImage}>
-                            <Image alt={image.alt} height={720} src={image.src} width={1280} />
-                          </div>
-                          <figcaption>
-                            <strong>{image.caption}</strong>
-                            <span>{image.placement}</span>
-                          </figcaption>
-                        </figure>
-                      ) : null}
-                    </section>
-                  );
-                })}
-
-                <p className={styles.articleConclusion}>{job.draft.conclusion}</p>
-              </div>
-            </article>
-
-            <div className={styles.panel}>
-              <div className={styles.sectionHead}>
-                <h2>ภาพที่ใช้ในบทความ</h2>
-              </div>
-
-              <div className={styles.imageGrid}>
-                {articleImages.map((image) => (
-                  <article key={image.src} className={styles.imageCard}>
-                    <div className={styles.imageThumb}>
-                      <Image alt={image.alt} height={720} src={image.src} width={1280} />
-                    </div>
-                    <strong>{image.caption}</strong>
-                    <p>{image.alt}</p>
-                    <span>{image.placement}</span>
-                  </article>
-                ))}
-              </div>
+            <div className={styles.contentTabs}>
+              {(Object.keys(contentViewLabels) as ContentView[]).map((view) => (
+                <button
+                  key={view}
+                  className={`${styles.contentTab} ${contentView === view ? styles.contentTabActive : ""}`}
+                  onClick={() => setContentView(view)}
+                  type="button"
+                >
+                  {contentViewLabels[view]}
+                </button>
+              ))}
             </div>
 
-            <div className={styles.panel}>
-              <div className={styles.sectionHead}>
-                <h2>โครงบทความ</h2>
-              </div>
-
-              <div className={styles.twoColumn}>
-                <div>
-                  <h3 className={styles.smallHeading}>Outline</h3>
-                  <ol className={styles.simpleListOrdered}>
-                    {job.brief.outline.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ol>
-                </div>
-                <div>
-                  <h3 className={styles.smallHeading}>FAQ</h3>
-                  <ul className={styles.simpleList}>
-                    {job.brief.faqs.map((faq) => (
-                      <li key={faq}>{faq}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
+            {contentView === "article" ? renderArticle() : null}
+            {contentView === "images" ? renderImages() : null}
+            {contentView === "structure" ? renderStructure() : null}
 
             {latestEvent ? (
               <div className={styles.panel}>
                 <div className={styles.latestRow}>
                   <div>
-                    <span className={styles.label}>ล่าสุด</span>
+                    <span className={styles.label}>Automation</span>
                     <strong>
                       {automationTypeLabels[latestEvent.type]} / {automationStatusLabels[latestEvent.status]}
                     </strong>
