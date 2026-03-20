@@ -3,10 +3,10 @@
 import { type FormEvent, useCallback, useEffect, useState, useTransition } from "react";
 import { workflowStages } from "@/data/mock-workflow";
 import {
-  WorkflowAutomationStatus,
-  WorkflowAutomationType,
-  WorkflowJob,
-  WorkflowStage
+  type WorkflowAutomationStatus,
+  type WorkflowAutomationType,
+  type WorkflowJob,
+  type WorkflowStage
 } from "@/types/workflow";
 import styles from "./workflow-dashboard.module.css";
 
@@ -21,78 +21,143 @@ const stageLabels: Record<WorkflowStage, string> = {
   published: "เผยแพร่แล้ว"
 };
 
-const automationStatusLabel: Record<WorkflowAutomationStatus, string> = {
+const automationStatusLabels: Record<WorkflowAutomationStatus, string> = {
   queued: "รอคิว",
   running: "กำลังทำงาน",
   succeeded: "สำเร็จ",
   failed: "ต้องตรวจสอบ"
 };
 
+const automationTypeLabels: Record<WorkflowAutomationType, string> = {
+  research: "รีเสิร์ช",
+  brief: "บรีฟ",
+  draft: "ดราฟต์",
+  publish: "เผยแพร่"
+};
+
+const searchIntentLabels = {
+  informational: "หาความรู้",
+  commercial: "เชิงซื้อ",
+  "problem-solving": "แก้ปัญหา"
+} as const;
+
+const difficultyLabels = {
+  low: "ง่าย",
+  medium: "กลาง",
+  high: "ยาก"
+} as const;
+
 function formatStage(stage: WorkflowStage) {
   return stageLabels[stage];
 }
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit"
+  return new Intl.DateTimeFormat("th-TH", {
+    dateStyle: "medium",
+    timeStyle: "short"
   }).format(new Date(value));
 }
 
 export function WorkflowDashboard() {
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
-  const [activeJobId, setActiveJobId] = useState<string>("");
+  const [activeJobId, setActiveJobId] = useState("");
   const [client, setClient] = useState("AquaCare Thailand");
   const [seedKeyword, setSeedKeyword] = useState("ปลาทอง");
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("กำลังโหลดรายการงานคอนเทนต์...");
   const [isPending, startTransition] = useTransition();
+
   const job = jobs.find((item) => item.id === activeJobId) ?? jobs[0] ?? null;
+  const selectedIdea = job?.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? job?.ideas[0] ?? null;
   const latestEvent = job?.automationEvents?.[0];
   const fallbackEvents =
     job?.automationEvents?.filter((event) => event.payload?.fallback === "app").length ?? 0;
+  const recentEvents = job?.automationEvents?.slice(0, 4) ?? [];
+
   const kpiCards = [
     {
-      label: "ไอเดียที่สร้างได้",
+      label: "จำนวนหัวข้อที่สร้างได้",
       value: jobs.reduce((total, current) => total + current.ideas.length, 0).toString(),
       note: `มี ${jobs.length} งานอยู่ในระบบตอนนี้`
     },
     {
-      label: "รีเสิร์ชพร้อมใช้",
+      label: "งานที่พ้นขั้นเลือกหัวข้อ",
       value: jobs.filter((current) => current.stage !== "idea_pool").length.toString(),
-      note: "งานที่เลือกหัวข้อแล้วและมีรีเสิร์ชรองรับ"
+      note: "พร้อมนำไปต่อยอดเป็นรีเสิร์ช บรีฟ และดราฟต์"
     },
     {
-      label: "ดราฟต์ที่กำลังเดินงาน",
+      label: "งานที่เข้าโหมดเขียนแล้ว",
       value: jobs.filter((current) => ["drafting", "review"].includes(current.stage)).length.toString(),
-      note: "ดราฟต์ที่กำลังเข้าสู่ขั้นตรวจทาน"
+      note: "ใช้เป็นตัวชี้ว่าทีมเริ่มมีคอนเทนต์พร้อมตรวจ"
     },
     {
-      label: "สถานะอัตโนมัติ",
-      value: latestEvent ? automationStatusLabel[latestEvent.status] : "ยังไม่เริ่ม",
+      label: "สถานะ automation ล่าสุด",
+      value: latestEvent ? automationStatusLabels[latestEvent.status] : "ยังไม่เริ่ม",
       note: latestEvent
-        ? `${latestEvent.type} อัปเดตเมื่อ ${formatDateTime(latestEvent.updatedAt)}`
+        ? `${automationTypeLabels[latestEvent.type]} อัปเดตเมื่อ ${formatDateTime(latestEvent.updatedAt)}`
         : "ยังไม่มีประวัติการทำงานอัตโนมัติ"
+    }
+  ];
+
+  const readinessItems = job
+    ? [
+        {
+          label: "จำนวนตัวเลือกหัวข้อ",
+          value: `${job.ideas.length} หัวข้อ`,
+          note: "ลูกค้าเลือกมุมบทความก่อนเขียนจริงได้"
+        },
+        {
+          label: "แหล่งข้อมูลรีเสิร์ช",
+          value: `${job.research.sources.length} แหล่ง`,
+          note: "รวมข้อมูลไทยและต่างประเทศในมุมมองเดียว"
+        },
+        {
+          label: "สถานะงานปัจจุบัน",
+          value: formatStage(job.stage),
+          note: "ติดตามงานจาก keyword ถึง draft ได้ครบ"
+        }
+      ]
+    : [];
+
+  const flowMoments = [
+    {
+      step: "01",
+      title: "แตก seed keyword เป็นหลายไอเดีย",
+      detail: "เริ่มจากคีย์เวิร์ดเดียว แล้วแตกเป็นหัวข้อพร้อม intent และมุมเล่นให้ลูกค้าเลือก"
+    },
+    {
+      step: "02",
+      title: "รีเสิร์ชก่อนเขียน",
+      detail: "รวมข้อมูลไทยและต่างประเทศเพื่อกันบทความ AI ที่กว้างเกินและไม่มีหลักฐานรองรับ"
+    },
+    {
+      step: "03",
+      title: "ล็อกบรีฟให้ชัดก่อนสร้างดราฟต์",
+      detail: "กำหนด title, outline, meta, FAQ และ internal links ก่อนใช้เวลาแก้บทความ"
+    },
+    {
+      step: "04",
+      title: "ส่งต่อดราฟต์และเตรียมเผยแพร่",
+      detail: "สร้างดราฟต์แรก ตรวจทาน แล้วต่อเข้าระบบ publish หรือ WordPress ภายหลังได้"
     }
   ];
 
   const loadJobs = useCallback(async () => {
     try {
       const response = await fetch("/api/jobs", { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error("โหลดรายการงานไม่สำเร็จ");
+      const data = (await response.json()) as { error?: string; jobs?: WorkflowJob[] };
+
+      if (!response.ok || !data.jobs) {
+        throw new Error(data.error ?? "โหลดรายการงานไม่สำเร็จ");
       }
 
-      const data = (await response.json()) as { jobs: WorkflowJob[] };
       setJobs(data.jobs);
-      if (data.jobs[0]) {
-        setActiveJobId((current) => current || data.jobs[0].id);
-        setStatusMessage(`โหลดงานสำเร็จ ${data.jobs.length} รายการ`);
-      } else {
-        setStatusMessage("ยังไม่มีงานคอนเทนต์ เริ่มสร้างงานแรกจากฟอร์มด้านบนได้เลย");
-      }
+      setActiveJobId((current) => current || data.jobs[0]?.id || "");
+      setStatusMessage(
+        data.jobs.length > 0
+          ? `โหลดงานสำเร็จ ${data.jobs.length} รายการ`
+          : "ยังไม่มีงานคอนเทนต์ เริ่มสร้างงานแรกจากฟอร์มด้านบนได้เลย"
+      );
       setError("");
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "โหลดรายการงานไม่สำเร็จ");
@@ -122,41 +187,42 @@ export function WorkflowDashboard() {
       throw new Error(data.error ?? "คำขอไม่สำเร็จ");
     }
 
-    const nextJob = data.job;
     setJobs((current) =>
-      current.some((item) => item.id === nextJob.id)
-        ? current.map((item) => (item.id === nextJob.id ? nextJob : item))
-        : [nextJob, ...current]
+      current.some((item) => item.id === data.job!.id)
+        ? current.map((item) => (item.id === data.job!.id ? data.job! : item))
+        : [data.job!, ...current]
     );
-    setActiveJobId(nextJob.id);
-    setStatusMessage(successMessage ?? "อัปเดตงานคอนเทนต์แล้ว");
+    setActiveJobId(data.job.id);
+    setStatusMessage(successMessage ?? "อัปเดตงานเรียบร้อย");
     setError("");
-    return data.job;
   }
 
   async function runAutomation(type: WorkflowAutomationType) {
     if (!job) return;
+
     startTransition(async () => {
       try {
         const response = await fetch(`/api/jobs/${job.id}/automation/${type}`, {
           method: "POST"
         });
+
         const data = (await response.json()) as {
           error?: string;
           job?: WorkflowJob;
-          automation?: { accepted: boolean; message?: string; fallbackApplied?: boolean };
+          automation?: {
+            accepted: boolean;
+            message?: string;
+            fallbackApplied?: boolean;
+          };
         };
 
         if (!response.ok) {
-          throw new Error(data.error ?? "ส่งงานอัตโนมัติไม่สำเร็จ");
+          throw new Error(data.error ?? "ส่งงานเข้า automation ไม่สำเร็จ");
         }
 
         if (data.job) {
-          const nextJob = data.job;
-          setJobs((current) =>
-            current.map((item) => (item.id === nextJob.id ? nextJob : item))
-          );
-          setActiveJobId(nextJob.id);
+          setJobs((current) => current.map((item) => (item.id === data.job!.id ? data.job! : item)));
+          setActiveJobId(data.job.id);
         } else {
           await loadJobs();
         }
@@ -164,37 +230,22 @@ export function WorkflowDashboard() {
         setError("");
         setStatusMessage(
           data.automation?.message
-            ? `${type}: ${data.automation.message}`
-            : `ส่ง ${type} เข้าคิวอัตโนมัติแล้ว`
+            ? `${automationTypeLabels[type]}: ${data.automation.message}`
+            : `ส่ง${automationTypeLabels[type]}เข้า automation แล้ว`
         );
       } catch (automationError) {
         setError(
-          automationError instanceof Error ? automationError.message : "ส่งงานอัตโนมัติไม่สำเร็จ"
+          automationError instanceof Error
+            ? automationError.message
+            : "ส่งงานเข้า automation ไม่สำเร็จ"
         );
-      }
-    });
-  }
-
-  async function handleCreateJob(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    startTransition(async () => {
-      try {
-        await runJobAction(
-          "/api/jobs",
-          {
-            method: "POST",
-            body: JSON.stringify({ client, seedKeyword })
-          },
-          `สร้างงานใหม่สำหรับ ${client} แล้ว`
-        );
-      } catch (createError) {
-        setError(createError instanceof Error ? createError.message : "สร้างงานใหม่ไม่สำเร็จ");
       }
     });
   }
 
   function updateJob(path: string, successMessage: string, body?: Record<string, string>) {
     if (!job) return;
+
     startTransition(async () => {
       try {
         await runJobAction(
@@ -211,32 +262,55 @@ export function WorkflowDashboard() {
     });
   }
 
-  if (!job) {
+  async function handleCreateJob(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    startTransition(async () => {
+      try {
+        await runJobAction(
+          "/api/jobs",
+          {
+            method: "POST",
+            body: JSON.stringify({ client, seedKeyword })
+          },
+          `สร้างงานใหม่สำหรับ ${client} เรียบร้อยแล้ว`
+        );
+      } catch (createError) {
+        setError(createError instanceof Error ? createError.message : "สร้างงานใหม่ไม่สำเร็จ");
+      }
+    });
+  }
+
+  if (!job || !selectedIdea) {
     return (
       <main className={styles.page}>
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
-            <span className={styles.eyebrow}>ระบบจัดการ SEO Content</span>
-            <h1>สร้างงานแรกเพื่อเริ่ม workflow การทำคอนเทนต์ได้เลย</h1>
+            <span className={styles.eyebrow}>SEO Content Workflow</span>
+            <h1>เริ่มสร้างงานแรกเพื่อเดโม flow การผลิตบทความ SEO</h1>
             <p>
-              หน้าเดโมนี้ถูกออกแบบตาม flow ที่ลูกค้าต้องการ: รับ keyword, แตกหัวข้อ,
-              เลือกหัวข้อที่ต้องการ, รีเสิร์ช, ทำบรีฟ และต่อไปยังดราฟต์บทความ
+              หน้าเดโมนี้ออกแบบตาม workflow ที่ลูกค้าต้องการ: รับ keyword, แตกไอเดีย,
+              ให้ลูกค้าเลือกหัวข้อ, รีเสิร์ช, ทำบรีฟ และสร้างดราฟต์บทความต่อในระบบเดียว
             </p>
             <form className={styles.intakeForm} onSubmit={handleCreateJob}>
-              <label>
-                ลูกค้า
-                <input value={client} onChange={(event) => setClient(event.target.value)} />
-              </label>
-              <label>
-                คีย์เวิร์ดตั้งต้น
-                <input
-                  value={seedKeyword}
-                  onChange={(event) => setSeedKeyword(event.target.value)}
-                />
-              </label>
-              <button className={styles.primaryButton} disabled={isPending} type="submit">
-                {isPending ? "กำลังสร้าง..." : "สร้างงานแรก"}
-              </button>
+              <div className={styles.formGrid}>
+                <label>
+                  ชื่อลูกค้า
+                  <input value={client} onChange={(event) => setClient(event.target.value)} />
+                </label>
+                <label>
+                  Seed keyword
+                  <input
+                    value={seedKeyword}
+                    onChange={(event) => setSeedKeyword(event.target.value)}
+                  />
+                </label>
+              </div>
+              <div className={styles.heroActions}>
+                <button className={styles.primaryButton} disabled={isPending} type="submit">
+                  {isPending ? "กำลังสร้าง..." : "สร้างงานแรก"}
+                </button>
+              </div>
             </form>
             <p className={styles.statusText}>{error || statusMessage}</p>
           </div>
@@ -245,91 +319,51 @@ export function WorkflowDashboard() {
     );
   }
 
-  const selectedIdea = job.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? job.ideas[0];
-  const readinessItems = [
-    {
-      label: "Idea shortlist",
-      value: `${job.ideas.length} options`,
-      note: "Client can compare article directions before any writing starts."
-    },
-    {
-      label: "Research coverage",
-      value: `${job.research.sources.length} sources`,
-      note: "Thai and global source packs are combined into one view."
-    },
-    {
-      label: "Delivery stage",
-      value: formatStage(job.stage),
-      note: "Every article stays traceable from keyword intake to draft."
-    }
-  ];
-  const flowMoments = [
-    {
-      step: "01",
-      title: "แตกคีย์เวิร์ดตั้งต้น",
-      detail: "เปลี่ยน 1 คีย์เวิร์ดให้เป็นหลายโอกาสทำคอนเทนต์ พร้อม intent และมุมเล่น"
-    },
-    {
-      step: "02",
-      title: "Research before writing",
-      detail: "Blend Thai and global inputs so the article is not just generic AI output."
-    },
-    {
-      step: "03",
-      title: "Approve the SEO brief",
-      detail: "Lock title, outline, metadata, FAQs, and internal links before drafting."
-    },
-    {
-      step: "04",
-      title: "Draft and hand off",
-      detail: "Generate the first article version, then hand it to editorial review and publishing."
-    }
-  ];
-  const recentEvents = job.automationEvents?.slice(0, 4) ?? [];
-
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
-          <span className={styles.eyebrow}>ระบบจัดการ SEO Content</span>
-          <h1>เปลี่ยน 1 คีย์เวิร์ดให้กลายเป็นบทความพร้อมส่งลูกค้าแบบมีรีเสิร์ชรองรับ</h1>
+          <span className={styles.eyebrow}>SEO Content Workflow</span>
+          <h1>เปลี่ยน 1 keyword ให้กลายเป็นบทความพร้อมส่งลูกค้าแบบมีรีเสิร์ชรองรับ</h1>
           <p>
-            หน้าเดโมนี้แสดงขั้นตอนจริงตั้งแต่แตกคีย์เวิร์ด, ให้ลูกค้าเลือกหัวข้อ,
-            รีเสิร์ชไทยและต่างประเทศ, สร้าง SEO brief, เขียนดราฟต์ และต่อไปยังการเผยแพร่
+            หน้านี้เล่า flow จริงตั้งแต่แตกคีย์เวิร์ด ให้ลูกค้าเลือกหัวข้อ รีเสิร์ชข้อมูลไทยและต่างประเทศ
+            ทำบรีฟ SEO และต่อยอดเป็นดราฟต์บทความในระบบเดียว
           </p>
+
           <div className={styles.heroSignalRow}>
             <div className={styles.signalCard}>
-              <span className={styles.panelLabel}>ภาพรวมเดโม</span>
-              <strong>จากคีย์เวิร์ดสู่บทความ</strong>
-              <p>ลูกค้าเห็น flow งานทั้งหมดได้ในหน้าเดียว</p>
+              <span className={styles.panelLabel}>มุมเดโม</span>
+              <strong>จาก keyword สู่ draft</strong>
+              <p>ลูกค้าเห็นภาพการทำงานครบทั้ง pipeline ภายในหน้าเดียว</p>
             </div>
             <div className={styles.signalCard}>
-              <span className={styles.panelLabel}>สถานะปัจจุบัน</span>
+              <span className={styles.panelLabel}>สถานะงานล่าสุด</span>
               <strong>{formatStage(job.stage)}</strong>
               <p>
                 {latestEvent
-                  ? `${latestEvent.type} อยู่ในสถานะ${automationStatusLabel[latestEvent.status].toLowerCase()}`
+                  ? `${automationTypeLabels[latestEvent.type]} อยู่ในสถานะ ${automationStatusLabels[latestEvent.status]}`
                   : "พร้อมเริ่ม automation แรก"}
               </p>
             </div>
             <div className={styles.signalCard}>
-              <span className={styles.panelLabel}>โหมดอัตโนมัติ</span>
-              <strong>{fallbackEvents > 0 ? "ใช้ fallback ในแอป" : "พร้อมเชื่อม n8n"}</strong>
+              <span className={styles.panelLabel}>โหมดระบบ</span>
+              <strong>{fallbackEvents > 0 ? "มี fallback ในแอป" : "พร้อมเชื่อม n8n"}</strong>
               <p>
                 {fallbackEvents > 0
-                  ? "ระบบยังเดินงานต่อได้ แม้ n8n bridge ยังไม่พร้อม"
-                  : "พร้อมต่อ webhook สำหรับรีเสิร์ช บรีฟ ดราฟต์ และเผยแพร่"}
+                  ? "ถ้า n8n ยังไม่พร้อม ระบบยังเดินงานต่อได้เพื่อใช้เดโมและทำงานภายใน"
+                  : "พร้อมยิง workflow ไปยัง n8n สำหรับรีเสิร์ช บรีฟ ดราฟต์ และเผยแพร่"}
               </p>
             </div>
           </div>
+
           <form className={styles.intakeForm} onSubmit={handleCreateJob}>
             <div className={styles.formGrid}>
               <label>
-                ลูกค้า
+                ชื่อลูกค้า
                 <input value={client} onChange={(event) => setClient(event.target.value)} />
               </label>
               <label>
-                คีย์เวิร์ดตั้งต้น
+                Seed keyword
                 <input
                   value={seedKeyword}
                   onChange={(event) => setSeedKeyword(event.target.value)}
@@ -340,67 +374,68 @@ export function WorkflowDashboard() {
               <button className={styles.primaryButton} disabled={isPending} type="submit">
                 {isPending ? "กำลังสร้าง..." : "สร้างงานใหม่"}
               </button>
-              <button className={styles.secondaryButton} type="button" onClick={() => void loadJobs()}>
-                รีเฟรชงาน
+              <button className={styles.secondaryButton} onClick={() => void loadJobs()} type="button">
+                รีเฟรชรายการงาน
               </button>
             </div>
           </form>
+
           <p className={styles.statusText}>{error || statusMessage}</p>
         </div>
+
         <aside className={styles.heroPanel}>
-          <p className={styles.panelLabel}>งานของลูกค้าปัจจุบัน</p>
-          <div className={styles.jobPicker}>
-            {jobs.map((item) => (
-              <button
-                key={item.id}
-                className={`${styles.jobChip} ${item.id === job.id ? styles.jobChipActive : ""}`}
-                onClick={() => setActiveJobId(item.id)}
-                type="button"
-              >
-                {item.client}
-              </button>
-            ))}
-          </div>
-          <strong>{job.client}</strong>
-          <span className={styles.seedKeyword}>คีย์เวิร์ดตั้งต้น: {job.seedKeyword}</span>
-          <div className={styles.stagePill}>{formatStage(job.stage)}</div>
-          <ul className={styles.miniChecklist}>
-            <li>แตกคีย์เวิร์ดเป็นชุดหัวข้อพร้อมให้เลือก</li>
-            <li>เลือกทิศทางบทความที่ตรงกับลูกค้าแล้ว</li>
-            <li>รีเสิร์ชรวมทั้งไทยและต่างประเทศแล้ว</li>
-            <li>พร้อมส่งต่อไปยังขั้นบรีฟและดราฟต์</li>
-          </ul>
           <div className={styles.heroPanelBlock}>
-            <span className={styles.infoLabel}>ความพร้อมของระบบ</span>
+            <span className={styles.panelLabel}>งานที่กำลังดู</span>
+            <strong>{job.client}</strong>
+            <span className={styles.seedKeyword}>{job.seedKeyword}</span>
+          </div>
+
+          <div className={styles.heroPanelBlock}>
+            <span className={styles.panelLabel}>เลือกงานเพื่อเดโม</span>
+            <div className={styles.jobPicker}>
+              {jobs.map((item) => (
+                <button
+                  key={item.id}
+                  className={`${styles.jobChip} ${item.id === job.id ? styles.jobChipActive : ""}`}
+                  onClick={() => setActiveJobId(item.id)}
+                  type="button"
+                >
+                  {item.client}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.heroPanelBlock}>
+            <span className={styles.panelLabel}>ความพร้อมของงาน</span>
             <div className={styles.readinessStack}>
               {readinessItems.map((item) => (
                 <article key={item.label} className={styles.readinessItem}>
-                  <div>
-                    <span className={styles.panelLabel}>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </div>
+                  <span className={styles.infoLabel}>{item.label}</span>
+                  <strong>{item.value}</strong>
                   <p>{item.note}</p>
                 </article>
               ))}
             </div>
           </div>
+
           <div className={styles.eventSummary}>
-            <span className={styles.infoLabel}>เหตุการณ์อัตโนมัติล่าสุด</span>
+            <span className={styles.infoLabel}>เหตุการณ์ล่าสุด</span>
             <ul className={styles.eventList}>
               {recentEvents.map((event) => (
                 <li key={event.id} className={styles.eventItem}>
-                  <span className={styles.eventType}>{event.type}</span>
+                  <span className={styles.eventType}>{automationTypeLabels[event.type]}</span>
                   <span
                     className={`${styles.eventStatus} ${
                       event.status === "failed" ? styles.eventStatusFailed : ""
                     }`}
                   >
-                    {automationStatusLabel[event.status]}
+                    {automationStatusLabels[event.status]}
                   </span>
                 </li>
               ))}
-              {!job.automationEvents?.length ? (
-                <li className={styles.eventEmpty}>ยังไม่มีการทำงานอัตโนมัติ</li>
+              {recentEvents.length === 0 ? (
+                <li className={styles.eventEmpty}>ยังไม่มีประวัติการทำงานอัตโนมัติ</li>
               ) : null}
             </ul>
           </div>
@@ -420,12 +455,12 @@ export function WorkflowDashboard() {
       <section className={styles.storySection}>
         <div className={styles.sectionHeading}>
           <div>
-            <span className={styles.eyebrow}>แนวทางนำเสนอ</span>
-            <h2>สิ่งที่ลูกค้าจะเข้าใจได้ภายในไม่กี่นาที</h2>
+            <span className={styles.eyebrow}>ภาพรวมการนำเสนอ</span>
+            <h2>สิ่งที่ลูกค้าจะเข้าใจได้เร็วจากเดโมชุดนี้</h2>
           </div>
           <p>
-            โครงนี้ถูกจัดให้เล่า value ของระบบก่อน: เลือกหัวข้อ, ตรวจรีเสิร์ช, อนุมัติบรีฟ
-            และดูดราฟต์บทความในลำดับที่เข้าใจง่าย
+            โครงนี้ออกแบบให้เล่า value ก่อน ไม่ใช่โชว์เทคนิคอย่างเดียว ลูกค้าจะเห็นว่าเลือกหัวข้อได้,
+            มีรีเสิร์ชรองรับ, อนุมัติบรีฟได้ และดูกระบวนการสร้างดราฟต์ต่อได้ทันที
           </p>
         </div>
         <div className={styles.storyGrid}>
@@ -442,26 +477,23 @@ export function WorkflowDashboard() {
       <section className={styles.pipelineSection}>
         <div className={styles.sectionHeading}>
           <div>
-            <span className={styles.eyebrow}>ภาพรวมการทำงาน</span>
-            <h2>workflow สำหรับทำงานจริงกับลูกค้า</h2>
+            <span className={styles.eyebrow}>ภาพรวม workflow</span>
+            <h2>ติดตามงานจาก intake ถึง publish ได้ในลำดับเดียว</h2>
           </div>
           <p>
-            คนยังเป็นผู้ตัดสินใจในจุดสำคัญ ส่วนระบบช่วยเร่งงานซ้ำๆ ระหว่างรีเสิร์ช บรีฟ
-            ดราฟต์ และการเผยแพร่
+            คนยังเป็นผู้ตัดสินใจในจุดสำคัญ ส่วนระบบจะช่วยเร่งขั้นแตกไอเดีย รีเสิร์ช ทำบรีฟ เขียนดราฟต์
+            และต่อเข้าระบบเผยแพร่ภายหลัง
           </p>
         </div>
         <div className={styles.stageRail}>
-          {workflowStages.map((stage) => {
-            const active = stage.key === job.stage;
-            return (
-              <div
-                key={stage.key}
-                className={`${styles.stageNode} ${active ? styles.stageNodeActive : ""}`}
-              >
-                <span>{stage.label}</span>
-              </div>
-            );
-          })}
+          {workflowStages.map((stage) => (
+            <div
+              key={stage.key}
+              className={`${styles.stageNode} ${stage.key === job.stage ? styles.stageNodeActive : ""}`}
+            >
+              <span>{stage.label}</span>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -470,50 +502,47 @@ export function WorkflowDashboard() {
           <div className={styles.cardHeader}>
             <div>
               <span className={styles.eyebrow}>Step 1</span>
-              <h3>Keyword expansion</h3>
+              <h3>แตกคีย์เวิร์ดเป็นหัวข้อ</h3>
             </div>
-            <button
-              className={styles.textButton}
-              onClick={() => void loadJobs()}
-              type="button"
-            >
-                โหลดงานใหม่
+            <button className={styles.textButton} onClick={() => void loadJobs()} type="button">
+              โหลดข้อมูลใหม่
             </button>
           </div>
           <p className={styles.cardLead}>
-            เริ่มจากคีย์เวิร์ดตั้งต้น แล้วแตกเป็นหัวข้อบทความที่ลูกค้าเลือกได้จริง
+            เริ่มจาก seed keyword แล้วแตกเป็นหัวข้อที่ลูกค้าเลือกได้จริง พร้อมดู intent และความยากของแต่ละหัวข้อ
           </p>
           <div className={styles.selectionSnapshot}>
             <div>
-              <span className={styles.infoLabel}>หัวข้อที่เลือกตอนนี้</span>
+              <span className={styles.infoLabel}>หัวข้อที่เลือกอยู่ตอนนี้</span>
               <strong>{selectedIdea.title}</strong>
             </div>
             <p>{selectedIdea.whyItMatters}</p>
           </div>
           <div className={styles.seedBox}>
-            <label htmlFor="seedKeyword">คีย์เวิร์ดตั้งต้น</label>
-            <input id="seedKeyword" value={job.seedKeyword} readOnly />
+            <label htmlFor="seedKeywordValue">Seed keyword</label>
+            <input id="seedKeywordValue" readOnly value={job.seedKeyword} />
           </div>
           <div className={styles.ideaList}>
             {job.ideas.map((idea) => {
-              const selected = idea.id === job.selectedIdeaId;
+              const isSelected = idea.id === job.selectedIdeaId;
+
               return (
                 <button
                   key={idea.id}
-                  type="button"
+                  className={`${styles.ideaCard} ${isSelected ? styles.ideaCardSelected : ""}`}
+                  disabled={isPending}
                   onClick={() =>
                     updateJob(
                       `/api/jobs/${job.id}/ideas/select`,
-                      `Selected "${idea.title}" for ${job.client}.`,
+                      `เลือกหัวข้อ "${idea.title}" สำหรับ ${job.client} แล้ว`,
                       { ideaId: idea.id }
                     )
                   }
-                  className={`${styles.ideaCard} ${selected ? styles.ideaCardSelected : ""}`}
-                  disabled={isPending}
+                  type="button"
                 >
                   <div className={styles.ideaMeta}>
-                    <span>{idea.searchIntent}</span>
-                    <span>{idea.difficulty}</span>
+                    <span>{searchIntentLabels[idea.searchIntent]}</span>
+                    <span>ความยาก {difficultyLabels[idea.difficulty]}</span>
                     <span>{idea.confidence}% fit</span>
                   </div>
                   <strong>{idea.title}</strong>
@@ -540,11 +569,7 @@ export function WorkflowDashboard() {
               >
                 สร้างในระบบ
               </button>
-              <button
-                className={styles.textButton}
-                onClick={() => void runAutomation("research")}
-                type="button"
-              >
+              <button className={styles.textButton} onClick={() => void runAutomation("research")} type="button">
                 ส่งเข้า n8n
               </button>
             </div>
@@ -553,21 +578,21 @@ export function WorkflowDashboard() {
           <div className={styles.highlightBanner}>
             <span>Research mode</span>
             <strong>TH + Global source blend</strong>
-            <p>Designed to give the client confidence before the writing phase starts.</p>
+            <p>ออกแบบให้ลูกค้ามั่นใจว่าบทความไม่ได้สร้างจาก AI แบบลอยๆ โดยไม่มีฐานข้อมูลรองรับ</p>
           </div>
           <div className={styles.infoGrid}>
             <div>
-              <span className={styles.infoLabel}>Audience</span>
+              <span className={styles.infoLabel}>กลุ่มเป้าหมาย</span>
               <p>{job.research.audience}</p>
             </div>
             <div>
-              <span className={styles.infoLabel}>Client-selected angle</span>
+              <span className={styles.infoLabel}>มุมที่เลือกไว้</span>
               <p>{selectedIdea.angle}</p>
             </div>
           </div>
           <div className={styles.dualColumn}>
             <div>
-              <span className={styles.infoLabel}>Opportunity gaps</span>
+              <span className={styles.infoLabel}>ช่องว่างที่ควรเก็บในบทความ</span>
               <ul className={styles.bulletList}>
                 {job.research.gaps.map((gap) => (
                   <li key={gap}>{gap}</li>
@@ -575,7 +600,7 @@ export function WorkflowDashboard() {
               </ul>
             </div>
             <div>
-              <span className={styles.infoLabel}>Related keywords</span>
+              <span className={styles.infoLabel}>คีย์เวิร์ดที่เกี่ยวข้อง</span>
               <div className={styles.tagWrap}>
                 {selectedIdea.relatedKeywords.map((keyword) => (
                   <span key={keyword} className={styles.tag}>
@@ -609,17 +634,13 @@ export function WorkflowDashboard() {
               <button
                 className={styles.textButton}
                 onClick={() =>
-                  updateJob(`/api/jobs/${job.id}/brief`, `Brief generated for ${job.client}.`)
+                  updateJob(`/api/jobs/${job.id}/brief`, `สร้างบรีฟสำหรับ ${job.client} แล้ว`)
                 }
                 type="button"
               >
                 สร้างในระบบ
               </button>
-              <button
-                className={styles.textButton}
-                onClick={() => void runAutomation("brief")}
-                type="button"
-              >
+              <button className={styles.textButton} onClick={() => void runAutomation("brief")} type="button">
                 ส่งเข้า n8n
               </button>
             </div>
@@ -630,10 +651,10 @@ export function WorkflowDashboard() {
           </div>
           <div className={styles.selectionSnapshot}>
             <div>
-              <span className={styles.infoLabel}>Editorial audience</span>
+              <span className={styles.infoLabel}>กลุ่มผู้อ่านของบทความ</span>
               <strong>{job.brief.audience}</strong>
             </div>
-            <p>The brief locks the article direction before anyone spends time editing the draft.</p>
+            <p>ขั้นนี้ช่วยล็อกทิศทางบทความก่อนให้ทีมใช้เวลาแก้ดราฟต์จริง</p>
           </div>
           <div className={styles.metaPanel}>
             <div>
@@ -659,7 +680,7 @@ export function WorkflowDashboard() {
               </ol>
             </div>
             <div>
-              <span className={styles.infoLabel}>FAQs</span>
+              <span className={styles.infoLabel}>FAQ ที่แนะนำ</span>
               <ul className={styles.bulletList}>
                 {job.brief.faqs.map((faq) => (
                   <li key={faq}>{faq}</li>
@@ -668,7 +689,7 @@ export function WorkflowDashboard() {
             </div>
           </div>
           <div>
-            <span className={styles.infoLabel}>Internal links to include</span>
+            <span className={styles.infoLabel}>Internal links ที่ควรเชื่อม</span>
             <div className={styles.tagWrap}>
               {job.brief.internalLinks.map((item) => (
                 <span key={item} className={styles.tag}>
@@ -686,21 +707,15 @@ export function WorkflowDashboard() {
               <h3>พื้นที่ดราฟต์บทความ</h3>
             </div>
             <div className={styles.heroActions}>
-              <button
-                className={styles.secondaryButton}
-                onClick={() => void runAutomation("draft")}
-                type="button"
-              >
-                Queue Draft in n8n
+              <button className={styles.secondaryButton} onClick={() => void runAutomation("draft")} type="button">
+                ส่งดราฟต์เข้า n8n
               </button>
               <button
                 className={styles.primaryButton}
-                onClick={() =>
-                  updateJob(`/api/jobs/${job.id}/draft`, `Draft refreshed for ${job.client}.`)
-                }
+                onClick={() => updateJob(`/api/jobs/${job.id}/draft`, `อัปเดตดราฟต์สำหรับ ${job.client} แล้ว`)}
                 type="button"
               >
-                Generate draft
+                สร้างดราฟต์ในระบบ
               </button>
             </div>
           </div>
@@ -716,26 +731,18 @@ export function WorkflowDashboard() {
               <p className={styles.editorConclusion}>{job.draft.conclusion}</p>
             </div>
             <aside className={styles.heroPanel}>
-              <span className={styles.infoLabel}>จุดตรวจของ automation</span>
+              <span className={styles.infoLabel}>สถานะงานอัตโนมัติ</span>
               <ul className={styles.bulletList}>
-                  <li>n8n หรือระบบในแอปช่วยพางานไปขั้นถัดไปได้</li>
-                  <li>ข้อมูลรีเสิร์ชยังผูกอยู่กับงานก่อนเข้าสู่ดราฟต์</li>
-                  <li>ขั้นเผยแพร่ยังสามารถผูกกับการอนุมัติได้</li>
-                  <li>ผลลัพธ์ทุกครั้งถูกบันทึกไว้ใน event log</li>
+                <li>ต่อเข้า n8n ได้เมื่อ workflow ฝั่ง automation พร้อมจริง</li>
+                <li>ถ้า webhook มีปัญหา ระบบยังเดินงานต่อด้วย in-app fallback ได้</li>
+                <li>ทุกครั้งที่รันจะมี event log เก็บสถานะไว้ตรวจย้อนหลัง</li>
+                <li>ขั้น publish ยังต่อ WordPress เพิ่มได้ใน phase ถัดไป</li>
               </ul>
               <div className={styles.inlineActions}>
-                <button
-                  className={styles.secondaryButton}
-                  onClick={() => void runAutomation("publish")}
-                  type="button"
-                >
+                <button className={styles.secondaryButton} onClick={() => void runAutomation("publish")} type="button">
                   ส่งเผยแพร่เข้า n8n
                 </button>
-                <button
-                  className={styles.secondaryButton}
-                  onClick={() => void loadJobs()}
-                  type="button"
-                >
+                <button className={styles.secondaryButton} onClick={() => void loadJobs()} type="button">
                   รีเฟรช event
                 </button>
               </div>
@@ -745,30 +752,30 @@ export function WorkflowDashboard() {
                   {(job.automationEvents ?? []).map((event) => (
                     <li key={event.id} className={styles.timelineItem}>
                       <div className={styles.timelineTop}>
-                        <span className={styles.eventType}>{event.type}</span>
+                        <span className={styles.eventType}>{automationTypeLabels[event.type]}</span>
                         <span
                           className={`${styles.eventStatus} ${
                             event.status === "failed" ? styles.eventStatusFailed : ""
                           }`}
                         >
-                          {automationStatusLabel[event.status]}
+                          {automationStatusLabels[event.status]}
                         </span>
                         <span className={styles.panelLabel}>{event.source}</span>
                       </div>
-                      <p>{event.message ?? "No message from automation yet."}</p>
+                      <p>{event.message ?? "ยังไม่มีข้อความสถานะจากระบบ"}</p>
                       <span className={styles.timelineTime}>{formatDateTime(event.updatedAt)}</span>
                     </li>
                   ))}
                   {!job.automationEvents?.length ? (
-                    <li className={styles.eventEmpty}>Queue a workflow to start tracking automation runs.</li>
+                    <li className={styles.eventEmpty}>ยังไม่มีการรัน workflow สำหรับงานนี้</li>
                   ) : null}
                 </ul>
               </div>
               <div className={styles.sourceCard}>
                 <strong>ขั้นต่อไปที่แนะนำ</strong>
                 <p>
-                  เก็บงานฝั่ง n8n bridge ให้สมบูรณ์ แล้วเพิ่มปุ่มอนุมัติและเผยแพร่
-                  WordPress บน flow เดียวกันนี้ต่อได้ทันที
+                  หลังเดโม flow นี้นิ่งแล้ว ค่อยเพิ่มปุ่มอนุมัติและส่งต่อ publish ไปยัง WordPress
+                  ในหน้าเดียวกันได้ทันที
                 </p>
               </div>
             </aside>

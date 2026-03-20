@@ -18,9 +18,9 @@ export function generateIdeas(seedKeyword: string): TopicIdea[] {
       searchIntent: "problem-solving",
       difficulty: "medium",
       confidence: 86,
-      whyItMatters: "เหมาะกับบทความแก้ปัญหาและดึงคนที่มี intent สูง",
-      thaiSignal: "คอมมูนิตี้ไทยมักถามเรื่องอาการเริ่มต้นและการดูแลเบื้องต้น",
-      globalSignal: "บทความต่างประเทศมักมี symptom-based structure ที่ชัด",
+      whyItMatters: "เหมาะกับบทความแก้ปัญหาและดึงคนที่มี intent สูงก่อนซื้อหรือหาวิธีดูแล",
+      thaiSignal: "คอมมูนิตี้ไทยมักถามเรื่องอาการเริ่มต้นและการดูแลเบื้องต้นที่ทำได้ทันที",
+      globalSignal: "บทความต่างประเทศนิยมจัดโครงตามอาการ ทำให้ต่อยอดเป็น brief ได้ง่าย",
       relatedKeywords: [`โรค${seedKeyword}`, `${seedKeyword}ซึม`, `${seedKeyword}ป่วย`]
     },
     {
@@ -30,9 +30,9 @@ export function generateIdeas(seedKeyword: string): TopicIdea[] {
       searchIntent: "informational",
       difficulty: "low",
       confidence: 91,
-      whyItMatters: "ช่วยสร้าง organic traffic จากคำถามพื้นฐานที่คนค้นหาบ่อย",
-      thaiSignal: "ตลาดไทยยังอธิบายเรื่อง pH และความกระด้างแบบสับสนกันอยู่",
-      globalSignal: "ต่างประเทศมีข้อมูลเชิงเทคนิคที่นำมา localize ได้ดี",
+      whyItMatters: "ช่วยสร้าง organic traffic จากคำถามพื้นฐานที่คนค้นหาบ่อยและเชื่อมสู่สินค้าดูแลน้ำได้",
+      thaiSignal: "ตลาดไทยยังอธิบายเรื่อง pH และความกระด้างแบบปนกันอยู่ ทำให้มีช่องว่างด้านคุณภาพเนื้อหา",
+      globalSignal: "ต่างประเทศมีข้อมูลเชิงเทคนิคที่เอามา localize เป็นบทความไทยได้ดี",
       relatedKeywords: [`${seedKeyword} pH`, `น้ำด่าง${seedKeyword}`, `ปรับน้ำ${seedKeyword}`]
     },
     {
@@ -42,9 +42,9 @@ export function generateIdeas(seedKeyword: string): TopicIdea[] {
       searchIntent: "commercial",
       difficulty: "medium",
       confidence: 82,
-      whyItMatters: "ต่อยอดสู่หน้าสินค้าและบทความรีวิวได้ง่าย",
-      thaiSignal: "คำถามเรื่องอาหารและการให้อาหารวันละกี่ครั้งมีตลอด",
-      globalSignal: "คู่แข่งต่างประเทศทำ listicle และเปรียบเทียบอาหารไว้เยอะ",
+      whyItMatters: "ต่อยอดไปหน้าสินค้า บทความรีวิว และคอนเทนต์เชิงเปรียบเทียบได้ง่าย",
+      thaiSignal: "คำถามเรื่องอาหารและการให้อาหารวันละกี่ครั้งมีเข้ามาสม่ำเสมอ",
+      globalSignal: "คู่แข่งต่างประเทศทำ listicle และ comparison เยอะ จึงเหมาะกับการทำเนื้อหาแข่ง",
       relatedKeywords: [`อาหาร${seedKeyword}`, `${seedKeyword}กินวันละกี่ครั้ง`, `${seedKeyword}ท้องอืด`]
     }
   ];
@@ -55,9 +55,9 @@ export function generateResearch(seedKeyword: string, selectedIdea: TopicIdea): 
     objective: `รวบรวมข้อมูลไทยและต่างประเทศเพื่อเขียนบทความเรื่อง "${selectedIdea.title}" จาก seed keyword "${seedKeyword}"`,
     audience: `เจ้าของหรือผู้สนใจเรื่อง ${seedKeyword} ที่ต้องการข้อมูลเชิงปฏิบัติและเชื่อถือได้`,
     gaps: [
-      "คอนเทนต์ไทยจำนวนมากยังสรุปแบบกว้างและไม่มีหลักฐานอ้างอิงชัด",
-      "คู่แข่งมักไม่เชื่อมโยง pain point ของคนไทยกับข้อมูลจากต่างประเทศ",
-      "บทความจำนวนมากยังไม่มี FAQ และ internal links ที่ช่วย SEO cluster"
+      "คอนเทนต์ไทยจำนวนมากยังสรุปแบบกว้างและไม่มีแหล่งอ้างอิงชัด",
+      "คู่แข่งมักไม่เชื่อม pain point ของคนไทยกับข้อมูลต่างประเทศที่มีความละเอียดกว่า",
+      "หลายบทความยังไม่มี FAQ และ internal links ที่ช่วยปั้น SEO cluster"
     ],
     sources: [
       ...mockWorkflowJob.research.sources.slice(0, 2),
@@ -65,20 +65,25 @@ export function generateResearch(seedKeyword: string, selectedIdea: TopicIdea): 
         region: "TH",
         title: `คำถามยอดฮิตเกี่ยวกับ ${selectedIdea.title}`,
         source: "กลุ่มชุมชนผู้ใช้งานไทย",
-        insight: "ช่วยหา wording และ pain point จริงของกลุ่มเป้าหมายไทย"
+        insight: "ช่วยเก็บ wording และ pain point จริงของผู้ค้นหาในภาษาไทย"
       },
       {
         region: "Global",
         title: `${selectedIdea.title} best practices`,
         source: "International niche blog or veterinary resource",
-        insight: "ใช้เติมความน่าเชื่อถือและวิธีแก้ปัญหาเชิงลึก"
+        insight: "ช่วยเติมความน่าเชื่อถือและแนวทางแก้ปัญหาเชิงลึกก่อนขึ้น brief"
       }
     ]
   };
 }
 
-export function generateBrief(seedKeyword: string, selectedIdea: TopicIdea, research: ResearchPack): ContentBrief {
+export function generateBrief(
+  seedKeyword: string,
+  selectedIdea: TopicIdea,
+  research: ResearchPack
+): ContentBrief {
   const coreTitle = selectedIdea.title;
+
   return {
     title: `${coreTitle} พร้อมแนวทางดูแลและข้อมูลที่คนค้นหาจริง`,
     slug: slugify(coreTitle),
@@ -96,8 +101,8 @@ export function generateBrief(seedKeyword: string, selectedIdea: TopicIdea, rese
     ],
     faqs: [
       `${seedKeyword} ควรเริ่มตรวจจากอะไร`,
-      `ควรหลีกเลี่ยงความเข้าใจผิดเรื่องไหน`,
-      `มีสัญญาณเตือนอะไรที่ควรรีบแก้`
+      "ควรหลีกเลี่ยงความเข้าใจผิดเรื่องไหน",
+      "มีสัญญาณเตือนอะไรที่ควรรีบแก้"
     ],
     internalLinks: [
       `คู่มือพื้นฐานเกี่ยวกับ ${seedKeyword}`,
@@ -109,16 +114,16 @@ export function generateBrief(seedKeyword: string, selectedIdea: TopicIdea, rese
 
 export function generateDraft(brief: ContentBrief): ArticleDraft {
   return {
-    intro: `บทความนี้สรุปเรื่อง "${brief.title}" ในแบบที่อ่านง่าย แต่ยังคงความน่าเชื่อถือจากการ research ทั้งไทยและต่างประเทศ`,
+    intro: `บทความนี้สรุปเรื่อง "${brief.title}" ในแบบที่อ่านง่าย แต่ยังคงความน่าเชื่อถือจากการรีเสิร์ชทั้งไทยและต่างประเทศ`,
     sections: brief.outline.slice(0, 4).map((heading, index) => ({
       heading,
       body:
         index === 0
-          ? "เริ่มจากคำตอบสั้นที่ตรงกับ search intent ก่อน แล้วค่อยขยายรายละเอียดเพื่อให้ผู้อ่านไม่ต้องหาอีกหลายหน้า"
-          : "อธิบายด้วยภาษาที่เข้าใจง่าย เชื่อม pain point ของผู้อ่านกับข้อมูลอ้างอิง และสรุปข้อควรทำเป็นข้อๆ"
+          ? "เริ่มจากคำตอบสั้นที่ตรงกับ search intent ก่อน แล้วค่อยขยายรายละเอียดเพื่อให้ผู้อ่านไม่ต้องไปหาคำตอบต่อจากหลายแหล่ง"
+          : "อธิบายด้วยภาษาที่เข้าใจง่าย เชื่อม pain point ของผู้อ่านกับข้อมูลอ้างอิง และสรุปเป็นข้อปฏิบัติที่นำไปใช้ต่อได้"
     })),
     conclusion:
-      "ก่อนนำบทความนี้ไปเผยแพร่ ควรให้ทีมตรวจความถูกต้องเฉพาะทางและเพิ่ม internal links ตาม cluster ที่เกี่ยวข้อง"
+      "ก่อนนำบทความนี้ไปเผยแพร่ ควรให้ทีมตรวจความถูกต้องเฉพาะทางและเติม internal links ตาม cluster ที่เกี่ยวข้อง"
   };
 }
 
