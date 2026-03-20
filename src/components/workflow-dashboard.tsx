@@ -18,12 +18,12 @@ type ArticleImage = {
 };
 
 const stageLabels: Record<WorkflowStage, string> = {
-  idea_pool: "คลังไอเดีย",
+  idea_pool: "คลังหัวข้อ",
   selected: "เลือกหัวข้อแล้ว",
   researching: "รีเสิร์ช",
   brief_ready: "บรีฟพร้อม",
-  drafting: "ดราฟต์",
-  review: "ตรวจทาน",
+  drafting: "กำลังเขียน",
+  review: "รอตรวจ",
   approved: "อนุมัติแล้ว",
   published: "เผยแพร่แล้ว"
 };
@@ -70,20 +70,15 @@ const imageThemes = {
     "/article-images/goldfish-food-2.svg",
     "/article-images/goldfish-food-3.svg"
   ],
-  shared: [
-    "/article-images/goldfish-detail-1.svg",
-    "/article-images/goldfish-detail-2.svg"
-  ]
+  shared: ["/article-images/goldfish-detail-1.svg", "/article-images/goldfish-detail-2.svg"]
 } as const;
 
 function getTheme(title: string) {
-  const lowerTitle = title.toLowerCase();
-
-  if (lowerTitle.includes("โรค")) {
+  if (title.includes("โรค")) {
     return "health" as const;
   }
 
-  if (lowerTitle.includes("น้ำ") || lowerTitle.includes("ph")) {
+  if (title.includes("น้ำ") || title.toLowerCase().includes("ph")) {
     return "water" as const;
   }
 
@@ -110,12 +105,12 @@ function getArticleImages(title: string): ArticleImage[] {
     {
       src: base[2],
       alt: `ภาพอธิบายวิธีดูแลหรือวิธีทำสำหรับหัวข้อ ${title}`,
-      caption: "ภาพอธิบายขั้นตอนหรือวิธีดูแล",
+      caption: "ภาพอธิบายวิธีดูแล",
       placement: "หลัง H2 ที่สอง"
     },
     {
       src: imageThemes.shared[0],
-      alt: `ภาพ close-up สำหรับแทรกกลางบทความ ${title}`,
+      alt: `ภาพคั่นกลางบทความ ${title}`,
       caption: "ภาพคั่นกลางบทความ",
       placement: "ช่วงกลางบทความ"
     },
@@ -165,10 +160,9 @@ export function WorkflowDashboard() {
         throw new Error(data.error ?? "โหลดรายการงานไม่สำเร็จ");
       }
 
-      const nextJobs = data.jobs;
-      setJobs(nextJobs);
-      setActiveJobId((current) => current || nextJobs[0]?.id || "");
-      setStatusMessage(nextJobs.length > 0 ? "พร้อมใช้งาน" : "ยังไม่มีงาน");
+      setJobs(data.jobs);
+      setActiveJobId((current) => current || data.jobs?.[0]?.id || "");
+      setStatusMessage(data.jobs.length > 0 ? "พร้อมใช้งาน" : "ยังไม่มีงาน");
       setError("");
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "โหลดข้อมูลไม่สำเร็จ");
@@ -180,11 +174,7 @@ export function WorkflowDashboard() {
     void loadJobs();
   }, [loadJobs]);
 
-  async function runJobAction(
-    path: string,
-    options?: RequestInit,
-    successMessage?: string
-  ) {
+  async function runJobAction(path: string, options?: RequestInit, successMessage?: string) {
     const response = await fetch(path, {
       ...options,
       headers: {
@@ -299,15 +289,15 @@ export function WorkflowDashboard() {
           <section className={styles.panel}>
             <form className={styles.createForm} onSubmit={handleCreateJob}>
               <label>
-                Project
+                โปรเจกต์
                 <input value={client} onChange={(event) => setClient(event.target.value)} />
               </label>
               <label>
-                Seed keyword
+                Keyword หลัก
                 <input value={seedKeyword} onChange={(event) => setSeedKeyword(event.target.value)} />
               </label>
               <button className={styles.primaryButton} disabled={isPending} type="submit">
-                {isPending ? "Creating..." : "Create job"}
+                {isPending ? "กำลังสร้าง..." : "สร้างงาน"}
               </button>
             </form>
           </section>
@@ -333,17 +323,18 @@ export function WorkflowDashboard() {
         <section className={styles.panel}>
           <form className={styles.createForm} onSubmit={handleCreateJob}>
             <label>
-              Project
+              โปรเจกต์
               <input value={client} onChange={(event) => setClient(event.target.value)} />
             </label>
             <label>
-              Seed keyword
+              Keyword หลัก
               <input value={seedKeyword} onChange={(event) => setSeedKeyword(event.target.value)} />
             </label>
             <button className={styles.primaryButton} disabled={isPending} type="submit">
-              {isPending ? "Creating..." : "Create job"}
+              {isPending ? "กำลังสร้าง..." : "สร้างงาน"}
             </button>
           </form>
+
           <div className={styles.jobRow}>
             {jobs.map((item) => (
               <button
@@ -363,34 +354,29 @@ export function WorkflowDashboard() {
             <div className={styles.panel}>
               <div className={styles.sectionHead}>
                 <div>
-                  <span className={styles.label}>Project</span>
+                  <span className={styles.label}>โปรเจกต์</span>
                   <h2>{getProjectName(job.client)}</h2>
                 </div>
                 <span className={styles.keywordChip}>{job.seedKeyword}</span>
               </div>
+
               <div className={styles.miniStats}>
                 <div>
-                  <span className={styles.label}>Current stage</span>
+                  <span className={styles.label}>สถานะ</span>
                   <strong>{stageLabels[job.stage]}</strong>
                 </div>
                 <div>
-                  <span className={styles.label}>Latest event</span>
-                  <strong>
-                    {latestEvent
-                      ? `${automationTypeLabels[latestEvent.type]} / ${automationStatusLabels[latestEvent.status]}`
-                      : "No event"}
-                  </strong>
+                  <span className={styles.label}>อัปเดตล่าสุด</span>
+                  <strong>{latestEvent ? formatDateTime(latestEvent.updatedAt) : "-"}</strong>
                 </div>
               </div>
             </div>
 
             <div className={styles.panel}>
               <div className={styles.sectionHead}>
-                <div>
-                  <span className={styles.label}>Topics</span>
-                  <h2>เลือกหัวข้อ</h2>
-                </div>
+                <h2>เลือกหัวข้อ</h2>
               </div>
+
               <div className={styles.ideaList}>
                 {job.ideas.map((idea) => {
                   const selected = idea.id === job.selectedIdeaId;
@@ -401,11 +387,9 @@ export function WorkflowDashboard() {
                       className={`${styles.ideaCard} ${selected ? styles.ideaCardSelected : ""}`}
                       disabled={isPending}
                       onClick={() =>
-                        updateJob(
-                          `/api/jobs/${job.id}/ideas/select`,
-                          `เลือกหัวข้อ "${idea.title}" แล้ว`,
-                          { ideaId: idea.id }
-                        )
+                        updateJob(`/api/jobs/${job.id}/ideas/select`, `เลือกหัวข้อ "${idea.title}" แล้ว`, {
+                          ideaId: idea.id
+                        })
                       }
                       type="button"
                     >
@@ -424,64 +408,60 @@ export function WorkflowDashboard() {
 
             <div className={styles.panel}>
               <div className={styles.sectionHead}>
-                <div>
-                  <span className={styles.label}>Actions</span>
-                  <h2>Workflow</h2>
-                </div>
+                <h2>ลำดับงาน</h2>
               </div>
+
               <div className={styles.actionGrid}>
                 <button
                   className={styles.secondaryButton}
                   onClick={() => updateJob(`/api/jobs/${job.id}/research`, "อัปเดตรีเสิร์ชแล้ว")}
                   type="button"
                 >
-                  Research
+                  รีเสิร์ช
                 </button>
                 <button
                   className={styles.secondaryButton}
                   onClick={() => updateJob(`/api/jobs/${job.id}/brief`, "สร้างบรีฟแล้ว")}
                   type="button"
                 >
-                  Brief
+                  บรีฟ
                 </button>
                 <button
                   className={styles.secondaryButton}
                   onClick={() => updateJob(`/api/jobs/${job.id}/draft`, "สร้างดราฟต์แล้ว")}
                   type="button"
                 >
-                  Draft
+                  ดราฟต์
                 </button>
                 <button
                   className={styles.secondaryButton}
                   onClick={() => updateJob(`/api/jobs/${job.id}/approve`, "อนุมัติบทความแล้ว")}
                   type="button"
                 >
-                  Approve
+                  อนุมัติ
                 </button>
                 <button
                   className={styles.secondaryButton}
-                  onClick={() => updateJob(`/api/jobs/${job.id}/publish`, "ส่งเผยแพร่ในระบบแล้ว")}
+                  onClick={() => updateJob(`/api/jobs/${job.id}/publish`, "ส่งเผยแพร่แล้ว")}
                   type="button"
                 >
-                  Publish
+                  เผยแพร่
                 </button>
                 <button
                   className={styles.secondaryButton}
                   onClick={() => void runAutomation("publish")}
                   type="button"
                 >
-                  Send to n8n
+                  ส่งเข้า n8n
                 </button>
               </div>
             </div>
 
             <div className={styles.panel}>
               <div className={styles.sectionHead}>
-                <div>
-                  <span className={styles.label}>Research</span>
-                  <h2>Key notes</h2>
-                </div>
+                <h2>Research notes</h2>
               </div>
+
               <ul className={styles.simpleList}>
                 {job.research.gaps.map((gap) => (
                   <li key={gap}>{gap}</li>
@@ -492,17 +472,14 @@ export function WorkflowDashboard() {
 
           <section className={styles.content}>
             <div className={styles.panel}>
-              <div className={styles.articleHeader}>
+              <div className={styles.briefStrip}>
                 <div>
-                  <span className={styles.label}>SEO brief</span>
                   <h2>{job.brief.title}</h2>
                   <p className={styles.subtle}>{job.brief.angle}</p>
                 </div>
-                <div className={styles.metaBox}>
-                  <span className={styles.label}>Meta title</span>
-                  <strong>{job.brief.metaTitle}</strong>
-                  <span className={styles.label}>Slug</span>
-                  <strong>/{job.brief.slug}</strong>
+                <div className={styles.briefMeta}>
+                  <span>{job.brief.metaTitle}</span>
+                  <span>/{job.brief.slug}</span>
                 </div>
               </div>
             </div>
@@ -525,48 +502,27 @@ export function WorkflowDashboard() {
               <div className={styles.articleBody}>
                 <p className={styles.articleIntro}>{job.draft.intro}</p>
 
-                {job.draft.sections.map((section, index) => (
-                  <section key={section.heading} className={styles.articleSection}>
-                    <h3>{section.heading}</h3>
-                    <p>{section.body}</p>
-                    {articleImages[index + 1] ? (
-                      <figure className={styles.inlineFigure}>
-                        <div className={styles.inlineImage}>
-                          {(() => {
-                            const image = articleImages[index + 1];
+                {job.draft.sections.map((section, index) => {
+                  const image = articleImages[index + 1];
 
-                            if (!image) {
-                              return null;
-                            }
-
-                            return (
-                              <Image
-                                alt={image.alt}
-                                height={720}
-                                src={image.src}
-                                width={1280}
-                              />
-                            );
-                          })()}
-                        </div>
-                        {(() => {
-                          const image = articleImages[index + 1];
-
-                          if (!image) {
-                            return null;
-                          }
-
-                          return (
-                            <figcaption>
-                              <strong>{image.caption}</strong>
-                              <span>{image.placement}</span>
-                            </figcaption>
-                          );
-                        })()}
-                      </figure>
-                    ) : null}
-                  </section>
-                ))}
+                  return (
+                    <section key={section.heading} className={styles.articleSection}>
+                      <h3>{section.heading}</h3>
+                      <p>{section.body}</p>
+                      {image ? (
+                        <figure className={styles.inlineFigure}>
+                          <div className={styles.inlineImage}>
+                            <Image alt={image.alt} height={720} src={image.src} width={1280} />
+                          </div>
+                          <figcaption>
+                            <strong>{image.caption}</strong>
+                            <span>{image.placement}</span>
+                          </figcaption>
+                        </figure>
+                      ) : null}
+                    </section>
+                  );
+                })}
 
                 <p className={styles.articleConclusion}>{job.draft.conclusion}</p>
               </div>
@@ -574,11 +530,9 @@ export function WorkflowDashboard() {
 
             <div className={styles.panel}>
               <div className={styles.sectionHead}>
-                <div>
-                  <span className={styles.label}>Article images</span>
-                  <h2>Image pack</h2>
-                </div>
+                <h2>ภาพที่ใช้ในบทความ</h2>
               </div>
+
               <div className={styles.imageGrid}>
                 {articleImages.map((image) => (
                   <article key={image.src} className={styles.imageCard}>
@@ -595,11 +549,9 @@ export function WorkflowDashboard() {
 
             <div className={styles.panel}>
               <div className={styles.sectionHead}>
-                <div>
-                  <span className={styles.label}>Outline</span>
-                  <h2>Structure</h2>
-                </div>
+                <h2>โครงบทความ</h2>
               </div>
+
               <div className={styles.twoColumn}>
                 <div>
                   <h3 className={styles.smallHeading}>Outline</h3>
@@ -620,28 +572,19 @@ export function WorkflowDashboard() {
               </div>
             </div>
 
-            <div className={styles.panel}>
-              <div className={styles.sectionHead}>
-                <div>
-                  <span className={styles.label}>Events</span>
-                  <h2>ล่าสุด</h2>
+            {latestEvent ? (
+              <div className={styles.panel}>
+                <div className={styles.latestRow}>
+                  <div>
+                    <span className={styles.label}>ล่าสุด</span>
+                    <strong>
+                      {automationTypeLabels[latestEvent.type]} / {automationStatusLabels[latestEvent.status]}
+                    </strong>
+                  </div>
+                  <span className={styles.statusChipMuted}>{formatDateTime(latestEvent.updatedAt)}</span>
                 </div>
               </div>
-              <div className={styles.eventList}>
-                {(job.automationEvents ?? []).slice(0, 6).map((event) => (
-                  <div key={event.id} className={styles.eventRow}>
-                    <div>
-                      <strong>{automationTypeLabels[event.type]}</strong>
-                      <p>{event.message ?? "ไม่มีข้อความเพิ่มเติม"}</p>
-                    </div>
-                    <div className={styles.eventMeta}>
-                      <span>{automationStatusLabels[event.status]}</span>
-                      <span>{formatDateTime(event.updatedAt)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            ) : null}
           </section>
         </section>
       </section>
