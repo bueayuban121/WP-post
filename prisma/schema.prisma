@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum WorkflowStage {
+  IDEA_POOL
+  SELECTED
+  RESEARCHING
+  BRIEF_READY
+  DRAFTING
+  REVIEW
+  APPROVED
+  PUBLISHED
+}
+
+enum ResearchRegion {
+  TH
+  GLOBAL
+}
+
+enum WorkflowEventType {
+  RESEARCH
+  BRIEF
+  DRAFT
+  PUBLISH
+}
+
+enum WorkflowEventStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Client {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  projects    Project[]
+  keywordJobs KeywordJob[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Project {
+  id        String       @id @default(cuid())
+  clientId  String
+  client    Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name      String
+  jobs      KeywordJob[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model KeywordJob {
+  id             String          @id @default(cuid())
+  clientId       String?
+  client         Client?         @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  projectId      String?
+  project        Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  seedKeyword    String
+  stage          WorkflowStage   @default(IDEA_POOL)
+  selectedIdeaId String?
+  ideas          TopicIdea[]
+  researchPack   ResearchPack?
+  contentBrief   ContentBrief?
+  articleDraft   ArticleDraft?
+  workflowEvents WorkflowEvent[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model TopicIdea {
+  id              String       @id @default(cuid())
+  jobId           String
+  job             KeywordJob   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  title           String
+  angle           String
+  searchIntent    String
+  difficulty      String
+  confidence      Int
+  whyItMatters    String
+  thaiSignal      String
+  globalSignal    String
+  relatedKeywords String[]
+  createdAt       DateTime     @default(now())
+}
+
+model ResearchPack {
+  id         String           @id @default(cuid())
+  jobId       String          @unique
+  job         KeywordJob      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  objective   String
+  audience    String
+  gaps        String[]
+  sources     ResearchSource[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model ResearchSource {
+  id         String         @id @default(cuid())
+  packId      String
+  pack        ResearchPack  @relation(fields: [packId], references: [id], onDelete: Cascade)
+  region      ResearchRegion
+  title       String
+  source      String
+  insight     String
+}
+
+model ContentBrief {
+  id              String      @id @default(cuid())
+  jobId            String      @unique
+  job              KeywordJob  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  title            String
+  slug             String
+  metaTitle        String
+  metaDescription  String
+  audience         String
+  angle            String
+  outline          String[]
+  faqs             String[]
+  internalLinks    String[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model ArticleDraft {
+  id          String         @id @default(cuid())
+  jobId        String         @unique
+  job          KeywordJob     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  intro        String
+  conclusion   String
+  sections     DraftSection[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model DraftSection {
+  id        String       @id @default(cuid())
+  draftId    String
+  draft      ArticleDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  heading    String
+  body       String
+  sortOrder  Int
+}
+
+model WorkflowEvent {
+  id            String              @id @default(cuid())
+  jobId         String
+  job           KeywordJob          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  type          WorkflowEventType
+  status        WorkflowEventStatus @default(QUEUED)
+  source        String
+  workflowRunId String?
+  message       String?
+  payload       Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}

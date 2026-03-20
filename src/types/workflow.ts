@@ -1,0 +1,84 @@
+export type WorkflowStage =
+  | "idea_pool"
+  | "selected"
+  | "researching"
+  | "brief_ready"
+  | "drafting"
+  | "review"
+  | "approved"
+  | "published";
+
+export type TopicIdea = {
+  id: string;
+  title: string;
+  angle: string;
+  searchIntent: "informational" | "commercial" | "problem-solving";
+  difficulty: "low" | "medium" | "high";
+  confidence: number;
+  whyItMatters: string;
+  thaiSignal: string;
+  globalSignal: string;
+  relatedKeywords: string[];
+};
+
+export type ResearchSource = {
+  region: "TH" | "Global";
+  title: string;
+  source: string;
+  insight: string;
+};
+
+export type ResearchPack = {
+  objective: string;
+  audience: string;
+  gaps: string[];
+  sources: ResearchSource[];
+};
+
+export type ContentBrief = {
+  title: string;
+  slug: string;
+  metaTitle: string;
+  metaDescription: string;
+  audience: string;
+  angle: string;
+  outline: string[];
+  faqs: string[];
+  internalLinks: string[];
+};
+
+export type ArticleDraft = {
+  intro: string;
+  sections: Array<{ heading: string; body: string }>;
+  conclusion: string;
+};
+
+export type WorkflowAutomationType = "research" | "brief" | "draft" | "publish";
+
+export type WorkflowAutomationStatus = "queued" | "running" | "succeeded" | "failed";
+
+export type WorkflowAutomationEvent = {
+  id: string;
+  jobId: string;
+  type: WorkflowAutomationType;
+  status: WorkflowAutomationStatus;
+  source: "app" | "n8n";
+  workflowRunId?: string;
+  message?: string;
+  payload?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorkflowJob = {
+  id: string;
+  client: string;
+  seedKeyword: string;
+  stage: WorkflowStage;
+  selectedIdeaId: string;
+  ideas: TopicIdea[];
+  research: ResearchPack;
+  brief: ContentBrief;
+  draft: ArticleDraft;
+  automationEvents?: WorkflowAutomationEvent[];
+};

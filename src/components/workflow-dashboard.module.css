@@ -1,0 +1,506 @@
+.page {
+  width: min(1400px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 40px 0 72px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.9fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.heroCopy,
+.heroPanel,
+.card,
+.kpiCard {
+  border: 1px solid var(--line);
+  background: rgba(255, 250, 244, 0.88);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+.heroCopy {
+  padding: 36px;
+  border-radius: 36px;
+}
+
+.heroCopy h1 {
+  margin: 12px 0 16px;
+  max-width: 12ch;
+  font-size: clamp(2.7rem, 6vw, 5rem);
+  line-height: 0.96;
+  letter-spacing: -0.06em;
+}
+
+.heroCopy p,
+.cardLead,
+.sectionHeading p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.eyebrow {
+  display: inline-flex;
+  color: var(--accent-deep);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.heroActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 28px;
+}
+
+.intakeForm {
+  margin-top: 24px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.intakeForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--accent-deep);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.intakeForm input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--foreground);
+}
+
+.statusText {
+  margin-top: 16px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.inlineActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.primaryButton,
+.secondaryButton,
+.textButton,
+.ideaCard {
+  transition: 180ms ease;
+}
+
+.primaryButton,
+.secondaryButton {
+  border: 0;
+  border-radius: 999px;
+  padding: 14px 20px;
+  cursor: pointer;
+}
+
+.primaryButton {
+  background: linear-gradient(135deg, var(--accent) 0%, #ca6f2e 100%);
+  color: #fff8f0;
+}
+
+.secondaryButton {
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--foreground);
+  border: 1px solid var(--line);
+}
+
+.heroPanel {
+  border-radius: 28px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.jobPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.eventSummary {
+  margin-top: 8px;
+}
+
+.eventList,
+.eventTimeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.eventList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.eventItem,
+.timelineItem {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.eventType,
+.eventStatus {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  text-transform: capitalize;
+}
+
+.eventType {
+  background: rgba(175, 77, 29, 0.1);
+  color: var(--accent-deep);
+}
+
+.eventStatus {
+  background: rgba(45, 125, 70, 0.12);
+  color: var(--success);
+}
+
+.eventEmpty {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.jobChip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.jobChipActive {
+  border-color: rgba(175, 77, 29, 0.35);
+  background: rgba(255, 232, 211, 0.92);
+  color: var(--accent-deep);
+}
+
+.panelLabel,
+.infoLabel,
+.sourceName,
+.kpiCard span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.seedKeyword,
+.stagePill,
+.tag,
+.regionBadge {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 8px 12px;
+}
+
+.seedKeyword,
+.tag {
+  background: rgba(175, 77, 29, 0.08);
+  color: var(--accent-deep);
+}
+
+.stagePill,
+.regionBadge {
+  background: rgba(45, 125, 70, 0.12);
+  color: var(--success);
+}
+
+.miniChecklist,
+.bulletList,
+.orderedList {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.kpiCard {
+  border-radius: 24px;
+  padding: 22px;
+}
+
+.kpiCard strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 2.6rem;
+  line-height: 1;
+  letter-spacing: -0.06em;
+}
+
+.pipelineSection {
+  margin-top: 32px;
+  border-radius: 30px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  background: rgba(255, 248, 240, 0.74);
+}
+
+.sectionHeading,
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: start;
+}
+
+.sectionHeading h2,
+.cardHeader h3 {
+  margin: 8px 0 0;
+  letter-spacing: -0.04em;
+}
+
+.stageRail {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.stageNode {
+  border-radius: 18px;
+  padding: 16px 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.92rem;
+}
+
+.stageNodeActive {
+  background: linear-gradient(135deg, rgba(175, 77, 29, 0.16), rgba(202, 111, 46, 0.28));
+  border-color: rgba(175, 77, 29, 0.35);
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+
+.contentGrid {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.card {
+  border-radius: 30px;
+  padding: 28px;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.textButton {
+  border: 0;
+  background: transparent;
+  color: var(--accent-deep);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.seedBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.seedBox input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.ideaList,
+.sourceStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.ideaCard {
+  width: 100%;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.68);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ideaCardSelected {
+  border-color: rgba(175, 77, 29, 0.42);
+  background: rgba(255, 232, 211, 0.86);
+}
+
+.ideaMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.ideaCard strong {
+  display: block;
+  margin-top: 10px;
+}
+
+.ideaCard p,
+.briefHeader p,
+.sourceCard p,
+.metaPanel p,
+.infoGrid p,
+.editorBody p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.infoGrid,
+.dualColumn,
+.metaPanel,
+.editorShell {
+  display: grid;
+  gap: 18px;
+}
+
+.infoGrid,
+.dualColumn,
+.editorShell {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.metaPanel {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 20px 0;
+}
+
+.tagWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sourceCard {
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.68);
+  padding: 18px;
+}
+
+.eventPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.68);
+  padding: 18px;
+}
+
+.timelineItem {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 14px 0;
+  border-top: 1px solid rgba(133, 96, 74, 0.14);
+}
+
+.timelineItem:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.timelineTop {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sourceHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.editorBody {
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.8);
+  padding: 22px;
+}
+
+.articleSection + .articleSection {
+  margin-top: 18px;
+}
+
+@media (max-width: 1120px) {
+  .hero,
+  .contentGrid,
+  .editorShell,
+  .kpiGrid,
+  .infoGrid,
+  .dualColumn,
+  .metaPanel,
+  .stageRail,
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    width: min(100% - 24px, 100%);
+    padding-top: 20px;
+  }
+
+  .heroCopy,
+  .heroPanel,
+  .card,
+  .pipelineSection,
+  .kpiCard {
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .sectionHeading,
+  .cardHeader {
+    flex-direction: column;
+  }
+}

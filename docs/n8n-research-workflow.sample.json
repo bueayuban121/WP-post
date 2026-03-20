@@ -1,0 +1,30 @@
+{
+  "name": "SEO Content Research Workflow",
+  "nodes": [
+    {
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "notes": "Path should be seo-content/research or match N8N_WEBHOOK_BASE_URL + /research"
+    },
+    {
+      "name": "Find Selected Idea",
+      "type": "n8n-nodes-base.code",
+      "notes": "Resolve selected idea from job.ideas by selectedIdeaId"
+    },
+    {
+      "name": "Prepare Prompt",
+      "type": "n8n-nodes-base.set",
+      "notes": "Map client, seed keyword, selected idea title, angle, and related keywords"
+    },
+    {
+      "name": "Research LLM",
+      "type": "n8n-nodes-base.openAi",
+      "notes": "Use the prompt template from src/lib/n8n-research-template.ts and enforce JSON output"
+    },
+    {
+      "name": "Callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "notes": "POST structured result back to /api/n8n/callback with x-callback-secret"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: seo-content-pipeline-app
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npm run render:build
+    startCommand: npm run render:start
+    autoDeploy: true
+    healthCheckPath: /api/health/n8n
+    envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
+      - key: N8N_WEBHOOK_BASE_URL
+        value: https://n8n-ncdn.srv1455358.hstgr.cloud/webhook/seo-content
+      - key: N8N_WEBHOOK_SECRET
+        sync: false
+      - key: N8N_CALLBACK_SECRET
+        sync: false
