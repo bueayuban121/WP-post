@@ -404,7 +404,7 @@ export function WorkflowDashboard() {
       <main className={styles.page}>
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
-            <span className={styles.eyebrow}>SEO Content Workflow</span>
+            <span className={styles.eyebrow}>Auto Post Content</span>
             <h1>เริ่มสร้างงานแรกเพื่อเดโม flow การผลิตบทความ SEO</h1>
             <p>
               หน้าเดโมนี้ออกแบบตาม workflow ที่ลูกค้าต้องการ: รับ keyword, แตกไอเดีย,
@@ -441,8 +441,8 @@ export function WorkflowDashboard() {
     <main className={styles.page}>
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
-          <span className={styles.eyebrow}>SEO Content Workflow</span>
-          <h1>เปลี่ยน 1 keyword ให้ค่อยๆ กลายเป็นบทความพร้อมใช้งานแบบมีรีเสิร์ชรองรับ</h1>
+          <span className={styles.eyebrow}>Auto Post Content</span>
+          <h1>Auto Post Content</h1>
           <p>
             หน้านี้เล่า flow จริงตั้งแต่แตกคีย์เวิร์ด เลือกหัวข้อ รีเสิร์ชข้อมูลไทยและต่างประเทศ
             ทำบรีฟ SEO และต่อยอดเป็นดราฟต์บทความในระบบเดียว
