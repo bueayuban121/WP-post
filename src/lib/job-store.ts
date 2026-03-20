@@ -2,7 +2,15 @@ import { mockWorkflowJob } from "@/data/mock-workflow";
 import { buildNewJob, generateBrief, generateDraft, generateResearch } from "@/lib/workflow-generators";
 import { getPrismaClient, isDatabaseConfigured } from "@/lib/prisma";
 import { listWorkflowEvents } from "@/lib/workflow-events";
-import type { WorkflowJob, WorkflowStage as AppWorkflowStage, TopicIdea, ResearchPack, ContentBrief, ArticleDraft } from "@/types/workflow";
+import type {
+  WorkflowJob,
+  WorkflowStage as AppWorkflowStage,
+  TopicIdea,
+  ResearchPack,
+  ContentBrief,
+  ArticleDraft,
+  WorkflowAutomationEvent
+} from "@/types/workflow";
 import { WorkflowStage, ResearchRegion, type Prisma } from "@/generated/prisma/client";
 
 const jobs = new Map<string, WorkflowJob>([[mockWorkflowJob.id, mockWorkflowJob]]);
@@ -164,8 +172,8 @@ function fromStoredJob(job: StoredJob): WorkflowJob {
     automationEvents: job.workflowEvents.map((event) => ({
       id: event.id,
       jobId: event.jobId,
-      type: event.type.toLowerCase() as WorkflowJob["automationEvents"][number]["type"],
-      status: event.status.toLowerCase() as WorkflowJob["automationEvents"][number]["status"],
+      type: event.type.toLowerCase() as WorkflowAutomationEvent["type"],
+      status: event.status.toLowerCase() as WorkflowAutomationEvent["status"],
       source: event.source === "n8n" ? "n8n" : "app",
       workflowRunId: event.workflowRunId ?? undefined,
       message: event.message ?? undefined,
