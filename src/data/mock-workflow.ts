@@ -1,14 +1,14 @@
 import { WorkflowJob } from "@/types/workflow";
 
 export const workflowStages = [
-  { key: "idea_pool", label: "Idea Pool" },
-  { key: "selected", label: "Selected" },
-  { key: "researching", label: "Researching" },
-  { key: "brief_ready", label: "Brief Ready" },
-  { key: "drafting", label: "Drafting" },
-  { key: "review", label: "Review" },
-  { key: "approved", label: "Approved" },
-  { key: "published", label: "Published" }
+  { key: "idea_pool", label: "คลังไอเดีย" },
+  { key: "selected", label: "เลือกหัวข้อ" },
+  { key: "researching", label: "รีเสิร์ช" },
+  { key: "brief_ready", label: "บรีฟพร้อม" },
+  { key: "drafting", label: "ดราฟต์" },
+  { key: "review", label: "ตรวจทาน" },
+  { key: "approved", label: "อนุมัติ" },
+  { key: "published", label: "เผยแพร่" }
 ] as const;
 
 export const mockWorkflowJob: WorkflowJob = {
