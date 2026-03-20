@@ -3,9 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: seo-content-app
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     env_file:
       - .env
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.wp-post.rule=Host(`${APP_HOST}`)
+      - traefik.http.routers.wp-post.entrypoints=websecure
+      - traefik.http.routers.wp-post.tls.certresolver=letsencrypt
+      - traefik.http.services.wp-post.loadbalancer.server.port=3000
