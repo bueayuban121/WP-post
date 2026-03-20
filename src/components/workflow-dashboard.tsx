@@ -151,11 +151,13 @@ export function WorkflowDashboard() {
         throw new Error(data.error ?? "โหลดรายการงานไม่สำเร็จ");
       }
 
-      setJobs(data.jobs);
-      setActiveJobId((current) => current || data.jobs[0]?.id || "");
+      const nextJobs = data.jobs;
+
+      setJobs(nextJobs);
+      setActiveJobId((current) => current || nextJobs[0]?.id || "");
       setStatusMessage(
-        data.jobs.length > 0
-          ? `โหลดงานสำเร็จ ${data.jobs.length} รายการ`
+        nextJobs.length > 0
+          ? `โหลดงานสำเร็จ ${nextJobs.length} รายการ`
           : "ยังไม่มีงานคอนเทนต์ เริ่มสร้างงานแรกจากฟอร์มด้านบนได้เลย"
       );
       setError("");
