@@ -1,4 +1,10 @@
-import { getJob } from "@/lib/job-store";
+import {
+  applyAutomationResult,
+  generateJobBrief,
+  generateJobDraft,
+  getJob,
+  runResearch
+} from "@/lib/job-store";
 import { triggerN8nWorkflow } from "@/lib/n8n";
 import { createWorkflowEvent, updateWorkflowEvent } from "@/lib/workflow-events";
 import type { WorkflowAutomationType } from "@/types/workflow";
@@ -8,6 +14,26 @@ const supportedTypes = new Set<WorkflowAutomationType>(["research", "brief", "dr
 
 function isAutomationType(value: string): value is WorkflowAutomationType {
   return supportedTypes.has(value as WorkflowAutomationType);
+}
+
+async function runLocalFallback(jobId: string, type: WorkflowAutomationType) {
+  if (type === "research") {
+    return runResearch(jobId);
+  }
+
+  if (type === "brief") {
+    return generateJobBrief(jobId);
+  }
+
+  if (type === "draft") {
+    return generateJobDraft(jobId);
+  }
+
+  return applyAutomationResult({
+    jobId,
+    type,
+    stage: "published"
+  });
 }
 
 export async function POST(
@@ -39,16 +65,31 @@ export async function POST(
     event
   });
 
-  const updatedEvent = await updateWorkflowEvent(event.id, {
+  let updatedEvent = await updateWorkflowEvent(event.id, {
     status: result.accepted ? "running" : "failed",
     message: result.message,
     payload: result.payload
   });
-  const updatedJob = await getJob(jobId);
+  let updatedJob = await getJob(jobId);
+
+  if (!result.accepted) {
+    updatedJob = await runLocalFallback(jobId, type);
+    updatedEvent = await updateWorkflowEvent(event.id, {
+      status: "succeeded",
+      message: `n8n webhook failed, ${type} completed with in-app fallback.`,
+      payload: {
+        fallback: "app",
+        n8n: result.payload ?? null
+      }
+    });
+  }
 
   return NextResponse.json({
     job: updatedJob,
     event: updatedEvent ?? event,
-    automation: result
+    automation: {
+      ...result,
+      fallbackApplied: !result.accepted
+    }
   });
 }
