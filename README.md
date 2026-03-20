@@ -40,6 +40,7 @@ Files:
 Recommended Render env vars:
 
 - `DATABASE_URL`
+- `DIRECT_URL`
 - `APP_BASE_URL`
 - `N8N_WEBHOOK_BASE_URL=https://n8n-ncdn.srv1455358.hstgr.cloud/webhook/seo-content`
 - `N8N_WEBHOOK_SECRET`
@@ -53,6 +54,10 @@ npm run render:start
 ```
 
 `render:start` runs Prisma deploy before starting Next.js so production migrations are applied on boot.
+For Neon, use:
+
+- `DATABASE_URL` = pooled connection string
+- `DIRECT_URL` = direct non-pooled connection string for Prisma migrations
 
 ## Database setup
 
