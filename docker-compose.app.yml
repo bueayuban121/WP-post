@@ -1,0 +1,11 @@
+services:
+  seo-content-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: seo-content-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env

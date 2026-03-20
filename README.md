@@ -59,6 +59,32 @@ For Neon, use:
 - `DATABASE_URL` = pooled connection string
 - `DIRECT_URL` = direct non-pooled connection string for Prisma migrations
 
+## VPS deployment
+
+This repo also supports `VPS + Docker`, which fits your current setup well because `n8n` is already on the VPS.
+
+Files:
+
+- [Dockerfile](C:\Users\bueay\Documents\New%20project\Dockerfile)
+- [docker-compose.app.yml](C:\Users\bueay\Documents\New%20project\docker-compose.app.yml)
+
+Basic flow on the VPS:
+
+```bash
+git clone https://github.com/bueayuban121/WP-post.git
+cd WP-post
+cp .env.local.example .env
+docker compose -f docker-compose.app.yml up -d --build
+```
+
+Recommended VPS env values:
+
+- `DATABASE_URL=<Neon pooled URL>`
+- `DIRECT_URL=<Neon direct URL>`
+- `APP_BASE_URL=<your public app domain>`
+- `N8N_WEBHOOK_BASE_URL=https://n8n-ncdn.srv1455358.hstgr.cloud/webhook/seo-content`
+- `N8N_CALLBACK_SECRET=<random secret>`
+
 ## Database setup
 
 1. Copy `.env.example` to `.env`
