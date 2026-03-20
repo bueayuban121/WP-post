@@ -76,12 +76,13 @@ export function WorkflowDashboard() {
       throw new Error(data.error ?? "Request failed.");
     }
 
+    const nextJob = data.job;
     setJobs((current) =>
-      current.some((item) => item.id === data.job?.id)
-        ? current.map((item) => (item.id === data.job?.id ? data.job : item))
-        : [data.job, ...current]
+      current.some((item) => item.id === nextJob.id)
+        ? current.map((item) => (item.id === nextJob.id ? nextJob : item))
+        : [nextJob, ...current]
     );
-    setActiveJobId(data.job.id);
+    setActiveJobId(nextJob.id);
     setStatusMessage(successMessage ?? "Content job updated.");
     setError("");
     return data.job;
@@ -105,10 +106,11 @@ export function WorkflowDashboard() {
         }
 
         if (data.job) {
+          const nextJob = data.job;
           setJobs((current) =>
-            current.map((item) => (item.id === data.job?.id ? data.job : item))
+            current.map((item) => (item.id === nextJob.id ? nextJob : item))
           );
-          setActiveJobId(data.job.id);
+          setActiveJobId(nextJob.id);
         } else {
           await loadJobs();
         }
