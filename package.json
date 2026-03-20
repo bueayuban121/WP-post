@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "render:build": "npm run prisma:generate && npm run build",
-    "render:start": "npm run prisma:deploy && npm start",
+    "render:start": "node scripts/render-start.mjs",
     "lint": "eslint .",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
