@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { type FormEvent, useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { getArticleImages } from "@/lib/article-images";
 import {
   type WorkflowAutomationStatus,
   type WorkflowAutomationType,
@@ -9,13 +10,6 @@ import {
   type WorkflowStage
 } from "@/types/workflow";
 import styles from "./workflow-dashboard.module.css";
-
-type ArticleImage = {
-  src: string;
-  alt: string;
-  caption: string;
-  placement: string;
-};
 
 type ContentView = "article" | "images" | "structure";
 
@@ -61,69 +55,6 @@ const contentViewLabels: Record<ContentView, string> = {
   images: "ภาพ",
   structure: "โครง"
 };
-
-const imageThemes = {
-  health: [
-    "/article-images/goldfish-health-1.svg",
-    "/article-images/goldfish-health-2.svg",
-    "/article-images/goldfish-health-3.svg"
-  ],
-  water: [
-    "/article-images/goldfish-water-1.svg",
-    "/article-images/goldfish-water-2.svg",
-    "/article-images/goldfish-water-3.svg"
-  ],
-  food: [
-    "/article-images/goldfish-food-1.svg",
-    "/article-images/goldfish-food-2.svg",
-    "/article-images/goldfish-food-3.svg"
-  ],
-  shared: ["/article-images/goldfish-detail-1.svg", "/article-images/goldfish-detail-2.svg"]
-} as const;
-
-function getTheme(title: string) {
-  if (title.includes("โรค")) return "health" as const;
-  if (title.includes("น้ำ") || title.toLowerCase().includes("ph")) return "water" as const;
-  return "food" as const;
-}
-
-function getArticleImages(title: string): ArticleImage[] {
-  const theme = getTheme(title);
-  const base = imageThemes[theme];
-
-  return [
-    {
-      src: base[0],
-      alt: `ภาพเปิดบทความสำหรับหัวข้อ ${title}`,
-      caption: "ภาพเปิดบทความ",
-      placement: "ก่อนบทนำ"
-    },
-    {
-      src: base[1],
-      alt: `ภาพประกอบหัวข้อหลักของบทความ ${title}`,
-      caption: "ภาพประกอบหัวข้อหลัก",
-      placement: "หลัง H2 แรก"
-    },
-    {
-      src: base[2],
-      alt: `ภาพอธิบายวิธีดูแลสำหรับหัวข้อ ${title}`,
-      caption: "ภาพอธิบายวิธีดูแล",
-      placement: "หลัง H2 ที่สอง"
-    },
-    {
-      src: imageThemes.shared[0],
-      alt: `ภาพคั่นกลางบทความ ${title}`,
-      caption: "ภาพคั่นกลางบทความ",
-      placement: "ช่วงกลางบทความ"
-    },
-    {
-      src: imageThemes.shared[1],
-      alt: `ภาพสรุปท้ายบทความ ${title}`,
-      caption: "ภาพสรุปท้ายบทความ",
-      placement: "ก่อนสรุป"
-    }
-  ];
-}
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("th-TH", {
@@ -273,6 +204,33 @@ export function WorkflowDashboard() {
         );
       } catch (createError) {
         setError(createError instanceof Error ? createError.message : "สร้างงานไม่สำเร็จ");
+      }
+    });
+  }
+
+  async function downloadDeliverable(format: "markdown" | "json") {
+    if (!job) return;
+
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/jobs/${job.id}/deliverable?format=${format}`);
+
+        if (!response.ok) {
+          throw new Error("ดาวน์โหลดไฟล์ไม่สำเร็จ");
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `${job.brief.slug || job.id}.${format === "markdown" ? "md" : "json"}`;
+        document.body.append(anchor);
+        anchor.click();
+        anchor.remove();
+        window.URL.revokeObjectURL(url);
+        setStatusMessage(format === "markdown" ? "ดาวน์โหลด Markdown แล้ว" : "ดาวน์โหลด JSON แล้ว");
+      } catch (downloadError) {
+        setError(downloadError instanceof Error ? downloadError.message : "ดาวน์โหลดไฟล์ไม่สำเร็จ");
       }
     });
   }
@@ -575,6 +533,22 @@ export function WorkflowDashboard() {
                   type="button"
                 >
                   ส่งเข้า n8n
+                </button>
+              </div>
+              <div className={styles.exportRow}>
+                <button
+                  className={styles.ghostButton}
+                  onClick={() => void downloadDeliverable("markdown")}
+                  type="button"
+                >
+                  ดาวน์โหลด MD
+                </button>
+                <button
+                  className={styles.ghostButton}
+                  onClick={() => void downloadDeliverable("json")}
+                  type="button"
+                >
+                  ดาวน์โหลด JSON
                 </button>
               </div>
             </div>

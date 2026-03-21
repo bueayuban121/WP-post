@@ -137,6 +137,7 @@
 
 .primaryButton,
 .secondaryButton,
+.ghostButton,
 .topicTab {
   transition:
     transform 180ms ease,
@@ -146,7 +147,8 @@
 }
 
 .primaryButton,
-.secondaryButton {
+.secondaryButton,
+.ghostButton {
   border-radius: 14px;
   padding: 13px 16px;
   cursor: pointer;
@@ -164,8 +166,15 @@
   color: #f5f7fb;
 }
 
+.ghostButton {
+  border: 1px solid rgba(240, 139, 62, 0.18);
+  background: rgba(240, 139, 62, 0.06);
+  color: #f0c37e;
+}
+
 .primaryButton:hover,
 .secondaryButton:hover,
+.ghostButton:hover,
 .contentTab:hover,
 .jobChip:hover,
 .topicTab:hover {
@@ -243,6 +252,13 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.exportRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .simpleList,
@@ -432,6 +448,7 @@
   .featuredImageCard,
   .twoColumn,
   .actionGrid,
+  .exportRow,
   .imageGrid {
     grid-template-columns: 1fr;
   }
