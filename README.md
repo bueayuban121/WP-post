@@ -84,6 +84,9 @@ Recommended VPS env values:
 - `APP_BASE_URL=<your public app domain>`
 - `N8N_WEBHOOK_BASE_URL=https://n8n-ncdn.srv1455358.hstgr.cloud/webhook/seo-content`
 - `N8N_CALLBACK_SECRET=<random secret>`
+- `WORDPRESS_BASE_URL=<your WordPress root url>`
+- `WORDPRESS_USERNAME=<your WordPress username>`
+- `WORDPRESS_APP_PASSWORD=<your WordPress application password>`
 
 ## Database setup
 
@@ -172,11 +175,11 @@ Reference files:
 
 ## Recommended next implementation steps
 
-1. Add a real PostgreSQL database and run Prisma migrations.
-2. Add authentication and client/project ownership rules.
-3. Replace generated placeholder content with AI service calls.
-4. Trigger `n8n` only after explicit approval steps.
-5. Add WordPress publishing and Telegram notifications through `n8n`.
+1. Add authentication and client/project ownership rules.
+2. Replace generated placeholder content with AI service calls.
+3. Trigger `n8n` only after explicit approval steps.
+4. Expand direct WordPress publishing to map categories, tags, and featured media per client.
+5. Add Telegram notifications through `n8n`.
 
 ## Suggested architecture
 
