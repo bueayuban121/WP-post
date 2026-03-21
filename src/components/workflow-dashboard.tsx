@@ -5,8 +5,9 @@ import { type FormEvent, useCallback, useEffect, useState, useTransition } from 
 import type { ArticleDraft, ContentBrief, TopicIdea, WorkflowAutomationEvent, WorkflowJob } from "@/types/workflow";
 import styles from "./workflow-dashboard.module.css";
 
-type WorkspaceTab = "expand" | "research" | "article" | "images";
+type WorkspaceTab = "expand" | "research" | "queue" | "article" | "images";
 type LoadState = "loading" | "ready" | "empty" | "error";
+type NavSection = "projects" | "keywords" | "queue" | "articles" | "settings";
 
 const stageLabels = {
   idea_pool: "Keyword Expansion",
@@ -25,6 +26,14 @@ const automationLabels: Record<WorkflowAutomationEvent["status"], string> = {
   succeeded: "Succeeded",
   failed: "Failed"
 };
+
+const navItems: Array<{ id: NavSection; label: string }> = [
+  { id: "projects", label: "Projects" },
+  { id: "keywords", label: "Keywords" },
+  { id: "queue", label: "Queue" },
+  { id: "articles", label: "Articles" },
+  { id: "settings", label: "Settings" }
+];
 
 function getProjectName(name: string) {
   return name.trim() || "Untitled Project";
@@ -87,6 +96,7 @@ export function WorkflowDashboard() {
   const [bannedWords, setBannedWords] = useState("ดีที่สุด, การันตี, รักษาหาย");
   const [articleLength, setArticleLength] = useState("1800");
   const [tab, setTab] = useState<WorkspaceTab>("expand");
+  const [activeNav, setActiveNav] = useState<NavSection>("projects");
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [statusMessage, setStatusMessage] = useState("Loading workspace");
   const [error, setError] = useState("");
@@ -141,6 +151,22 @@ export function WorkflowDashboard() {
   useEffect(() => {
     void loadJobs();
   }, [loadJobs]);
+
+  useEffect(() => {
+    if (tab === "article" || tab === "images") {
+      setActiveNav("articles");
+      return;
+    }
+
+    if (tab === "queue") {
+      setActiveNav("queue");
+      return;
+    }
+
+    if (tab === "expand" || tab === "research") {
+      setActiveNav("keywords");
+    }
+  }, [tab]);
 
   function replaceJob(nextJob: WorkflowJob, message: string, nextTab?: WorkspaceTab) {
     setJobs((current) =>
@@ -302,7 +328,36 @@ export function WorkflowDashboard() {
 
   const projectCount = new Set(jobs.map((item) => item.client)).size;
   const systemState = error ? "Issue detected" : statusMessage;
-  const compactProjects = jobs.slice(0, 3);
+  const compactProjects = jobs.slice(0, 2);
+  const queueEvents = [...(job?.automationEvents ?? [])].sort((left, right) =>
+    right.updatedAt.localeCompare(left.updatedAt)
+  );
+  const queueCount = queueEvents.filter((event) => event.status === "queued" || event.status === "running").length;
+
+  function focusSection(section: NavSection) {
+    setActiveNav(section);
+
+    if (section === "keywords") {
+      setTab("expand");
+      document.getElementById("workspace-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    if (section === "queue") {
+      setTab("queue");
+      document.getElementById("workspace-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    if (section === "articles") {
+      setTab("article");
+      document.getElementById("workspace-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    const targetId = section === "projects" ? "projects-section" : "settings-section";
+    document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
     <main className={styles.page}>
@@ -313,12 +368,16 @@ export function WorkflowDashboard() {
             <strong>Keyword to research-backed article workflow</strong>
           </div>
           <div className={styles.navLinks}>
-            <button type="button">Dashboard</button>
-            <button type="button">Projects</button>
-            <button type="button">Keywords</button>
-            <button type="button">Queue</button>
-            <button type="button">Articles</button>
-            <button type="button">Settings</button>
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                className={activeNav === item.id ? styles.navLinkActive : ""}
+                onClick={() => focusSection(item.id)}
+                type="button"
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
         </nav>
 
@@ -332,11 +391,11 @@ export function WorkflowDashboard() {
               รับ keyword, ขยายเป็น 10-15 keyword opportunities, เลือกคำที่ต้องการ, รีเสิร์ชรวมข้อมูลให้เป็นภาษาไทย, แล้วค่อยสร้างบทความพร้อมภาพและ publish flow ในระบบเดียว
             </p>
             <div className={styles.heroActions}>
-              <button className={styles.primaryButton} onClick={() => document.getElementById("create-form")?.scrollIntoView({ behavior: "smooth" })} type="button">
+              <button className={styles.primaryButton} onClick={() => focusSection("projects")} type="button">
                 Start Project
               </button>
-              <button className={styles.ghostButton} onClick={() => setTab("research")} type="button">
-                View Flow
+              <button className={styles.ghostButton} onClick={() => focusSection("articles")} type="button">
+                Open Article Studio
               </button>
             </div>
           </div>
@@ -361,7 +420,7 @@ export function WorkflowDashboard() {
           </div>
         </section>
 
-        <section id="create-form" className={styles.workflowFrame}>
+        <section id="projects-section" className={styles.workflowFrame}>
           <section className={styles.panel}>
             <div className={styles.sectionHead}>
               <div>
@@ -388,7 +447,7 @@ export function WorkflowDashboard() {
             </form>
           </section>
 
-          <section className={styles.panel}>
+          <section id="settings-section" className={styles.panel}>
             <div className={styles.sectionHead}>
               <div>
                 <span className={styles.label}>Core Settings</span>
@@ -448,7 +507,7 @@ export function WorkflowDashboard() {
         ) : null}
 
         {job && loadState === "ready" ? (
-          <section className={styles.workspace}>
+          <section id="workspace-section" className={styles.workspace}>
             <aside className={styles.sidebar}>
               <div className={styles.panel}>
                 <div className={styles.sectionHead}>
@@ -476,6 +535,7 @@ export function WorkflowDashboard() {
                 <div className={styles.tabColumn}>
                   <button className={`${styles.navTab} ${tab === "expand" ? styles.navTabActive : ""}`} onClick={() => setTab("expand")} type="button">Keyword Expansion</button>
                   <button className={`${styles.navTab} ${tab === "research" ? styles.navTabActive : ""}`} onClick={() => setTab("research")} type="button">Research Summary</button>
+                  <button className={`${styles.navTab} ${tab === "queue" ? styles.navTabActive : ""}`} onClick={() => setTab("queue")} type="button">Queue & Logs</button>
                   <button className={`${styles.navTab} ${tab === "article" ? styles.navTabActive : ""}`} onClick={() => setTab("article")} type="button">Article Studio</button>
                   <button className={`${styles.navTab} ${tab === "images" ? styles.navTabActive : ""}`} onClick={() => setTab("images")} type="button">Article Images</button>
                 </div>
@@ -484,9 +544,10 @@ export function WorkflowDashboard() {
               <div className={styles.panel}>
                 <div className={styles.sectionHead}>
                   <div>
-                    <span className={styles.label}>Quick Actions</span>
-                    <h2>Controls</h2>
+                    <span className={styles.label}>Queue</span>
+                    <h2>Primary Actions</h2>
                   </div>
+                  <span className={styles.statusChipMuted}>{queueCount} active</span>
                 </div>
                 <div className={styles.actionGrid}>
                   <button className={styles.secondaryButton} onClick={() => void runResearch()} type="button">Run Research</button>
@@ -578,6 +639,51 @@ export function WorkflowDashboard() {
                         </ul>
                       </div>
                     </aside>
+                  </div>
+                </section>
+              ) : null}
+
+              {tab === "queue" ? (
+                <section className={`${styles.panel} ${styles.motionScene}`}>
+                  <div className={styles.sectionHead}>
+                    <div>
+                      <span className={styles.label}>Step 4</span>
+                      <h2>Queue & Logs</h2>
+                    </div>
+                    <span className={styles.statusChip}>{queueCount} active jobs</span>
+                  </div>
+
+                  <div className={styles.queueTable}>
+                    <div className={styles.queueHead}>
+                      <span>Action</span>
+                      <span>Status</span>
+                      <span>Source</span>
+                      <span>Updated</span>
+                    </div>
+                    {queueEvents.length > 0 ? (
+                      queueEvents.map((event) => (
+                        <div key={event.id} className={styles.queueRow}>
+                          <strong>{event.type}</strong>
+                          <span>{automationLabels[event.status]}</span>
+                          <span>{event.source.toUpperCase()}</span>
+                          <span>{new Date(event.updatedAt).toLocaleString("th-TH")}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className={styles.eventEmpty}>ยังไม่มี queue event ในโปรเจกต์นี้</div>
+                    )}
+                  </div>
+
+                  <div className={styles.eventList}>
+                    {queueEvents.slice(0, 4).map((event) => (
+                      <article key={`${event.id}-log`} className={styles.eventItem}>
+                        <div className={styles.eventTop}>
+                          <strong>{event.type}</strong>
+                          <span className={styles.eventStatus}>{automationLabels[event.status]}</span>
+                        </div>
+                        <p>{event.message || "ระบบยังไม่มีข้อความอธิบายเพิ่มเติมสำหรับงานนี้"}</p>
+                      </article>
+                    ))}
                   </div>
                 </section>
               ) : null}
