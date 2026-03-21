@@ -1,4 +1,5 @@
 import { mockWorkflowJob } from "@/data/mock-workflow";
+import { generateArticleImages } from "@/lib/article-images";
 import { buildNewJob, generateBrief, generateDraft, generateResearch } from "@/lib/workflow-generators";
 import { getPrismaClient, isDatabaseConfigured } from "@/lib/prisma";
 import { listWorkflowEvents } from "@/lib/workflow-events";
@@ -9,7 +10,8 @@ import type {
   ResearchPack,
   ContentBrief,
   ArticleDraft,
-  WorkflowAutomationEvent
+  WorkflowAutomationEvent,
+  ArticleImageAsset
 } from "@/types/workflow";
 import { WorkflowStage, ResearchRegion, type Prisma } from "@/generated/prisma/client";
 
@@ -31,6 +33,11 @@ const jobInclude = {
           sortOrder: "asc"
         }
       }
+    }
+  },
+  articleImages: {
+    orderBy: {
+      sortOrder: "asc"
     }
   },
   workflowEvents: {
@@ -118,6 +125,19 @@ function toStoredJob(job: WorkflowJob) {
           }))
         }
       }
+    },
+    articleImages: {
+      create: job.images.map((image, index) => ({
+        id: image.id,
+        kind: image.kind,
+        src: image.src,
+        alt: image.alt,
+        caption: image.caption,
+        placement: image.placement,
+        prompt: image.prompt,
+        sectionHeading: image.sectionHeading,
+        sortOrder: index
+      }))
     }
   };
 }
@@ -177,6 +197,16 @@ function fromStoredJob(job: StoredJob): WorkflowJob {
         })) ?? [],
       conclusion: job.articleDraft?.conclusion ?? ""
     },
+    images: job.articleImages.map((image) => ({
+      id: image.id,
+      kind: image.kind as ArticleImageAsset["kind"],
+      src: image.src,
+      alt: image.alt,
+      caption: image.caption,
+      placement: image.placement,
+      prompt: image.prompt,
+      sectionHeading: image.sectionHeading ?? undefined
+    })),
     automationEvents: job.workflowEvents.map((event) => ({
       id: event.id,
       jobId: event.jobId,
@@ -203,6 +233,7 @@ async function updateStoredWorkflow(
     research?: ResearchPack;
     brief?: ContentBrief;
     draft?: ArticleDraft;
+    images?: ArticleImageAsset[];
   }
 ) {
   const prisma = getPrismaClient();
@@ -316,6 +347,24 @@ async function updateStoredWorkflow(
               }
             }
           }
+        : {}),
+      ...(payload.images
+        ? {
+            articleImages: {
+              deleteMany: {},
+              create: payload.images.map((image, index) => ({
+                id: image.id,
+                kind: image.kind,
+                src: image.src,
+                alt: image.alt,
+                caption: image.caption,
+                placement: image.placement,
+                prompt: image.prompt,
+                sectionHeading: image.sectionHeading,
+                sortOrder: index
+              }))
+            }
+          }
         : {})
     },
     include: jobInclude
@@ -422,6 +471,12 @@ export async function selectIdea(jobId: string, ideaId: string) {
   const research = generateResearch(job.seedKeyword, selectedIdea);
   const brief = generateBrief(job.seedKeyword, selectedIdea, research);
   const draft = generateDraft(brief);
+  const images = generateArticleImages({
+    seedKeyword: job.seedKeyword,
+    title: brief.title,
+    brief,
+    draft
+  });
 
   if (!isDatabaseConfigured()) {
     job.selectedIdeaId = ideaId;
@@ -429,6 +484,7 @@ export async function selectIdea(jobId: string, ideaId: string) {
     job.research = research;
     job.brief = brief;
     job.draft = draft;
+    job.images = images;
     jobs.set(job.id, job);
     return cloneJob(job);
   }
@@ -437,7 +493,8 @@ export async function selectIdea(jobId: string, ideaId: string) {
     selectedIdeaId: ideaId,
     research,
     brief,
-    draft
+    draft,
+    images
   });
 }
 
@@ -462,58 +519,86 @@ export async function generateJobBrief(jobId: string) {
   if (!job) return null;
   const selectedIdea = job.ideas.find((idea) => idea.id === job.selectedIdeaId) as TopicIdea;
   const brief = generateBrief(job.seedKeyword, selectedIdea, job.research);
+  const images = generateArticleImages({
+    seedKeyword: job.seedKeyword,
+    title: brief.title,
+    brief,
+    draft: job.draft
+  });
 
   if (!isDatabaseConfigured()) {
     job.brief = brief;
+    job.images = images;
     job.stage = "brief_ready";
     jobs.set(job.id, job);
     return cloneJob(job);
   }
 
-  return updateStoredWorkflow(jobId, "brief_ready", { brief });
+  return updateStoredWorkflow(jobId, "brief_ready", { brief, images });
 }
 
 export async function saveJobBrief(jobId: string, brief: ContentBrief) {
   const job = await getJob(jobId);
   if (!job) return null;
+  const images = generateArticleImages({
+    seedKeyword: job.seedKeyword,
+    title: brief.title,
+    brief,
+    draft: job.draft
+  });
 
   if (!isDatabaseConfigured()) {
     job.brief = brief;
+    job.images = images;
     job.stage = "brief_ready";
     jobs.set(job.id, job);
     return cloneJob(job);
   }
 
-  return updateStoredWorkflow(jobId, "brief_ready", { brief });
+  return updateStoredWorkflow(jobId, "brief_ready", { brief, images });
 }
 
 export async function generateJobDraft(jobId: string) {
   const job = await getJob(jobId);
   if (!job) return null;
   const draft = generateDraft(job.brief);
+  const images = generateArticleImages({
+    seedKeyword: job.seedKeyword,
+    title: job.brief.title,
+    brief: job.brief,
+    draft
+  });
 
   if (!isDatabaseConfigured()) {
     job.draft = draft;
+    job.images = images;
     job.stage = "drafting";
     jobs.set(job.id, job);
     return cloneJob(job);
   }
 
-  return updateStoredWorkflow(jobId, "drafting", { draft });
+  return updateStoredWorkflow(jobId, "drafting", { draft, images });
 }
 
 export async function saveJobDraft(jobId: string, draft: ArticleDraft) {
   const job = await getJob(jobId);
   if (!job) return null;
+  const images = generateArticleImages({
+    seedKeyword: job.seedKeyword,
+    title: job.brief.title,
+    brief: job.brief,
+    draft
+  });
 
   if (!isDatabaseConfigured()) {
     job.draft = draft;
+    job.images = images;
     job.stage = "review";
     jobs.set(job.id, job);
     return cloneJob(job);
   }
 
-  return updateStoredWorkflow(jobId, "review", { draft });
+  return updateStoredWorkflow(jobId, "review", { draft, images });
 }
 
 export async function approveJob(jobId: string) {
@@ -542,6 +627,26 @@ export async function publishJob(jobId: string) {
   return updateStoredWorkflow(jobId, "published", {});
 }
 
+export async function regenerateJobImages(jobId: string) {
+  const job = await getJob(jobId);
+  if (!job) return null;
+
+  const images = generateArticleImages({
+    seedKeyword: job.seedKeyword,
+    title: job.brief.title,
+    brief: job.brief,
+    draft: job.draft
+  });
+
+  if (!isDatabaseConfigured()) {
+    job.images = images;
+    jobs.set(job.id, job);
+    return cloneJob(job);
+  }
+
+  return updateStoredWorkflow(jobId, job.stage, { images });
+}
+
 export async function applyAutomationResult(input: {
   jobId: string;
   type: "research" | "brief" | "draft" | "publish";
@@ -549,6 +654,7 @@ export async function applyAutomationResult(input: {
   research?: ResearchPack;
   brief?: ContentBrief;
   draft?: ArticleDraft;
+  images?: ArticleImageAsset[];
 }) {
   const job = await getJob(input.jobId);
   if (!job) return null;
@@ -573,6 +679,9 @@ export async function applyAutomationResult(input: {
     if (input.draft) {
       job.draft = input.draft;
     }
+    if (input.images) {
+      job.images = input.images;
+    }
     job.stage = nextStage;
     jobs.set(job.id, job);
     return {
@@ -584,6 +693,7 @@ export async function applyAutomationResult(input: {
   return updateStoredWorkflow(input.jobId, nextStage, {
     research: input.research,
     brief: input.brief,
-    draft: input.draft
+    draft: input.draft,
+    images: input.images
   });
 }

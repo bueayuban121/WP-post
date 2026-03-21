@@ -1,4 +1,3 @@
-import { getArticleImages } from "@/lib/article-images";
 import type { WorkflowJob } from "@/types/workflow";
 
 type DeliverableFormat = "json" | "markdown";
@@ -10,9 +9,7 @@ function toAbsoluteUrl(path: string) {
 }
 
 function buildMarkdown(job: WorkflowJob) {
-  const selectedIdea =
-    job.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? job.ideas[0] ?? null;
-  const images = getArticleImages(selectedIdea?.title ?? job.brief.title).map((image) => ({
+  const images = job.images.map((image) => ({
     ...image,
     src: toAbsoluteUrl(image.src)
   }));
@@ -78,7 +75,7 @@ function buildMarkdown(job: WorkflowJob) {
 export function buildDeliverable(job: WorkflowJob, format: DeliverableFormat) {
   const selectedIdea =
     job.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? job.ideas[0] ?? null;
-  const images = getArticleImages(selectedIdea?.title ?? job.brief.title).map((image) => ({
+  const images = job.images.map((image) => ({
     ...image,
     src: toAbsoluteUrl(image.src)
   }));

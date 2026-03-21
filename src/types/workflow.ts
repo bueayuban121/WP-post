@@ -57,6 +57,17 @@ export type ArticleDraft = {
   conclusion: string;
 };
 
+export type ArticleImageAsset = {
+  id: string;
+  kind: "featured" | "inline";
+  src: string;
+  alt: string;
+  caption: string;
+  placement: string;
+  prompt: string;
+  sectionHeading?: string;
+};
+
 export type WorkflowAutomationType = "research" | "brief" | "draft" | "publish";
 
 export type WorkflowAutomationStatus = "queued" | "running" | "succeeded" | "failed";
@@ -84,5 +95,6 @@ export type WorkflowJob = {
   research: ResearchPack;
   brief: ContentBrief;
   draft: ArticleDraft;
+  images: ArticleImageAsset[];
   automationEvents?: WorkflowAutomationEvent[];
 };

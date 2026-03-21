@@ -1,5 +1,4 @@
 import type { WorkflowJob } from "@/types/workflow";
-import { getArticleImages } from "@/lib/article-images";
 
 type WordPressPublishResult = {
   id: number;
@@ -44,9 +43,7 @@ function buildImageHtml(src: string, alt: string, caption: string) {
 }
 
 function buildWordPressContent(job: WorkflowJob) {
-  const selectedIdea =
-    job.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? job.ideas[0] ?? null;
-  const images = getArticleImages(selectedIdea?.title ?? job.brief.title);
+  const images = job.images;
   const blocks: string[] = [];
 
   if (job.brief.featuredImageUrl) {

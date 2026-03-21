@@ -1,4 +1,5 @@
 import { mockWorkflowJob } from "@/data/mock-workflow";
+import { generateArticleImages } from "@/lib/article-images";
 import { ArticleDraft, ContentBrief, ResearchPack, TopicIdea, WorkflowJob } from "@/types/workflow";
 
 function slugify(value: string) {
@@ -137,6 +138,12 @@ export function buildNewJob(seedKeyword: string, client: string): WorkflowJob {
   const research = generateResearch(seedKeyword, selectedIdea);
   const brief = generateBrief(seedKeyword, selectedIdea, research);
   const draft = generateDraft(brief);
+  const images = generateArticleImages({
+    seedKeyword,
+    title: brief.title,
+    brief,
+    draft
+  });
 
   return {
     id: crypto.randomUUID(),
@@ -147,6 +154,7 @@ export function buildNewJob(seedKeyword: string, client: string): WorkflowJob {
     ideas,
     research,
     brief,
-    draft
+    draft,
+    images
   };
 }

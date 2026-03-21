@@ -1,8 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { type FormEvent, useCallback, useEffect, useMemo, useState, useTransition } from "react";
-import { getArticleImages } from "@/lib/article-images";
+import { type FormEvent, useCallback, useEffect, useState, useTransition } from "react";
 import type {
   ContentBrief,
   WorkflowAutomationStatus,
@@ -84,10 +83,7 @@ export function WorkflowDashboard() {
 
   const job = jobs.find((item) => item.id === activeJobId) ?? jobs[0] ?? null;
   const selectedIdea = job?.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? job?.ideas[0] ?? null;
-  const articleImages = useMemo(
-    () => (selectedIdea ? getArticleImages(selectedIdea.title) : []),
-    [selectedIdea]
-  );
+  const articleImages = job?.images ?? [];
   const featuredImageSrc = briefFeaturedImageUrl.trim() || articleImages[0]?.src || "/article-images/goldfish-water-1.svg";
   const latestEvent = job?.automationEvents?.[0] ?? null;
 
@@ -569,6 +565,7 @@ export function WorkflowDashboard() {
             <strong>{articleImages[0]?.caption}</strong>
             <p>{articleImages[0]?.alt}</p>
             <span>{articleImages[0]?.placement}</span>
+            {articleImages[0]?.prompt ? <code>{articleImages[0].prompt}</code> : null}
           </div>
         </div>
 
@@ -581,6 +578,7 @@ export function WorkflowDashboard() {
               <strong>{image.caption}</strong>
               <p>{image.alt}</p>
               <span>{image.placement}</span>
+              <code>{image.prompt}</code>
             </article>
           ))}
         </div>
@@ -786,6 +784,13 @@ export function WorkflowDashboard() {
                   type="button"
                 >
                   อนุมัติ
+                </button>
+                <button
+                  className={styles.secondaryButton}
+                  onClick={() => updateJob(`/api/jobs/${job.id}/images`, "Refreshed AI images")}
+                  type="button"
+                >
+                  AI images
                 </button>
                 <button
                   className={styles.secondaryButton}

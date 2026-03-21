@@ -1,3 +1,4 @@
+import { generateArticleImages } from "@/lib/article-images";
 import { WorkflowJob } from "@/types/workflow";
 
 export const workflowStages = [
@@ -143,5 +144,13 @@ export const mockWorkflowJob: WorkflowJob = {
     ],
     conclusion:
       "ถ้าถามว่าปลาทองชอบน้ำด่างไหม คำตอบคืออยู่ได้กับน้ำด่างอ่อนที่เสถียร แต่ไม่ควรไล่ค่าจนเกินธรรมชาติของตู้ สิ่งสำคัญที่สุดคือคุมคุณภาพน้ำอย่างสม่ำเสมอ"
-  }
+  },
+  images: []
 };
+
+mockWorkflowJob.images = generateArticleImages({
+  seedKeyword: mockWorkflowJob.seedKeyword,
+  title: mockWorkflowJob.brief.title,
+  brief: mockWorkflowJob.brief,
+  draft: mockWorkflowJob.draft
+});
