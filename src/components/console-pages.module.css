@@ -227,6 +227,12 @@
   transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
 }
 
+.linkButton:disabled,
+.primaryButton:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .primaryButton {
   border: 0;
   background: linear-gradient(135deg, #ef8a43 0%, #c75724 100%);

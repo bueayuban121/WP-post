@@ -1,21 +1,8 @@
 import Link from "next/link";
 import { ConsoleNav } from "@/components/console-nav";
 import styles from "@/components/console-pages.module.css";
+import { QueueTableClient } from "@/components/queue-table-client";
 import { listJobs } from "@/lib/job-store";
-import type { WorkflowAutomationType } from "@/types/workflow";
-
-const statusLabels = {
-  queued: "Queued",
-  running: "Running",
-  succeeded: "Succeeded",
-  failed: "Failed"
-} as const;
-
-function getResumeTab(type: WorkflowAutomationType) {
-  if (type === "research") return "research";
-  if (type === "publish") return "queue";
-  return "article";
-}
 
 export default async function QueuePage() {
   const jobs = await listJobs();
@@ -67,44 +54,7 @@ export default async function QueuePage() {
       </section>
 
       {rows.length > 0 ? (
-        <section className={styles.table}>
-          <div className={styles.tableHead}>
-            <span>Project</span>
-            <span>Keyword</span>
-            <span>Action</span>
-            <span>Status</span>
-            <span>Updated</span>
-          </div>
-          {rows.map((row) => (
-            <div key={row.id} className={styles.tableRow}>
-              <div>
-                <strong>{row.project}</strong>
-                <small>{row.source.toUpperCase()}</small>
-              </div>
-              <div>
-                <strong>{row.keyword}</strong>
-                <small>{row.message}</small>
-              </div>
-              <div>
-                <strong>{row.type}</strong>
-              </div>
-              <div>
-                <strong>{statusLabels[row.status]}</strong>
-              </div>
-              <div>
-                <strong>{new Date(row.updatedAt).toLocaleString("th-TH")}</strong>
-                <div className={styles.actions}>
-                  <Link className={styles.linkButton} href={`/articles?job=${row.jobId}`}>
-                    Open
-                  </Link>
-                  <Link className={styles.linkButton} href={`/?job=${row.jobId}&tab=${getResumeTab(row.type)}`}>
-                    Resume
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ))}
-        </section>
+        <QueueTableClient rows={rows} />
       ) : (
         <section className={styles.emptyState}>
           <strong>ยังไม่มี queue event</strong>
