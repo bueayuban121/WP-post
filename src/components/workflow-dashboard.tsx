@@ -73,6 +73,9 @@ export function WorkflowDashboard() {
   const [client, setClient] = useState("AquaCare Thailand");
   const [seedKeyword, setSeedKeyword] = useState("ปลาทอง");
   const [contentView, setContentView] = useState<ContentView>("article");
+  const [draftIntro, setDraftIntro] = useState("");
+  const [draftConclusion, setDraftConclusion] = useState("");
+  const [draftSections, setDraftSections] = useState<Array<{ heading: string; body: string }>>([]);
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("กำลังโหลดข้อมูล...");
   const [isPending, startTransition] = useTransition();
@@ -107,6 +110,13 @@ export function WorkflowDashboard() {
   useEffect(() => {
     void loadJobs();
   }, [loadJobs]);
+
+  useEffect(() => {
+    if (!job) return;
+    setDraftIntro(job.draft.intro);
+    setDraftConclusion(job.draft.conclusion);
+    setDraftSections(job.draft.sections.map((section) => ({ ...section })));
+  }, [job]);
 
   async function runJobAction(path: string, options?: RequestInit, successMessage?: string) {
     const response = await fetch(path, {
@@ -208,6 +218,43 @@ export function WorkflowDashboard() {
     });
   }
 
+  const isDraftDirty =
+    !!job &&
+    (draftIntro !== job.draft.intro ||
+      draftConclusion !== job.draft.conclusion ||
+      JSON.stringify(draftSections) !== JSON.stringify(job.draft.sections));
+
+  async function saveDraftEdits() {
+    if (!job) return;
+
+    startTransition(async () => {
+      try {
+        await runJobAction(
+          `/api/jobs/${job.id}/draft`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              intro: draftIntro,
+              conclusion: draftConclusion,
+              sections: draftSections
+            })
+          },
+          "บันทึกบทความแล้ว"
+        );
+      } catch (saveError) {
+        setError(saveError instanceof Error ? saveError.message : "บันทึกบทความไม่สำเร็จ");
+      }
+    });
+  }
+
+  function updateDraftSection(index: number, field: "heading" | "body", value: string) {
+    setDraftSections((current) =>
+      current.map((section, sectionIndex) =>
+        sectionIndex === index ? { ...section, [field]: value } : section
+      )
+    );
+  }
+
   async function downloadDeliverable(format: "markdown" | "json") {
     if (!job) return;
 
@@ -237,50 +284,114 @@ export function WorkflowDashboard() {
 
   function renderArticle() {
     return (
-      <article className={`${styles.articleLayout} ${styles.motionBlock}`}>
-        <div className={styles.heroImage}>
-          <Image
-            alt={articleImages[0]?.alt ?? job?.brief.title ?? "Hero image"}
-            height={900}
-            priority
-            src={articleImages[0]?.src ?? "/article-images/goldfish-water-1.svg"}
-            width={1600}
-          />
-        </div>
+      <div className={styles.articleWorkspace}>
+        <section className={`${styles.panel} ${styles.editorPanel} ${styles.motionBlock}`}>
+          <div className={styles.sectionHead}>
+            <div>
+              <span className={styles.label}>Editor</span>
+              <h2>แก้บทความ</h2>
+            </div>
+            <div className={styles.editorActions}>
+              <button
+                className={styles.secondaryButton}
+                onClick={() => updateJob(`/api/jobs/${job.id}/draft`, "สร้างดราฟต์ใหม่แล้ว")}
+                type="button"
+              >
+                สร้างใหม่
+              </button>
+              <button
+                className={styles.primaryButton}
+                disabled={!isDraftDirty || isPending}
+                onClick={() => void saveDraftEdits()}
+                type="button"
+              >
+                บันทึกบทความ
+              </button>
+            </div>
+          </div>
 
-        <div className={styles.articleMeta}>
-          <span>{articleImages[0]?.caption}</span>
-          <span>{articleImages[0]?.placement}</span>
-        </div>
+          <div className={styles.editorFields}>
+            <label className={styles.editorField}>
+              <span>บทนำ</span>
+              <textarea rows={5} value={draftIntro} onChange={(event) => setDraftIntro(event.target.value)} />
+            </label>
 
-        <div className={styles.articleBody}>
-          <p className={styles.articleIntro}>{job?.draft.intro}</p>
+            {draftSections.map((section, index) => (
+              <div key={`${index}-${section.heading}`} className={styles.editorSection}>
+                <label className={styles.editorField}>
+                  <span>หัวข้อย่อย {index + 1}</span>
+                  <input
+                    value={section.heading}
+                    onChange={(event) => updateDraftSection(index, "heading", event.target.value)}
+                  />
+                </label>
+                <label className={styles.editorField}>
+                  <span>เนื้อหา</span>
+                  <textarea
+                    rows={7}
+                    value={section.body}
+                    onChange={(event) => updateDraftSection(index, "body", event.target.value)}
+                  />
+                </label>
+              </div>
+            ))}
 
-          {job?.draft.sections.map((section, index) => {
-            const image = articleImages[index + 1];
+            <label className={styles.editorField}>
+              <span>สรุปท้ายบทความ</span>
+              <textarea
+                rows={5}
+                value={draftConclusion}
+                onChange={(event) => setDraftConclusion(event.target.value)}
+              />
+            </label>
+          </div>
+        </section>
 
-            return (
-              <section key={section.heading} className={styles.articleSection}>
-                <h3>{section.heading}</h3>
-                <p>{section.body}</p>
-                {image ? (
-                  <figure className={styles.inlineFigure}>
-                    <div className={styles.inlineImage}>
-                      <Image alt={image.alt} height={840} src={image.src} width={1400} />
-                    </div>
-                    <figcaption>
-                      <strong>{image.caption}</strong>
-                      <span>{image.placement}</span>
-                    </figcaption>
-                  </figure>
-                ) : null}
-              </section>
-            );
-          })}
+        <article className={`${styles.articleLayout} ${styles.motionBlock}`}>
+          <div className={styles.heroImage}>
+            <Image
+              alt={articleImages[0]?.alt ?? job?.brief.title ?? "Hero image"}
+              height={900}
+              priority
+              src={articleImages[0]?.src ?? "/article-images/goldfish-water-1.svg"}
+              width={1600}
+            />
+          </div>
 
-          <p className={styles.articleConclusion}>{job?.draft.conclusion}</p>
-        </div>
-      </article>
+          <div className={styles.articleMeta}>
+            <span>{articleImages[0]?.caption}</span>
+            <span>{articleImages[0]?.placement}</span>
+          </div>
+
+          <div className={styles.articleBody}>
+            <p className={styles.articleIntro}>{draftIntro}</p>
+
+            {draftSections.map((section, index) => {
+              const image = articleImages[index + 1];
+
+              return (
+                <section key={`${section.heading}-${index}`} className={styles.articleSection}>
+                  <h3>{section.heading}</h3>
+                  <p>{section.body}</p>
+                  {image ? (
+                    <figure className={styles.inlineFigure}>
+                      <div className={styles.inlineImage}>
+                        <Image alt={image.alt} height={840} src={image.src} width={1400} />
+                      </div>
+                      <figcaption>
+                        <strong>{image.caption}</strong>
+                        <span>{image.placement}</span>
+                      </figcaption>
+                    </figure>
+                  ) : null}
+                </section>
+              );
+            })}
+
+            <p className={styles.articleConclusion}>{draftConclusion}</p>
+          </div>
+        </article>
+      </div>
     );
   }
 

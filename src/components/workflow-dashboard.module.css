@@ -295,6 +295,61 @@
   backdrop-filter: blur(10px);
 }
 
+.articleWorkspace {
+  display: grid;
+  grid-template-columns: 420px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.editorPanel {
+  align-self: start;
+  position: sticky;
+  top: 76px;
+}
+
+.editorActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.editorFields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.editorSection {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.editorField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #a6afbb;
+  font-size: 0.9rem;
+}
+
+.editorField + .editorField {
+  margin-top: 12px;
+}
+
+.editorField input,
+.editorField textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: #f5f7fb;
+  border-radius: 14px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
 .articleLayout {
   border-radius: 26px;
   overflow: hidden;
@@ -445,6 +500,7 @@
 @media (max-width: 1150px) {
   .workspace,
   .createForm,
+  .articleWorkspace,
   .featuredImageCard,
   .twoColumn,
   .actionGrid,
@@ -478,5 +534,9 @@
 
   .contentTabs {
     top: 8px;
+  }
+
+  .editorPanel {
+    position: static;
   }
 }
