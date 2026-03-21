@@ -55,6 +55,19 @@ export async function POST(
     message: `Queued ${type} automation from the app.`
   });
 
+  if (type === "publish") {
+    return NextResponse.json({
+      job,
+      event,
+      automation: {
+        mode: "queue",
+        accepted: true,
+        message: "Publish queued for the n8n poller.",
+        fallbackApplied: false
+      }
+    });
+  }
+
   const result = await triggerN8nWorkflow({
     type,
     job,
