@@ -420,9 +420,9 @@ export function WorkflowDashboard() {
                 />
               </label>
               <label className={styles.editorField}>
-                <span>Tag IDs or slugs</span>
+                <span>Tag IDs</span>
                 <input
-                  placeholder="seo, goldfish"
+                  placeholder="3, 4"
                   value={briefTagIds}
                   onChange={(event) => setBriefTagIds(event.target.value)}
                 />
