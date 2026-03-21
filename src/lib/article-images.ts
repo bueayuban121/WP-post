@@ -92,7 +92,7 @@ function buildAsset(input: BuildImageInput, placement: string, sortKey: string, 
   const seed = hashSeed(`${input.seedKeyword}:${input.title}:${sortKey}:${sectionHeading ?? ""}`);
 
   return {
-    id: `image-${sortKey}`,
+    id: `image-${sortKey}-${seed}`,
     kind,
     src: buildImageUrl(prompt, seed, kind === "featured" ? 1600 : 1400, kind === "featured" ? 900 : 840),
     alt: toAlt(input.title, placement, sectionHeading),
