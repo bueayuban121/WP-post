@@ -440,7 +440,7 @@ export function WorkflowDashboard() {
         <article className={`${styles.articleLayout} ${styles.motionBlock}`}>
           <div className={styles.heroImage}>
             <Image
-              alt={articleImages[0]?.alt ?? briefTitle || "Hero image"}
+              alt={articleImages[0]?.alt ?? (briefTitle || "Hero image")}
               height={900}
               priority
               src={articleImages[0]?.src ?? "/article-images/goldfish-water-1.svg"}
