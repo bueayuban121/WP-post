@@ -27,6 +27,7 @@ export default async function ProjectsPage() {
   const projects = Array.from(projectMap.entries()).map(([client, items]) => ({
     client,
     jobs: items.length,
+    latestJobId: items[0]?.id ?? "",
     latestKeyword: items[0]?.seedKeyword ?? "-",
     published: items.filter((item) => item.stage === "published").length,
     latestStage: items[0]?.stage ?? "idea_pool"
@@ -86,6 +87,14 @@ export default async function ProjectsPage() {
                     <span className={styles.pill}>{project.jobs} jobs</span>
                     <span className={styles.pill}>{project.published} published</span>
                     <span className={styles.pill}>{stageLabels[project.latestStage]}</span>
+                  </div>
+                  <div className={styles.actions}>
+                    <Link className={styles.linkButton} href={`/?job=${project.latestJobId}&tab=expand`}>
+                      Open keywords
+                    </Link>
+                    <Link className={styles.linkButton} href={`/articles?job=${project.latestJobId}`}>
+                      Open article
+                    </Link>
                   </div>
                 </article>
               ))}

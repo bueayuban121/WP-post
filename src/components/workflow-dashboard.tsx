@@ -79,7 +79,13 @@ async function readJson(response: Response) {
   return data;
 }
 
-export function WorkflowDashboard({ initialTab = "expand" }: { initialTab?: WorkspaceTab }) {
+export function WorkflowDashboard({
+  initialTab = "expand",
+  initialJobId = ""
+}: {
+  initialTab?: WorkspaceTab;
+  initialJobId?: string;
+}) {
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [activeJobId, setActiveJobId] = useState("");
   const [projectName, setProjectName] = useState("AquaCare Thailand");
@@ -123,7 +129,10 @@ export function WorkflowDashboard({ initialTab = "expand" }: { initialTab?: Work
       const response = await fetch("/api/jobs", { cache: "no-store" });
       const data = await readJson(response);
       const nextJobs = data.jobs ?? [];
-      const nextJob = nextJobs[0] ?? null;
+      const nextJob =
+        nextJobs.find((item) => item.id === initialJobId) ??
+        nextJobs[0] ??
+        null;
       setJobs(nextJobs);
       setActiveJobId(nextJob?.id ?? "");
       if (nextJob) {
@@ -137,11 +146,11 @@ export function WorkflowDashboard({ initialTab = "expand" }: { initialTab?: Work
       setStatusMessage("Load failed");
       setError(loadError instanceof Error ? loadError.message : "Load failed");
     }
-  }, []);
+  }, [initialJobId]);
 
   useEffect(() => {
     void loadJobs();
-  }, [loadJobs]);
+  }, [initialJobId, loadJobs]);
 
   function replaceJob(nextJob: WorkflowJob, message: string, nextTab?: WorkspaceTab) {
     setJobs((current) =>

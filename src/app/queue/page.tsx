@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ConsoleNav } from "@/components/console-nav";
 import styles from "@/components/console-pages.module.css";
 import { listJobs } from "@/lib/job-store";
+import type { WorkflowAutomationType } from "@/types/workflow";
 
 const statusLabels = {
   queued: "Queued",
@@ -10,12 +11,19 @@ const statusLabels = {
   failed: "Failed"
 } as const;
 
+function getResumeTab(type: WorkflowAutomationType) {
+  if (type === "research") return "research";
+  if (type === "publish") return "queue";
+  return "article";
+}
+
 export default async function QueuePage() {
   const jobs = await listJobs();
   const rows = jobs
     .flatMap((job) =>
       (job.automationEvents ?? []).map((event) => ({
         id: event.id,
+        jobId: job.id,
         project: job.client,
         keyword: job.seedKeyword,
         type: event.type,
@@ -85,6 +93,14 @@ export default async function QueuePage() {
               </div>
               <div>
                 <strong>{new Date(row.updatedAt).toLocaleString("th-TH")}</strong>
+                <div className={styles.actions}>
+                  <Link className={styles.linkButton} href={`/articles?job=${row.jobId}`}>
+                    Open
+                  </Link>
+                  <Link className={styles.linkButton} href={`/?job=${row.jobId}&tab=${getResumeTab(row.type)}`}>
+                    Resume
+                  </Link>
+                </div>
               </div>
             </div>
           ))}
