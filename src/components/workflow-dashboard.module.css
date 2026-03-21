@@ -4,6 +4,342 @@
   padding: 20px 0 44px;
 }
 
+.topNav,
+.hero,
+.overviewGrid,
+.dashboardGrid,
+.systemGrid,
+.projectList,
+.queueTable,
+.eventList,
+.settingsList,
+.emptyActions,
+.heroActions {
+  display: flex;
+}
+
+.topNav,
+.hero,
+.summaryCard,
+.stepCard,
+.systemCard,
+.projectCard,
+.queueTable,
+.eventItem,
+.emptyState {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(7, 9, 12, 0.98);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.28);
+}
+
+.topNav,
+.hero,
+.summaryCard,
+.stepCard,
+.systemCard,
+.projectCard,
+.queueTable,
+.emptyState,
+.eventItem {
+  border-radius: 22px;
+}
+
+.topNav {
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+}
+
+.navBrand {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.navBrand strong {
+  font-size: 0.96rem;
+  color: #f5f7fb;
+}
+
+.navLinks {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.navLinks button {
+  border: 0;
+  background: transparent;
+  color: #a6afbb;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 12px;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.navLinks button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.hero {
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px;
+}
+
+.heroContent {
+  flex: 1 1 58%;
+}
+
+.heroText {
+  max-width: 720px;
+  margin: 14px 0 0;
+  color: #adb5c1;
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.heroActions {
+  gap: 12px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.stepGrid {
+  flex: 0 0 380px;
+  display: grid;
+  gap: 12px;
+}
+
+.stepCard {
+  padding: 16px 18px;
+}
+
+.stepCard strong {
+  display: block;
+  margin: 6px 0 8px;
+}
+
+.stepCard p,
+.summaryCard p,
+.eventItem p,
+.loadingText {
+  color: #9aa3af;
+  line-height: 1.65;
+}
+
+.stepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(240, 139, 62, 0.14);
+  color: #f0c37e;
+  font-weight: 700;
+}
+
+.overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.summaryCard {
+  padding: 18px;
+  flex-direction: column;
+}
+
+.summaryCard strong {
+  display: block;
+  margin-top: 12px;
+  font-size: 2rem;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 18px;
+}
+
+.systemGrid,
+.settingsList,
+.projectList,
+.eventList,
+.emptyActions {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.systemCard,
+.projectCard {
+  padding: 16px;
+}
+
+.systemCard strong,
+.projectCard strong {
+  display: block;
+  margin: 8px 0 6px;
+}
+
+.systemReady,
+.systemRunning,
+.systemMuted {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+}
+
+.systemReady {
+  background: rgba(94, 198, 132, 0.12);
+  color: #8bda9f;
+}
+
+.systemRunning {
+  background: rgba(240, 139, 62, 0.14);
+  color: #f0c37e;
+}
+
+.systemMuted {
+  background: rgba(255, 255, 255, 0.04);
+  color: #9ca4b1;
+}
+
+.settingsList > div {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settingsList strong {
+  display: block;
+  margin-top: 6px;
+}
+
+.loadingPanel {
+  gap: 16px;
+}
+
+.skeletonCard {
+  min-height: 128px;
+  padding: 18px;
+}
+
+.skeletonLine,
+.skeletonValue {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.04) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.skeletonLine {
+  width: 48%;
+  height: 12px;
+}
+
+.skeletonValue {
+  width: 72%;
+  height: 32px;
+  margin-top: 18px;
+}
+
+.loadingText {
+  margin: 0;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px;
+}
+
+.projectCard {
+  text-align: left;
+  cursor: pointer;
+}
+
+.projectCard span,
+.projectCard small {
+  display: block;
+  color: #9aa3af;
+}
+
+.projectCardActive {
+  border-color: rgba(240, 139, 62, 0.28);
+  background: rgba(240, 139, 62, 0.08);
+}
+
+.queueTable {
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.queueHead,
+.queueRow {
+  display: grid;
+  grid-template-columns: 1.1fr 1.1fr 0.9fr 0.7fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.queueHead {
+  padding: 14px 16px;
+  color: #7f8794;
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.queueRow {
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: transparent;
+  color: #edf0f4;
+  padding: 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 180ms ease;
+}
+
+.queueRow:hover,
+.queueRowActive {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.eventItem {
+  padding: 14px 16px;
+}
+
+.eventTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.eventStatus {
+  color: #f0c37e;
+  font-size: 0.82rem;
+}
+
+.eventEmpty {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.025);
+  color: #9aa3af;
+}
+
 .shell,
 .sidebar,
 .content,
@@ -536,7 +872,20 @@
   }
 }
 
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
 @media (max-width: 1150px) {
+  .hero,
+  .dashboardGrid,
+  .overviewGrid,
   .workspace,
   .createForm,
   .articleWorkspace,
@@ -547,6 +896,14 @@
   .imageGrid {
     grid-template-columns: 1fr;
   }
+
+  .hero {
+    flex-direction: column;
+  }
+
+  .stepGrid {
+    flex: 1 1 auto;
+  }
 }
 
 @media (max-width: 720px) {
@@ -556,12 +913,14 @@
   }
 
   .topbar,
+  .topNav,
   .panel {
     padding: 16px;
     border-radius: 18px;
   }
 
   .topbar,
+  .topNav,
   .sectionHead,
   .briefStrip,
   .articleMeta,
@@ -573,6 +932,23 @@
 
   .contentTabs {
     top: 8px;
+  }
+
+  .navLinks,
+  .heroActions {
+    width: 100%;
+  }
+
+  .navLinks button,
+  .heroActions button,
+  .queueRow,
+  .queueHead {
+    width: 100%;
+  }
+
+  .queueHead,
+  .queueRow {
+    grid-template-columns: 1fr;
   }
 
   .editorPanel {
