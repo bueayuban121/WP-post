@@ -1,6 +1,9 @@
 import { getJob, listJobs } from "@/lib/job-store";
 import { updateWorkflowEvent } from "@/lib/workflow-events";
+import type { WorkflowAutomationType } from "@/types/workflow";
 import { NextResponse } from "next/server";
+
+const supportedTypes = new Set<WorkflowAutomationType>(["research", "brief", "draft", "publish"]);
 
 function isAuthorized(request: Request) {
   const secret = process.env.N8N_WEBHOOK_SECRET;
@@ -13,16 +16,28 @@ function getCallbackUrl() {
   return appBaseUrl ? `${appBaseUrl}/api/n8n/callback` : undefined;
 }
 
-export async function POST(request: Request) {
+function isAutomationType(value: string): value is WorkflowAutomationType {
+  return supportedTypes.has(value as WorkflowAutomationType);
+}
+
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ type: string }> }
+) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "Invalid workflow secret." }, { status: 401 });
+  }
+
+  const { type } = await context.params;
+  if (!isAutomationType(type)) {
+    return NextResponse.json({ error: "Unsupported automation type." }, { status: 400 });
   }
 
   const jobs = await listJobs();
   const candidates = jobs
     .map((job) => ({
       job,
-      event: job.automationEvents?.find((event) => event.type === "publish" && event.status === "queued")
+      event: job.automationEvents?.find((event) => event.type === type && event.status === "queued")
     }))
     .filter(
       (
@@ -36,12 +51,12 @@ export async function POST(request: Request) {
 
   const next = candidates[0];
   if (!next) {
-    return NextResponse.json({ job: null, event: null });
+    return NextResponse.json({ job: null, event: null, type });
   }
 
   const claimedEvent = await updateWorkflowEvent(next.event.id, {
     status: "running",
-    message: "Claimed by the n8n publish poller."
+    message: `Claimed by the n8n ${type} poller.`
   });
   const claimedJob = await getJob(next.job.id);
 
@@ -49,6 +64,7 @@ export async function POST(request: Request) {
     job: claimedJob,
     event: claimedEvent,
     callbackUrl: getCallbackUrl(),
-    callbackSecret: process.env.N8N_CALLBACK_SECRET
+    callbackSecret: process.env.N8N_CALLBACK_SECRET,
+    type
   });
 }

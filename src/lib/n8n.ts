@@ -10,6 +10,20 @@ export function getN8nCallbackUrl() {
   return appBaseUrl ? `${appBaseUrl}/api/n8n/callback` : undefined;
 }
 
+export function getQueuedAutomationTypes() {
+  const raw = process.env.N8N_POLLING_TYPES ?? "publish";
+  return raw
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter((value): value is WorkflowAutomationType =>
+      value === "research" || value === "brief" || value === "draft" || value === "publish"
+    );
+}
+
+export function shouldQueueAutomation(type: WorkflowAutomationType) {
+  return getQueuedAutomationTypes().includes(type);
+}
+
 function buildWebhookUrl(type: WorkflowAutomationType) {
   const baseUrl = process.env.N8N_WEBHOOK_BASE_URL?.replace(/\/$/, "");
   if (!baseUrl) {

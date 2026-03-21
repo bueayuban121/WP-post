@@ -5,7 +5,7 @@ import {
   getJob,
   runResearch
 } from "@/lib/job-store";
-import { triggerN8nWorkflow } from "@/lib/n8n";
+import { shouldQueueAutomation, triggerN8nWorkflow } from "@/lib/n8n";
 import { createWorkflowEvent, updateWorkflowEvent } from "@/lib/workflow-events";
 import type { WorkflowAutomationType } from "@/types/workflow";
 import { NextResponse } from "next/server";
@@ -55,14 +55,14 @@ export async function POST(
     message: `Queued ${type} automation from the app.`
   });
 
-  if (type === "publish") {
+  if (shouldQueueAutomation(type)) {
     return NextResponse.json({
       job,
       event,
       automation: {
         mode: "queue",
         accepted: true,
-        message: "Publish queued for the n8n poller.",
+        message: `${type} queued for the n8n poller.`,
         fallbackApplied: false
       }
     });
