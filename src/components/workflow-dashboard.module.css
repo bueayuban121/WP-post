@@ -327,6 +327,20 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
+.editorSectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.editorSubsection {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 .editorField {
   display: flex;
   flex-direction: column;
@@ -394,6 +408,18 @@
 .articleIntro,
 .articleConclusion {
   font-size: 1.02rem;
+}
+
+.previewTitle {
+  margin: 0 0 10px;
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+.previewMeta {
+  margin: 0 0 18px;
+  color: #c0c7d1;
+  font-size: 0.95rem;
 }
 
 .articleSection + .articleSection {

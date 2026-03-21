@@ -457,6 +457,20 @@ export async function generateJobBrief(jobId: string) {
   return updateStoredWorkflow(jobId, "brief_ready", { brief });
 }
 
+export async function saveJobBrief(jobId: string, brief: ContentBrief) {
+  const job = await getJob(jobId);
+  if (!job) return null;
+
+  if (!isDatabaseConfigured()) {
+    job.brief = brief;
+    job.stage = "brief_ready";
+    jobs.set(job.id, job);
+    return cloneJob(job);
+  }
+
+  return updateStoredWorkflow(jobId, "brief_ready", { brief });
+}
+
 export async function generateJobDraft(jobId: string) {
   const job = await getJob(jobId);
   if (!job) return null;

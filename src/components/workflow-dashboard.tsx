@@ -3,11 +3,12 @@
 import Image from "next/image";
 import { type FormEvent, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { getArticleImages } from "@/lib/article-images";
-import {
-  type WorkflowAutomationStatus,
-  type WorkflowAutomationType,
-  type WorkflowJob,
-  type WorkflowStage
+import type {
+  ContentBrief,
+  WorkflowAutomationStatus,
+  WorkflowAutomationType,
+  WorkflowJob,
+  WorkflowStage
 } from "@/types/workflow";
 import styles from "./workflow-dashboard.module.css";
 
@@ -38,18 +39,6 @@ const automationTypeLabels: Record<WorkflowAutomationType, string> = {
   publish: "เผยแพร่"
 };
 
-const searchIntentLabels = {
-  informational: "Informational",
-  commercial: "Commercial",
-  "problem-solving": "Problem-solving"
-} as const;
-
-const difficultyLabels = {
-  low: "Easy",
-  medium: "Medium",
-  high: "Hard"
-} as const;
-
 const contentViewLabels: Record<ContentView, string> = {
   article: "บทความ",
   images: "ภาพ",
@@ -73,9 +62,18 @@ export function WorkflowDashboard() {
   const [client, setClient] = useState("AquaCare Thailand");
   const [seedKeyword, setSeedKeyword] = useState("ปลาทอง");
   const [contentView, setContentView] = useState<ContentView>("article");
+
+  const [briefTitle, setBriefTitle] = useState("");
+  const [briefAngle, setBriefAngle] = useState("");
+  const [briefMetaTitle, setBriefMetaTitle] = useState("");
+  const [briefMetaDescription, setBriefMetaDescription] = useState("");
+  const [briefSlug, setBriefSlug] = useState("");
+  const [briefAudience, setBriefAudience] = useState("");
+
   const [draftIntro, setDraftIntro] = useState("");
   const [draftConclusion, setDraftConclusion] = useState("");
   const [draftSections, setDraftSections] = useState<Array<{ heading: string; body: string }>>([]);
+
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("กำลังโหลดข้อมูล...");
   const [isPending, startTransition] = useTransition();
@@ -113,6 +111,12 @@ export function WorkflowDashboard() {
 
   useEffect(() => {
     if (!job) return;
+    setBriefTitle(job.brief.title);
+    setBriefAngle(job.brief.angle);
+    setBriefMetaTitle(job.brief.metaTitle);
+    setBriefMetaDescription(job.brief.metaDescription);
+    setBriefSlug(job.brief.slug);
+    setBriefAudience(job.brief.audience);
     setDraftIntro(job.draft.intro);
     setDraftConclusion(job.draft.conclusion);
     setDraftSections(job.draft.sections.map((section) => ({ ...section })));
@@ -134,7 +138,6 @@ export function WorkflowDashboard() {
     }
 
     const nextJob = data.job;
-
     setJobs((current) =>
       current.some((item) => item.id === nextJob.id)
         ? current.map((item) => (item.id === nextJob.id ? nextJob : item))
@@ -145,7 +148,7 @@ export function WorkflowDashboard() {
     setError("");
   }
 
-  function updateJob(path: string, successMessage: string, body?: Record<string, string>) {
+  function updateJob(path: string, successMessage: string, body?: Record<string, unknown>) {
     if (!job) return;
 
     startTransition(async () => {
@@ -218,11 +221,49 @@ export function WorkflowDashboard() {
     });
   }
 
+  const isBriefDirty =
+    !!job &&
+    (briefTitle !== job.brief.title ||
+      briefAngle !== job.brief.angle ||
+      briefMetaTitle !== job.brief.metaTitle ||
+      briefMetaDescription !== job.brief.metaDescription ||
+      briefSlug !== job.brief.slug ||
+      briefAudience !== job.brief.audience);
+
   const isDraftDirty =
     !!job &&
     (draftIntro !== job.draft.intro ||
       draftConclusion !== job.draft.conclusion ||
       JSON.stringify(draftSections) !== JSON.stringify(job.draft.sections));
+
+  async function saveBriefEdits() {
+    if (!job) return;
+
+    const briefPayload: ContentBrief = {
+      ...job.brief,
+      title: briefTitle,
+      angle: briefAngle,
+      metaTitle: briefMetaTitle,
+      metaDescription: briefMetaDescription,
+      slug: briefSlug,
+      audience: briefAudience
+    };
+
+    startTransition(async () => {
+      try {
+        await runJobAction(
+          `/api/jobs/${job.id}/brief`,
+          {
+            method: "POST",
+            body: JSON.stringify(briefPayload)
+          },
+          "บันทึก SEO brief แล้ว"
+        );
+      } catch (saveError) {
+        setError(saveError instanceof Error ? saveError.message : "บันทึก SEO brief ไม่สำเร็จ");
+      }
+    });
+  }
 
   async function saveDraftEdits() {
     if (!job) return;
@@ -291,66 +332,115 @@ export function WorkflowDashboard() {
               <span className={styles.label}>Editor</span>
               <h2>แก้บทความ</h2>
             </div>
-            <div className={styles.editorActions}>
-              <button
-                className={styles.secondaryButton}
-                onClick={() => updateJob(`/api/jobs/${job.id}/draft`, "สร้างดราฟต์ใหม่แล้ว")}
-                type="button"
-              >
-                สร้างใหม่
-              </button>
-              <button
-                className={styles.primaryButton}
-                disabled={!isDraftDirty || isPending}
-                onClick={() => void saveDraftEdits()}
-                type="button"
-              >
-                บันทึกบทความ
-              </button>
-            </div>
           </div>
 
           <div className={styles.editorFields}>
-            <label className={styles.editorField}>
-              <span>บทนำ</span>
-              <textarea rows={5} value={draftIntro} onChange={(event) => setDraftIntro(event.target.value)} />
-            </label>
-
-            {draftSections.map((section, index) => (
-              <div key={`${index}-${section.heading}`} className={styles.editorSection}>
-                <label className={styles.editorField}>
-                  <span>หัวข้อย่อย {index + 1}</span>
-                  <input
-                    value={section.heading}
-                    onChange={(event) => updateDraftSection(index, "heading", event.target.value)}
-                  />
-                </label>
-                <label className={styles.editorField}>
-                  <span>เนื้อหา</span>
-                  <textarea
-                    rows={7}
-                    value={section.body}
-                    onChange={(event) => updateDraftSection(index, "body", event.target.value)}
-                  />
-                </label>
+            <div className={styles.editorSection}>
+              <div className={styles.editorSectionHead}>
+                <strong>SEO brief</strong>
+                <button
+                  className={styles.primaryButton}
+                  disabled={!isBriefDirty || isPending}
+                  onClick={() => void saveBriefEdits()}
+                  type="button"
+                >
+                  บันทึก brief
+                </button>
               </div>
-            ))}
 
-            <label className={styles.editorField}>
-              <span>สรุปท้ายบทความ</span>
-              <textarea
-                rows={5}
-                value={draftConclusion}
-                onChange={(event) => setDraftConclusion(event.target.value)}
-              />
-            </label>
+              <label className={styles.editorField}>
+                <span>Title</span>
+                <input value={briefTitle} onChange={(event) => setBriefTitle(event.target.value)} />
+              </label>
+              <label className={styles.editorField}>
+                <span>Angle</span>
+                <textarea rows={3} value={briefAngle} onChange={(event) => setBriefAngle(event.target.value)} />
+              </label>
+              <label className={styles.editorField}>
+                <span>Meta title</span>
+                <input value={briefMetaTitle} onChange={(event) => setBriefMetaTitle(event.target.value)} />
+              </label>
+              <label className={styles.editorField}>
+                <span>Meta description</span>
+                <textarea
+                  rows={3}
+                  value={briefMetaDescription}
+                  onChange={(event) => setBriefMetaDescription(event.target.value)}
+                />
+              </label>
+              <label className={styles.editorField}>
+                <span>Slug</span>
+                <input value={briefSlug} onChange={(event) => setBriefSlug(event.target.value)} />
+              </label>
+              <label className={styles.editorField}>
+                <span>Audience</span>
+                <input value={briefAudience} onChange={(event) => setBriefAudience(event.target.value)} />
+              </label>
+            </div>
+
+            <div className={styles.editorSection}>
+              <div className={styles.editorSectionHead}>
+                <strong>Article draft</strong>
+                <div className={styles.editorActions}>
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={() => updateJob(`/api/jobs/${job.id}/draft`, "สร้างดราฟต์ใหม่แล้ว")}
+                    type="button"
+                  >
+                    สร้างใหม่
+                  </button>
+                  <button
+                    className={styles.primaryButton}
+                    disabled={!isDraftDirty || isPending}
+                    onClick={() => void saveDraftEdits()}
+                    type="button"
+                  >
+                    บันทึกบทความ
+                  </button>
+                </div>
+              </div>
+
+              <label className={styles.editorField}>
+                <span>บทนำ</span>
+                <textarea rows={5} value={draftIntro} onChange={(event) => setDraftIntro(event.target.value)} />
+              </label>
+
+              {draftSections.map((section, index) => (
+                <div key={`${index}-${section.heading}`} className={styles.editorSubsection}>
+                  <label className={styles.editorField}>
+                    <span>หัวข้อย่อย {index + 1}</span>
+                    <input
+                      value={section.heading}
+                      onChange={(event) => updateDraftSection(index, "heading", event.target.value)}
+                    />
+                  </label>
+                  <label className={styles.editorField}>
+                    <span>เนื้อหา</span>
+                    <textarea
+                      rows={7}
+                      value={section.body}
+                      onChange={(event) => updateDraftSection(index, "body", event.target.value)}
+                    />
+                  </label>
+                </div>
+              ))}
+
+              <label className={styles.editorField}>
+                <span>สรุปท้ายบทความ</span>
+                <textarea
+                  rows={5}
+                  value={draftConclusion}
+                  onChange={(event) => setDraftConclusion(event.target.value)}
+                />
+              </label>
+            </div>
           </div>
         </section>
 
         <article className={`${styles.articleLayout} ${styles.motionBlock}`}>
           <div className={styles.heroImage}>
             <Image
-              alt={articleImages[0]?.alt ?? job?.brief.title ?? "Hero image"}
+              alt={articleImages[0]?.alt ?? briefTitle || "Hero image"}
               height={900}
               priority
               src={articleImages[0]?.src ?? "/article-images/goldfish-water-1.svg"}
@@ -364,6 +454,8 @@ export function WorkflowDashboard() {
           </div>
 
           <div className={styles.articleBody}>
+            <h2 className={styles.previewTitle}>{briefTitle}</h2>
+            <p className={styles.previewMeta}>{briefMetaTitle}</p>
             <p className={styles.articleIntro}>{draftIntro}</p>
 
             {draftSections.map((section, index) => {
@@ -407,7 +499,12 @@ export function WorkflowDashboard() {
 
         <div className={styles.featuredImageCard}>
           <div className={styles.featuredImageFrame}>
-            <Image alt={articleImages[0]?.alt ?? "Featured image"} height={920} src={articleImages[0]?.src ?? "/article-images/goldfish-water-1.svg"} width={1600} />
+            <Image
+              alt={articleImages[0]?.alt ?? "Featured image"}
+              height={920}
+              src={articleImages[0]?.src ?? "/article-images/goldfish-water-1.svg"}
+              width={1600}
+            />
           </div>
           <div className={styles.featuredImageMeta}>
             <strong>{articleImages[0]?.caption}</strong>
@@ -646,6 +743,7 @@ export function WorkflowDashboard() {
                   ส่งเข้า n8n
                 </button>
               </div>
+
               <div className={styles.exportRow}>
                 <button
                   className={styles.ghostButton}
@@ -685,12 +783,12 @@ export function WorkflowDashboard() {
               <div className={styles.briefStrip}>
                 <div>
                   <span className={styles.label}>SEO brief</span>
-                  <h2>{job.brief.title}</h2>
-                  <p className={styles.subtle}>{job.brief.angle}</p>
+                  <h2>{briefTitle}</h2>
+                  <p className={styles.subtle}>{briefAngle}</p>
                 </div>
                 <div className={styles.briefMeta}>
-                  <span>{job.brief.metaTitle}</span>
-                  <span>/{job.brief.slug}</span>
+                  <span>{briefMetaTitle}</span>
+                  <span>/{briefSlug}</span>
                 </div>
               </div>
             </div>
