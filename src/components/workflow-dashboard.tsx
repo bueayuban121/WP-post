@@ -730,17 +730,17 @@ export function WorkflowDashboard() {
                 </button>
                 <button
                   className={styles.secondaryButton}
-                  onClick={() => updateJob(`/api/jobs/${job.id}/publish`, "ส่งเผยแพร่แล้ว")}
-                  type="button"
-                >
-                  เผยแพร่
-                </button>
-                <button
-                  className={styles.secondaryButton}
                   onClick={() => void runAutomation("publish")}
                   type="button"
                 >
-                  ส่งเข้า n8n
+                  ส่งขึ้น WordPress
+                </button>
+                <button
+                  className={styles.secondaryButton}
+                  onClick={() => updateJob(`/api/jobs/${job.id}/publish`, "อัปเดตสถานะเผยแพร่แล้ว")}
+                  type="button"
+                >
+                  ปิดสถานะในระบบ
                 </button>
               </div>
 

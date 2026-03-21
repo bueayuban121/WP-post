@@ -29,11 +29,7 @@ async function runLocalFallback(jobId: string, type: WorkflowAutomationType) {
     return generateJobDraft(jobId);
   }
 
-  return applyAutomationResult({
-    jobId,
-    type,
-    stage: "published"
-  });
+  return null;
 }
 
 export async function POST(
@@ -74,14 +70,27 @@ export async function POST(
 
   if (!result.accepted) {
     updatedJob = await runLocalFallback(jobId, type);
-    updatedEvent = await updateWorkflowEvent(event.id, {
-      status: "succeeded",
-      message: `n8n webhook failed, ${type} completed with in-app fallback.`,
-      payload: {
-        fallback: "app",
-        n8n: result.payload ?? null
-      }
-    });
+
+    if (updatedJob) {
+      updatedEvent = await updateWorkflowEvent(event.id, {
+        status: "succeeded",
+        message: `n8n webhook failed, ${type} completed with in-app fallback.`,
+        payload: {
+          fallback: "app",
+          n8n: result.payload ?? null
+        }
+      });
+    } else {
+      updatedEvent = await updateWorkflowEvent(event.id, {
+        status: "failed",
+        message: result.message ?? `n8n webhook failed for ${type}.`,
+        payload: {
+          fallback: "disabled",
+          n8n: result.payload ?? null
+        }
+      });
+      updatedJob = await getJob(jobId);
+    }
   }
 
   return NextResponse.json({
