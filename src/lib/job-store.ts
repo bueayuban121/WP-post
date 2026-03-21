@@ -442,9 +442,10 @@ export async function createJob(input: { client: string; seedKeyword: string }) 
     };
   }
 
+  const { id: _jobId, ...jobData } = toStoredJob(job);
   const createdJob = await prisma.keywordJob.create({
     data: {
-      ...toStoredJob(job),
+      ...jobData,
       client: {
         connectOrCreate: {
           where: { name: input.client },
