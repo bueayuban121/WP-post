@@ -1,0 +1,88 @@
+[
+  {
+    "id": "DfBv2Q1nK2LmV4aZ",
+    "name": "SEO Content Draft Bridge V2",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "seo-content/draft",
+          "options": {}
+        },
+        "id": "webhook_draft_v2",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [260, 300]
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nconst job = body.job ?? {};\nconst brief = job.brief ?? { title: body.seedKeyword ?? 'Untitled draft', outline: [], angle: '', audience: '' };\nconst outline = brief.outline?.length ? brief.outline : ['Introduction', 'Core section', 'Practical section', 'FAQs'];\n\nreturn [{\n  json: {\n    eventId: body.eventId,\n    jobId: body.jobId,\n    callbackUrl: body.callbackUrl,\n    callbackSecret: body.callbackSecret,\n    draft: {\n      intro: `This draft opens the article \"${brief.title}\" with a concise answer and a reader-first framing based on the selected SEO angle.`,\n      sections: outline.slice(0, 4).map((heading, index) => ({\n        heading,\n        body: index === 0\n          ? 'Start with the direct answer, search intent, and why this topic matters now.'\n          : 'Expand the point with practical detail, local context, trusted references, and clear takeaways.'\n      })),\n      conclusion: 'Close with a concise summary, next steps, and internal-link opportunities for the cluster.'\n    }\n  }\n}];"
+        },
+        "id": "build_draft_v2",
+        "name": "Build Draft",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [560, 300]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $json.callbackUrl }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-callback-secret",
+                "value": "={{ $json.callbackSecret }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ ({ eventId: $json.eventId, jobId: $json.jobId, type: \"draft\", status: \"succeeded\", workflowRunId: $execution.id, message: \"Draft workflow completed in n8n.\", stage: \"drafting\", payload: { provider: \"n8n\", executionId: $execution.id }, draft: $json.draft }) }}",
+          "options": {}
+        },
+        "id": "send_callback_v2",
+        "name": "Send Callback",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [860, 300]
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Build Draft",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Draft": {
+        "main": [
+          [
+            {
+              "node": "Send Callback",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "saveExecutionProgress": true,
+      "saveManualExecutions": true,
+      "saveDataErrorExecution": "all",
+      "saveDataSuccessExecution": "all",
+      "callerPolicy": "workflowsFromSameOwner",
+      "availableInMCP": false
+    }
+  }
+]

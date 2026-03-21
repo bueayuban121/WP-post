@@ -1,0 +1,94 @@
+[
+  {
+    "id": "DfP3Q1nK2LmV4aXc",
+    "name": "SEO Content Draft Poller V3",
+    "nodes": [
+      {
+        "id": "schedule_draft_v3",
+        "name": "Draft Queue Poller V3",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [260, 300],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "claim_draft_job_v3",
+        "name": "Claim Draft Job V3",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [520, 300],
+        "parameters": {
+          "url": "https://wp-post.srv1455358.hstgr.cloud/api/n8n/claim/draft",
+          "method": "POST",
+          "options": {
+            "timeout": 60000
+          }
+        }
+      },
+      {
+        "id": "build_draft_v3",
+        "name": "Build Draft V3",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [820, 300],
+        "parameters": {
+          "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nconst job = body.job ?? {};\nconst eventId = body.event?.id ?? body.eventId;\nconst jobId = job.id ?? body.jobId;\nconst callbackUrl = body.callbackUrl;\nconst callbackSecret = body.callbackSecret;\nif (!jobId || !eventId || !callbackUrl) {\n  return [];\n}\nconst brief = job.brief ?? { title: job.seedKeyword ?? body.seedKeyword ?? 'Untitled draft', outline: [], angle: '', audience: '' };\nconst outline = brief.outline?.length ? brief.outline : ['Introduction', 'Core section', 'Practical section', 'FAQs'];\nreturn [{ json: {\n  eventId,\n  jobId,\n  callbackUrl,\n  callbackSecret,\n  draft: {\n    intro: `This draft opens the article \"${brief.title}\" with a concise answer and a reader-first framing based on the selected SEO angle.`,\n    sections: outline.slice(0, 4).map((heading, index) => ({\n      heading,\n      body: index === 0\n        ? 'Start with the direct answer, search intent, and why this topic matters now.'\n        : 'Expand the point with practical detail, local context, trusted references, and clear takeaways.'\n    })),\n    conclusion: 'Close with a concise summary, next steps, and internal-link opportunities for the cluster.'\n  }\n}}];"
+        }
+      },
+      {
+        "id": "send_callback_v3",
+        "name": "Send Callback V3",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1120, 300],
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $json.callbackUrl }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-callback-secret",
+                "value": "={{ $json.callbackSecret }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ ({ eventId: $json.eventId, jobId: $json.jobId, type: \"draft\", status: \"succeeded\", workflowRunId: $execution.id, message: \"Draft workflow completed in n8n poller.\", stage: \"drafting\", payload: { provider: \"n8n-poller\", executionId: $execution.id }, draft: $json.draft }) }}",
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Draft Queue Poller V3": {
+        "main": [[{ "node": "Claim Draft Job V3", "type": "main", "index": 0 }]]
+      },
+      "Claim Draft Job V3": {
+        "main": [[{ "node": "Build Draft V3", "type": "main", "index": 0 }]]
+      },
+      "Build Draft V3": {
+        "main": [[{ "node": "Send Callback V3", "type": "main", "index": 0 }]]
+      }
+    },
+    "settings": {
+      "availableInMCP": false,
+      "saveExecutionProgress": true,
+      "executionOrder": "v1",
+      "saveManualExecutions": true,
+      "saveDataSuccessExecution": "all",
+      "callerPolicy": "workflowsFromSameOwner",
+      "saveDataErrorExecution": "all"
+    }
+  }
+]

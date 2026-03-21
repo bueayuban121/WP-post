@@ -1,0 +1,88 @@
+[
+  {
+    "id": "BfBv2Q1nK2LmV4aY",
+    "name": "SEO Content Brief Bridge V2",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "seo-content/brief",
+          "options": {}
+        },
+        "id": "webhook_brief_v2",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [260, 300]
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nconst job = body.job ?? {};\nconst selectedIdea = (job.ideas ?? []).find((idea) => idea.id === body.selectedIdeaId) ?? (job.ideas ?? [])[0] ?? null;\nconst title = selectedIdea?.title ?? body.seedKeyword ?? 'Untitled topic';\nconst angle = selectedIdea?.angle ?? 'Build a practical SEO brief';\nconst research = job.research ?? { objective: '', audience: '', gaps: [], sources: [] };\n\nreturn [{\n  json: {\n    eventId: body.eventId,\n    jobId: body.jobId,\n    callbackUrl: body.callbackUrl,\n    callbackSecret: body.callbackSecret,\n    brief: {\n      title: `${title} | Practical SEO brief`,\n      slug: String(title).toLowerCase().replace(/[^a-z0-9?\\s-]/g, '').trim().replace(/\\s+/g, '-'),\n      metaTitle: `${title} | Complete guide`,\n      metaDescription: `Structured SEO brief for ${title} with Thai and global context.`,\n      audience: research.audience || `Readers searching for ${body.seedKeyword ?? title}`,\n      angle,\n      outline: [\n        `${title}: direct answer and context`,\n        'What the reader needs to understand first',\n        'Thai-market signals and examples',\n        'Global references that strengthen trust',\n        'Practical recommendations and cautions',\n        'FAQs'\n      ],\n      faqs: [\n        `${body.seedKeyword ?? title} should beginners know what first?`,\n        `What mistakes should readers avoid about ${body.seedKeyword ?? title}?`,\n        `When should the reader take action immediately?`\n      ],\n      internalLinks: [\n        `${body.seedKeyword ?? title} basics`,\n        `${body.seedKeyword ?? title} problems and fixes`,\n        `${body.seedKeyword ?? title} buying guide`\n      ]\n    }\n  }\n}];"
+        },
+        "id": "build_brief_v2",
+        "name": "Build Brief",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [560, 300]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $json.callbackUrl }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-callback-secret",
+                "value": "={{ $json.callbackSecret }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ ({ eventId: $json.eventId, jobId: $json.jobId, type: \"brief\", status: \"succeeded\", workflowRunId: $execution.id, message: \"Brief workflow completed in n8n.\", stage: \"brief_ready\", payload: { provider: \"n8n\", executionId: $execution.id }, brief: $json.brief }) }}",
+          "options": {}
+        },
+        "id": "send_callback_v2",
+        "name": "Send Callback",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [860, 300]
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Build Brief",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Brief": {
+        "main": [
+          [
+            {
+              "node": "Send Callback",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "saveExecutionProgress": true,
+      "saveManualExecutions": true,
+      "saveDataErrorExecution": "all",
+      "saveDataSuccessExecution": "all",
+      "callerPolicy": "workflowsFromSameOwner",
+      "availableInMCP": false
+    }
+  }
+]

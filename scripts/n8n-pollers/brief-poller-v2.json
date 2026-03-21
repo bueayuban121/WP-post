@@ -1,0 +1,111 @@
+[
+  {
+    "id": "BrfQeP7nK2LmV4aXt",
+    "name": "SEO Content Brief Poller V2",
+    "nodes": [
+      {
+        "id": "schedule_brief_v2",
+        "name": "Brief Queue Poller V2",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [260, 300],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "claim_brief_job_v2",
+        "name": "Claim Brief Job V2",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [560, 300],
+        "parameters": {
+          "url": "https://wp-post.srv1455358.hstgr.cloud/api/n8n/claim/brief",
+          "method": "POST",
+          "options": {
+            "timeout": 60000
+          }
+        }
+      },
+      {
+        "id": "prepare_brief_payload_v2",
+        "name": "Prepare Brief Payload V2",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [860, 300],
+        "parameters": {
+          "jsCode": "const input = $input.first().json;\nif (!input.job || !input.event) {\n  return [];\n}\nreturn [{ json: input }];"
+        }
+      },
+      {
+        "id": "trigger_brief_bridge_v2",
+        "name": "Trigger Brief Bridge V2",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1160, 300],
+        "parameters": {
+          "url": "https://n8n-ncdn.srv1455358.hstgr.cloud/webhook/seo-content/brief",
+          "method": "POST",
+          "contentType": "json",
+          "specifyBody": "json",
+          "sendBody": true,
+          "jsonBody": "={{ $json }}",
+          "options": {
+            "timeout": 120000
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Brief Queue Poller V2": {
+        "main": [
+          [
+            {
+              "node": "Claim Brief Job V2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Claim Brief Job V2": {
+        "main": [
+          [
+            {
+              "node": "Prepare Brief Payload V2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Brief Payload V2": {
+        "main": [
+          [
+            {
+              "node": "Trigger Brief Bridge V2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "availableInMCP": false,
+      "saveExecutionProgress": true,
+      "executionOrder": "v1",
+      "saveManualExecutions": true,
+      "saveDataSuccessExecution": "all",
+      "callerPolicy": "workflowsFromSameOwner",
+      "saveDataErrorExecution": "all"
+    }
+  }
+]

@@ -1,0 +1,111 @@
+[
+  {
+    "id": "RtQeP7nK2LmV4aXs",
+    "name": "SEO Content Research Poller V2",
+    "nodes": [
+      {
+        "id": "schedule_research_v2",
+        "name": "Research Queue Poller V2",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [260, 300],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "claim_research_job_v2",
+        "name": "Claim Research Job V2",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [560, 300],
+        "parameters": {
+          "url": "https://wp-post.srv1455358.hstgr.cloud/api/n8n/claim/research",
+          "method": "POST",
+          "options": {
+            "timeout": 60000
+          }
+        }
+      },
+      {
+        "id": "prepare_research_payload_v2",
+        "name": "Prepare Research Payload V2",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [860, 300],
+        "parameters": {
+          "jsCode": "const input = $input.first().json;\nif (!input.job || !input.event) {\n  return [];\n}\nreturn [{ json: input }];"
+        }
+      },
+      {
+        "id": "trigger_research_bridge_v2",
+        "name": "Trigger Research Bridge V2",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1160, 300],
+        "parameters": {
+          "url": "https://n8n-ncdn.srv1455358.hstgr.cloud/webhook/seo-content/research",
+          "method": "POST",
+          "contentType": "json",
+          "specifyBody": "json",
+          "sendBody": true,
+          "jsonBody": "={{ $json }}",
+          "options": {
+            "timeout": 120000
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Research Queue Poller V2": {
+        "main": [
+          [
+            {
+              "node": "Claim Research Job V2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Claim Research Job V2": {
+        "main": [
+          [
+            {
+              "node": "Prepare Research Payload V2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Research Payload V2": {
+        "main": [
+          [
+            {
+              "node": "Trigger Research Bridge V2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "availableInMCP": false,
+      "saveExecutionProgress": true,
+      "executionOrder": "v1",
+      "saveManualExecutions": true,
+      "saveDataSuccessExecution": "all",
+      "callerPolicy": "workflowsFromSameOwner",
+      "saveDataErrorExecution": "all"
+    }
+  }
+]

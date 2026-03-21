@@ -1,0 +1,94 @@
+[
+  {
+    "id": "RsP3Q1nK2LmV4aXa",
+    "name": "SEO Content Research Poller V3",
+    "nodes": [
+      {
+        "id": "schedule_research_v3",
+        "name": "Research Queue Poller V3",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [260, 300],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "claim_research_job_v3",
+        "name": "Claim Research Job V3",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [520, 300],
+        "parameters": {
+          "url": "https://wp-post.srv1455358.hstgr.cloud/api/n8n/claim/research",
+          "method": "POST",
+          "options": {
+            "timeout": 60000
+          }
+        }
+      },
+      {
+        "id": "build_research_pack_v3",
+        "name": "Build Research Pack V3",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [820, 300],
+        "parameters": {
+          "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nconst job = body.job ?? {};\nconst eventId = body.event?.id ?? body.eventId;\nconst jobId = job.id ?? body.jobId;\nconst callbackUrl = body.callbackUrl;\nconst callbackSecret = body.callbackSecret;\nconst selectedIdea = (job.ideas ?? []).find((idea) => idea.id === (job.selectedIdeaId ?? body.selectedIdeaId)) ?? (job.ideas ?? [])[0] ?? null;\nif (!jobId || !eventId || !callbackUrl) {\n  return [];\n}\nconst seedKeyword = job.seedKeyword ?? body.seedKeyword ?? 'Untitled topic';\nconst client = job.client ?? body.client ?? 'Unknown client';\nconst title = selectedIdea?.title ?? seedKeyword;\nconst angle = selectedIdea?.angle ?? 'Research the topic from a practical SEO angle';\nconst relatedKeywords = selectedIdea?.relatedKeywords ?? [];\nreturn [{ json: {\n  eventId,\n  jobId,\n  callbackUrl,\n  callbackSecret,\n  research: {\n    objective: `Build a Thai and Global research pack for \"${title}\" for client ${client}.`,\n    audience: `Readers searching for ${seedKeyword} who need practical guidance and trustworthy context.`,\n    gaps: [\n      'Many local articles summarize the topic but do not compare Thai and global guidance.',\n      'Competitors often skip search-intent mapping and real audience pain points.',\n      'Most articles miss FAQ coverage and internal-link opportunities for SEO clusters.'\n    ],\n    sources: [\n      { region: 'TH', title: `${title} in Thai search context`, source: 'Thai search and community synthesis', insight: `Use the angle \"${angle}\" and connect it to common Thai wording and decision factors.` },\n      { region: 'TH', title: `Keyword opportunities for ${seedKeyword}`, source: 'Keyword opportunity map', insight: `Related keywords: ${relatedKeywords.join(', ') || 'none supplied'}` },\n      { region: 'Global', title: `${title} global best-practice baseline`, source: 'International reference synthesis', insight: 'Use global sources to strengthen factual framing, terminology, and reader trust.' },\n      { region: 'Global', title: `${title} content gap opportunities`, source: 'SERP gap hypothesis', insight: 'Prioritize concise answers first, then practical detail, FAQs, and internal-link hooks.' }\n    ]\n  }\n}}];"
+        }
+      },
+      {
+        "id": "send_callback_v3",
+        "name": "Send Callback V3",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1120, 300],
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $json.callbackUrl }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-callback-secret",
+                "value": "={{ $json.callbackSecret }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ ({ eventId: $json.eventId, jobId: $json.jobId, type: \"research\", status: \"succeeded\", workflowRunId: $execution.id, message: \"Research workflow completed in n8n poller.\", stage: \"researching\", payload: { provider: \"n8n-poller\", executionId: $execution.id }, research: $json.research }) }}",
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Research Queue Poller V3": {
+        "main": [[{ "node": "Claim Research Job V3", "type": "main", "index": 0 }]]
+      },
+      "Claim Research Job V3": {
+        "main": [[{ "node": "Build Research Pack V3", "type": "main", "index": 0 }]]
+      },
+      "Build Research Pack V3": {
+        "main": [[{ "node": "Send Callback V3", "type": "main", "index": 0 }]]
+      }
+    },
+    "settings": {
+      "availableInMCP": false,
+      "saveExecutionProgress": true,
+      "executionOrder": "v1",
+      "saveManualExecutions": true,
+      "saveDataSuccessExecution": "all",
+      "callerPolicy": "workflowsFromSameOwner",
+      "saveDataErrorExecution": "all"
+    }
+  }
+]
