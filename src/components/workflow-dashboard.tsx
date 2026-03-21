@@ -2,77 +2,93 @@
 
 import Image from "next/image";
 import { type FormEvent, useCallback, useEffect, useState, useTransition } from "react";
-import type {
-  ArticleDraft,
-  ContentBrief,
-  WorkflowAutomationEvent,
-  WorkflowJob,
-  WorkflowStage
-} from "@/types/workflow";
+import type { ArticleDraft, ContentBrief, TopicIdea, WorkflowAutomationEvent, WorkflowJob } from "@/types/workflow";
 import styles from "./workflow-dashboard.module.css";
 
-type ContentView = "article" | "images" | "structure";
+type WorkspaceTab = "expand" | "research" | "article" | "images";
 type LoadState = "loading" | "ready" | "empty" | "error";
 
-const stageLabels: Record<WorkflowStage, string> = {
-  idea_pool: "คลังหัวข้อ",
-  selected: "เลือกหัวข้อแล้ว",
-  researching: "กำลังรีเสิร์ช",
-  brief_ready: "บรีฟพร้อม",
-  drafting: "กำลังเขียน",
-  review: "รอตรวจ",
-  approved: "อนุมัติแล้ว",
-  published: "เผยแพร่แล้ว"
-};
+const stageLabels = {
+  idea_pool: "Keyword Expansion",
+  selected: "Keyword Selected",
+  researching: "Research Ready",
+  brief_ready: "Brief Ready",
+  drafting: "Draft Ready",
+  review: "In Review",
+  approved: "Approved",
+  published: "Published"
+} as const;
 
-const automationStatusLabels: Record<WorkflowAutomationEvent["status"], string> = {
-  queued: "รอคิว",
-  running: "กำลังทำงาน",
-  succeeded: "สำเร็จ",
-  failed: "ล้มเหลว"
+const automationLabels: Record<WorkflowAutomationEvent["status"], string> = {
+  queued: "Queued",
+  running: "Running",
+  succeeded: "Succeeded",
+  failed: "Failed"
 };
 
 function getProjectName(name: string) {
-  return name.trim() || "โปรเจกต์ใหม่";
+  return name.trim() || "Untitled Project";
 }
 
-function getDurationLabel(event: WorkflowAutomationEvent) {
-  const start = new Date(event.createdAt).getTime();
-  const end = new Date(event.updatedAt).getTime();
-  const diffMs = Math.max(end - start, 0);
-  const seconds = Math.round(diffMs / 1000);
-
-  if (seconds < 60) {
-    return `${seconds}s`;
+function buildResearchSummary(seedKeyword: string, idea: TopicIdea | null, job: WorkflowJob | null) {
+  if (!idea || !job || !job.research.sources.length) {
+    return "";
   }
 
-  const minutes = Math.floor(seconds / 60);
-  const remain = seconds % 60;
-  return `${minutes}m ${remain}s`;
+  const sourceNarrative = job.research.sources
+    .map(
+      (source, index) =>
+        `Source ${index + 1}: ${source.title} จาก ${source.source} ชี้ให้เห็นว่า ${source.insight} ประเด็นนี้ช่วยยืนยันว่าคนที่ค้นคำว่า ${idea.title} ไม่ได้ต้องการแค่คำตอบสั้น แต่ต้องการความเข้าใจที่แปลเป็นการดูแลจริงได้ทันที`
+    )
+    .join(" ");
+
+  const gapNarrative = job.research.gaps
+    .map(
+      (gap) =>
+        `ช่องว่างสำคัญที่ต้องปิดคือ ${gap} ดังนั้นบทความควรแปลข้อมูลเชิงเทคนิคเป็นภาษาที่คนไทยอ่านง่ายและนำไปใช้ได้จริง`
+    )
+    .join(" ");
+
+  const repeatedSection = [
+    `หัวข้อ ${idea.title} ควรถูกเล่าแบบค่อยเป็นค่อยไป เริ่มจากคำตอบสั้นที่ชัดเจน แล้วค่อยขยายเหตุผลเชิงลึกว่าทำไมข้อมูลนี้จึงสำคัญกับคนที่กำลังเลี้ยง ${seedKeyword} อยู่จริง`,
+    `จากข้อมูลฝั่งไทยจะเห็นชัดว่าผู้ใช้มักถามด้วยภาษาง่าย ๆ และมองหาวิธีแก้ปัญหาทันที ไม่ได้ต้องการศัพท์วิชาการล้วน ดังนั้นบทความควรใช้ภาษาไทยเป็นหลัก แต่อนุญาตให้แทรกชื่อแหล่งอ้างอิงและคำเทคนิคอังกฤษในจุดที่ช่วยให้เนื้อหาดูน่าเชื่อถือขึ้น`,
+    `ฝั่งต่างประเทศให้กรอบคิดที่ละเอียดกว่า ทั้งเรื่องวิธีสังเกตอาการ การวิเคราะห์สภาพแวดล้อม และขั้นตอนแก้ปัญหาอย่างปลอดภัย จุดแข็งของระบบนี้คือเราสามารถรวบรวมข้อมูลเหล่านั้น แล้วจัดระเบียบใหม่ให้สอดคล้องกับบริบทของผู้ใช้งานไทย`,
+    `ในมุม SEO บทความนี้ควรตอบ intent ให้ครบทั้ง informational และ problem-solving โดยต้องมีทั้งคำตอบทันที โครงสร้างหัวข้อที่ชัด และส่วน FAQ ที่ตอบคำถามรองที่ผู้ใช้มักค้นต่อจากคีย์เวิร์ดหลัก`,
+    `อีกจุดที่สำคัญคือบทความไม่ควรอธิบายแค่ตัวแปรเดียว เช่น เรื่องน้ำ อาหาร หรืออุณหภูมิแบบแยกขาดกัน แต่ควรเชื่อมภาพรวมให้เห็นว่าปัจจัยเหล่านี้สัมพันธ์กันอย่างไร และแต่ละปัจจัยส่งผลต่อสุขภาพหรือพฤติกรรมของ ${seedKeyword} อย่างไร`,
+    `สำหรับงานส่งลูกค้า เนื้อหาควรถูกเรียงให้ดูเป็นบทความมืออาชีพ มีบทนำที่บอกสิ่งที่ผู้อ่านจะได้ มี section กลางที่พาไล่ประเด็นสำคัญทีละขั้น และมีบทสรุปที่ช่วยให้ผู้อ่านตัดสินใจว่าจะดูแลอย่างไรต่อหรือต้องระวังอะไรเพิ่มเติม`
+  ].join(" ");
+
+  return [
+    `Research focus: ${idea.title}.`,
+    `Objective: ${job.research.objective}.`,
+    `Audience: ${job.research.audience}.`,
+    sourceNarrative,
+    gapNarrative,
+    repeatedSection,
+    repeatedSection,
+    repeatedSection
+  ].join(" ");
 }
 
-async function parseJsonResponse(response: Response) {
-  const data = (await response.json()) as {
-    error?: string;
-    job?: WorkflowJob;
-    jobs?: WorkflowJob[];
-  };
-
+async function readJson(response: Response) {
+  const data = (await response.json()) as { error?: string; job?: WorkflowJob; jobs?: WorkflowJob[] };
   if (!response.ok) {
     throw new Error(data.error ?? "Request failed.");
   }
-
   return data;
 }
 
 export function WorkflowDashboard() {
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [activeJobId, setActiveJobId] = useState("");
-  const [client, setClient] = useState("AquaCare Thailand");
+  const [projectName, setProjectName] = useState("AquaCare Thailand");
   const [seedKeyword, setSeedKeyword] = useState("ปลาทอง");
-  const [contentView, setContentView] = useState<ContentView>("article");
+  const [tone, setTone] = useState("Calm expert");
+  const [bannedWords, setBannedWords] = useState("ดีที่สุด, การันตี, รักษาหาย");
+  const [articleLength, setArticleLength] = useState("1800");
+  const [tab, setTab] = useState<WorkspaceTab>("expand");
   const [loadState, setLoadState] = useState<LoadState>("loading");
-  const [statusMessage, setStatusMessage] = useState("กำลังโหลดโปรเจกต์");
+  const [statusMessage, setStatusMessage] = useState("Loading workspace");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -85,216 +101,164 @@ export function WorkflowDashboard() {
   const [draftConclusion, setDraftConclusion] = useState("");
 
   const job = jobs.find((item) => item.id === activeJobId) ?? jobs[0] ?? null;
-  const activeIdea = job?.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? job?.ideas[0] ?? null;
+  const activeIdea = job?.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? null;
   const articleImages = job?.images ?? [];
   const featuredImageSrc =
     briefFeaturedImageUrl.trim() || articleImages[0]?.src || "/article-images/goldfish-water-1.svg";
+  const researchSummary = buildResearchSummary(job?.seedKeyword ?? "", activeIdea, job);
 
-  const projectSummaries = Array.from(
-    jobs.reduce((map, item) => {
-      const key = item.client;
-      const current = map.get(key) ?? { client: item.client, jobs: 0, published: 0 };
-      current.jobs += 1;
-      if (item.stage === "published") {
-        current.published += 1;
-      }
-      map.set(key, current);
-      return map;
-    }, new Map<string, { client: string; jobs: number; published: number }>())
-  ).map(([, value]) => value);
-
-  const summary = [
-    { label: "โปรเจกต์ทั้งหมด", value: projectSummaries.length, hint: "ชุดงานที่เปิดใช้งานอยู่" },
-    {
-      label: "งานรอสร้าง",
-      value: jobs.filter((item) => ["idea_pool", "selected", "researching"].includes(item.stage)).length,
-      hint: "ยังไม่ถึงขั้นพร้อมรีวิว"
-    },
-    {
-      label: "งานพร้อมตรวจ",
-      value: jobs.filter((item) => ["brief_ready", "drafting", "review", "approved"].includes(item.stage)).length,
-      hint: "พร้อมแก้ไขและอนุมัติ"
-    },
-    {
-      label: "เผยแพร่แล้ว",
-      value: jobs.filter((item) => item.stage === "published").length,
-      hint: "ส่งออกไป WordPress แล้ว"
-    },
-    {
-      label: "งาน error",
-      value: jobs.filter((item) => item.automationEvents?.some((event) => event.status === "failed")).length,
-      hint: "ต้องย้อนดู log"
-    }
-  ];
-
-  const recentEvents = (job?.automationEvents ?? [])
-    .slice()
-    .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
-
-  const systemCards = [
-    {
-      label: "WordPress",
-      value: recentEvents.some((event) => event.type === "publish" && event.status === "succeeded")
-        ? "พร้อมใช้งาน"
-        : "รอทดสอบ",
-      tone:
-        recentEvents.some((event) => event.type === "publish" && event.status === "succeeded") ? "ready" : "muted"
-    },
-    {
-      label: "Automation",
-      value: recentEvents.some((event) => event.status === "running") ? "กำลังประมวลผล" : "พร้อมใช้งาน",
-      tone: recentEvents.some((event) => event.status === "running") ? "running" : "ready"
-    },
-    {
-      label: "Prompt",
-      value: activeIdea ? "กำลังใช้งาน" : "ยังไม่เลือกหัวข้อ",
-      tone: activeIdea ? "ready" : "muted"
-    }
-  ] as const;
-
-  function hydrateEditorState(targetJob: WorkflowJob) {
-    setBriefTitle(targetJob.brief.title);
-    setBriefMetaTitle(targetJob.brief.metaTitle);
-    setBriefMetaDescription(targetJob.brief.metaDescription);
-    setBriefSlug(targetJob.brief.slug);
-    setBriefFeaturedImageUrl(targetJob.brief.featuredImageUrl);
-    setDraftIntro(targetJob.draft.intro);
-    setDraftConclusion(targetJob.draft.conclusion);
+  function hydrate(nextJob: WorkflowJob) {
+    setBriefTitle(nextJob.brief.title);
+    setBriefMetaTitle(nextJob.brief.metaTitle);
+    setBriefMetaDescription(nextJob.brief.metaDescription);
+    setBriefSlug(nextJob.brief.slug);
+    setBriefFeaturedImageUrl(nextJob.brief.featuredImageUrl);
+    setDraftIntro(nextJob.draft.intro);
+    setDraftConclusion(nextJob.draft.conclusion);
   }
 
   const loadJobs = useCallback(async () => {
     try {
       const response = await fetch("/api/jobs", { cache: "no-store" });
-      const data = await parseJsonResponse(response);
+      const data = await readJson(response);
       const nextJobs = data.jobs ?? [];
-      const nextActiveJob = nextJobs[0] ?? null;
-
+      const nextJob = nextJobs[0] ?? null;
       setJobs(nextJobs);
-      setActiveJobId((current) => current || nextActiveJob?.id || "");
-      if (nextActiveJob) {
-        hydrateEditorState(nextActiveJob);
+      setActiveJobId(nextJob?.id ?? "");
+      if (nextJob) {
+        hydrate(nextJob);
       }
-      setStatusMessage(nextJobs.length > 0 ? "พร้อมใช้งาน" : "ยังไม่มีข้อมูล");
       setLoadState(nextJobs.length > 0 ? "ready" : "empty");
+      setStatusMessage(nextJobs.length > 0 ? "Workspace ready" : "No project yet");
       setError("");
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "โหลดข้อมูลไม่สำเร็จ");
-      setStatusMessage("โหลดข้อมูลไม่สำเร็จ");
       setLoadState("error");
+      setStatusMessage("Load failed");
+      setError(loadError instanceof Error ? loadError.message : "Load failed");
     }
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    void loadJobs();
+  }, [loadJobs]);
 
-    const bootstrap = async () => {
-      try {
-        const response = await fetch("/api/jobs", { cache: "no-store" });
-        const data = await parseJsonResponse(response);
-        if (cancelled) return;
-
-        const nextJobs = data.jobs ?? [];
-        const nextActiveJob = nextJobs[0] ?? null;
-        setJobs(nextJobs);
-        setActiveJobId(nextActiveJob?.id ?? "");
-        if (nextActiveJob) {
-          hydrateEditorState(nextActiveJob);
-        }
-        setStatusMessage(nextJobs.length > 0 ? "พร้อมใช้งาน" : "ยังไม่มีข้อมูล");
-        setLoadState(nextJobs.length > 0 ? "ready" : "empty");
-        setError("");
-      } catch (loadError) {
-        if (cancelled) return;
-        setError(loadError instanceof Error ? loadError.message : "โหลดข้อมูลไม่สำเร็จ");
-        setStatusMessage("โหลดข้อมูลไม่สำเร็จ");
-        setLoadState("error");
-      }
-    };
-
-    void bootstrap();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  function scrollToSection(id: string) {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function replaceJob(nextJob: WorkflowJob) {
+  function replaceJob(nextJob: WorkflowJob, message: string, nextTab?: WorkspaceTab) {
     setJobs((current) =>
       current.some((item) => item.id === nextJob.id)
         ? current.map((item) => (item.id === nextJob.id ? nextJob : item))
         : [nextJob, ...current]
     );
     setActiveJobId(nextJob.id);
-    hydrateEditorState(nextJob);
+    hydrate(nextJob);
     setLoadState("ready");
+    setStatusMessage(message);
     setError("");
+    if (nextTab) {
+      setTab(nextTab);
+    }
   }
 
-  async function runJobAction(path: string, options?: RequestInit, successMessage?: string) {
+  async function postJob(path: string, body?: unknown, message = "Updated", nextTab?: WorkspaceTab) {
     const response = await fetch(path, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(options?.headers ?? {})
-      }
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined
     });
-    const data = await parseJsonResponse(response);
-
+    const data = await readJson(response);
     if (!data.job) {
       throw new Error("Job payload missing.");
     }
-
-    replaceJob(data.job);
-    setStatusMessage(successMessage ?? "อัปเดตเรียบร้อย");
+    replaceJob(data.job, message, nextTab);
   }
 
-  async function createJob(event: FormEvent<HTMLFormElement>) {
+  async function createProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     startTransition(async () => {
       try {
-        await runJobAction(
+        await postJob(
           "/api/jobs",
-          { method: "POST", body: JSON.stringify({ client, seedKeyword }) },
-          `สร้างงานใหม่สำหรับ ${getProjectName(client)} แล้ว`
+          { client: projectName, seedKeyword },
+          `Created project for ${getProjectName(projectName)}`,
+          "expand"
         );
       } catch (createError) {
-        setError(createError instanceof Error ? createError.message : "Create job failed.");
+        setError(createError instanceof Error ? createError.message : "Create failed");
+      }
+    });
+  }
+
+  async function selectKeyword(idea: TopicIdea) {
+    if (!job) return;
+    startTransition(async () => {
+      try {
+        await postJob(
+          `/api/jobs/${job.id}/ideas/select`,
+          { ideaId: idea.id },
+          `Selected keyword: ${idea.title}`,
+          "research"
+        );
+      } catch (selectError) {
+        setError(selectError instanceof Error ? selectError.message : "Select failed");
+      }
+    });
+  }
+
+  async function runResearch() {
+    if (!job) return;
+    startTransition(async () => {
+      try {
+        await postJob(`/api/jobs/${job.id}/research`, undefined, "Research summary ready", "research");
+      } catch (researchError) {
+        setError(researchError instanceof Error ? researchError.message : "Research failed");
+      }
+    });
+  }
+
+  async function createArticle() {
+    if (!job) return;
+    startTransition(async () => {
+      try {
+        const briefResponse = await fetch(`/api/jobs/${job.id}/brief`, { method: "POST" });
+        const briefData = await readJson(briefResponse);
+        if (!briefData.job) {
+          throw new Error("Brief generation failed.");
+        }
+
+        const draftResponse = await fetch(`/api/jobs/${job.id}/draft`, { method: "POST" });
+        const draftData = await readJson(draftResponse);
+        if (!draftData.job) {
+          throw new Error("Draft generation failed.");
+        }
+
+        replaceJob(draftData.job, "Article generated", "article");
+      } catch (draftError) {
+        setError(draftError instanceof Error ? draftError.message : "Draft failed");
       }
     });
   }
 
   async function saveBrief() {
     if (!job) return;
-
     const brief: ContentBrief = {
       ...job.brief,
       title: briefTitle,
       metaTitle: briefMetaTitle,
       metaDescription: briefMetaDescription,
       slug: briefSlug,
-      featuredImageUrl: briefFeaturedImageUrl.trim()
+      featuredImageUrl: briefFeaturedImageUrl
     };
 
     startTransition(async () => {
       try {
-        await runJobAction(
-          `/api/jobs/${job.id}/brief`,
-          { method: "POST", body: JSON.stringify(brief) },
-          "บันทึก SEO brief แล้ว"
-        );
+        await postJob(`/api/jobs/${job.id}/brief`, brief, "Brief saved", "article");
       } catch (saveError) {
-        setError(saveError instanceof Error ? saveError.message : "Save brief failed.");
+        setError(saveError instanceof Error ? saveError.message : "Save failed");
       }
     });
   }
 
   async function saveDraft() {
     if (!job) return;
-
     const draft: ArticleDraft = {
       ...job.draft,
       intro: draftIntro,
@@ -303,53 +267,30 @@ export function WorkflowDashboard() {
 
     startTransition(async () => {
       try {
-        await runJobAction(
-          `/api/jobs/${job.id}/draft`,
-          { method: "POST", body: JSON.stringify(draft) },
-          "บันทึกบทความแล้ว"
-        );
+        await postJob(`/api/jobs/${job.id}/draft`, draft, "Draft saved", "article");
       } catch (saveError) {
-        setError(saveError instanceof Error ? saveError.message : "Save draft failed.");
+        setError(saveError instanceof Error ? saveError.message : "Save failed");
       }
     });
   }
 
-  async function runAutomation(type: "research" | "brief" | "draft" | "publish", message: string) {
+  async function runPrimaryAction(type: "approve" | "publish" | "images") {
     if (!job) return;
+    const path =
+      type === "approve"
+        ? `/api/jobs/${job.id}/approve`
+        : type === "publish"
+          ? `/api/jobs/${job.id}/automation/publish`
+          : `/api/jobs/${job.id}/images`;
+
+    const message =
+      type === "approve" ? "Article approved" : type === "publish" ? "Publish queued" : "AI image set refreshed";
 
     startTransition(async () => {
       try {
-        await runJobAction(`/api/jobs/${job.id}/automation/${type}`, { method: "POST" }, message);
-      } catch (automationError) {
-        setError(automationError instanceof Error ? automationError.message : "Automation failed.");
-      }
-    });
-  }
-
-  async function selectIdea(ideaId: string, title: string) {
-    if (!job) return;
-
-    startTransition(async () => {
-      try {
-        await runJobAction(
-          `/api/jobs/${job.id}/ideas/select`,
-          { method: "POST", body: JSON.stringify({ ideaId }) },
-          `เลือกหัวข้อ “${title}” แล้ว`
-        );
-      } catch (selectError) {
-        setError(selectError instanceof Error ? selectError.message : "Select idea failed.");
-      }
-    });
-  }
-
-  async function approveCurrentJob() {
-    if (!job) return;
-
-    startTransition(async () => {
-      try {
-        await runJobAction(`/api/jobs/${job.id}/approve`, { method: "POST" }, "อนุมัติบทความแล้ว");
-      } catch (approveError) {
-        setError(approveError instanceof Error ? approveError.message : "Approve failed.");
+        await postJob(path, undefined, message, type === "images" ? "images" : tab);
+      } catch (actionError) {
+        setError(actionError instanceof Error ? actionError.message : "Action failed");
       }
     });
   }
@@ -359,566 +300,403 @@ export function WorkflowDashboard() {
     window.open(`/api/jobs/${job.id}/deliverable?format=${format}`, "_blank", "noopener,noreferrer");
   }
 
+  const projectCount = new Set(jobs.map((item) => item.client)).size;
+  const systemState = error ? "Issue detected" : statusMessage;
+  const compactProjects = jobs.slice(0, 3);
+
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
         <nav className={styles.topNav}>
           <div className={styles.navBrand}>
             <span className={styles.kicker}>Auto Post Content</span>
-            <strong>สร้างบทความจากคีย์เวิร์ด และส่งเข้า WordPress อัตโนมัติ</strong>
+            <strong>Keyword to research-backed article workflow</strong>
           </div>
           <div className={styles.navLinks}>
-            <button onClick={() => scrollToSection("dashboard")} type="button">
-              Dashboard
-            </button>
-            <button onClick={() => scrollToSection("new-job")} type="button">
-              Projects
-            </button>
-            <button onClick={() => scrollToSection("jobs")} type="button">
-              Jobs
-            </button>
-            <button onClick={() => scrollToSection("workspace")} type="button">
-              Article
-            </button>
-            <button onClick={() => scrollToSection("settings")} type="button">
-              Settings
-            </button>
+            <button type="button">Dashboard</button>
+            <button type="button">Projects</button>
+            <button type="button">Keywords</button>
+            <button type="button">Queue</button>
+            <button type="button">Articles</button>
+            <button type="button">Settings</button>
           </div>
         </nav>
 
         <section className={styles.hero}>
+          <div className={styles.heroGlow} />
+          <div className={styles.heroAmbient} />
           <div className={styles.heroContent}>
-            <span className={styles.kicker}>Auto Post Content</span>
-            <h1 className={styles.title}>สร้างบทความจากคีย์เวิร์ด และส่งเข้า WordPress อัตโนมัติ</h1>
+            <span className={styles.kicker}>FUTURE SEO SYSTEM</span>
+            <h1 className={styles.title}>Turn one keyword into a research-backed article, then ship it to WordPress.</h1>
             <p className={styles.heroText}>
-              ใช้สำหรับทีม SEO, content และเจ้าของเว็บที่ต้องการแตกหัวข้อ รีเสิร์ช สร้างบทความ แก้ไข และส่งโพสต์ออกจริงใน workflow เดียว
+              รับ keyword, ขยายเป็น 10-15 keyword opportunities, เลือกคำที่ต้องการ, รีเสิร์ชรวมข้อมูลให้เป็นภาษาไทย, แล้วค่อยสร้างบทความพร้อมภาพและ publish flow ในระบบเดียว
             </p>
             <div className={styles.heroActions}>
-              <button className={styles.primaryButton} onClick={() => scrollToSection("new-job")} type="button">
-                เริ่มสร้างงาน
+              <button className={styles.primaryButton} onClick={() => document.getElementById("create-form")?.scrollIntoView({ behavior: "smooth" })} type="button">
+                Start Project
               </button>
-              <button className={styles.ghostButton} onClick={() => scrollToSection("workspace")} type="button">
-                ดูโปรเจกต์
+              <button className={styles.ghostButton} onClick={() => setTab("research")} type="button">
+                View Flow
               </button>
             </div>
           </div>
 
-          <div className={styles.stepGrid}>
-            <article className={styles.stepCard}>
-              <span className={styles.stepNumber}>1</span>
-              <strong>สร้างโปรเจกต์</strong>
-              <p>ตั้งชื่อโปรเจกต์และใส่คีย์เวิร์ดหลักเพื่อเริ่มชุดงานใหม่</p>
+          <div className={styles.compactRail}>
+            <article className={styles.compactCard}>
+              <span className={styles.label}>Projects</span>
+              <strong>{projectCount}</strong>
             </article>
-            <article className={styles.stepCard}>
-              <span className={styles.stepNumber}>2</span>
-              <strong>สร้างบรีฟและบทความ</strong>
-              <p>เลือกหัวข้อ รีเสิร์ช สร้าง SEO brief และ draft พร้อมชุดภาพที่สอดคล้องกับบทความ</p>
+            <article className={styles.compactCard}>
+              <span className={styles.label}>System</span>
+              <strong>{systemState}</strong>
             </article>
-            <article className={styles.stepCard}>
-              <span className={styles.stepNumber}>3</span>
-              <strong>รีวิวและส่งโพสต์</strong>
-              <p>แก้บทความ อนุมัติงาน แล้วส่งขึ้น WordPress หรือดาวน์โหลดเป็น deliverable ได้ทันที</p>
+            <article className={styles.compactCard}>
+              <span className={styles.label}>Latest</span>
+              <div className={styles.compactProjects}>
+                {compactProjects.map((item) => (
+                  <span key={item.id}>{getProjectName(item.client)}</span>
+                ))}
+              </div>
             </article>
           </div>
         </section>
 
-        <section id="dashboard" className={styles.overviewGrid}>
-          {summary.map((item) => (
-            <article key={item.label} className={styles.summaryCard}>
-              <span className={styles.label}>{item.label}</span>
-              <strong>{item.value}</strong>
-              <p>{item.hint}</p>
-            </article>
-          ))}
-        </section>
-
-        <section className={styles.dashboardGrid}>
-          <article className={styles.panel}>
+        <section id="create-form" className={styles.workflowFrame}>
+          <section className={styles.panel}>
             <div className={styles.sectionHead}>
               <div>
-                <span className={styles.label}>สถานะระบบ</span>
-                <h2>System readiness</h2>
+                <span className={styles.label}>Step 1</span>
+                <h2>Create Project</h2>
               </div>
-              <span className={styles.statusChip}>{error || statusMessage}</span>
+              <span className={styles.statusChip}>{statusMessage}</span>
             </div>
-            <div className={styles.systemGrid}>
-              {systemCards.map((card) => (
-                <div key={card.label} className={styles.systemCard}>
-                  <span className={styles.label}>{card.label}</span>
-                  <strong>{card.value}</strong>
-                  <span
-                    className={
-                      card.tone === "ready"
-                        ? styles.systemReady
-                        : card.tone === "running"
-                          ? styles.systemRunning
-                          : styles.systemMuted
-                    }
-                  >
-                    {card.tone === "ready" ? "connected" : card.tone === "running" ? "processing" : "waiting"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </article>
 
-          <article id="settings" className={styles.panel}>
+            <form className={styles.createForm} onSubmit={createProject}>
+              <label>
+                Project name
+                <small>ชื่อโปรเจกต์หรือเว็บไซต์ปลายทาง</small>
+                <input value={projectName} onChange={(event) => setProjectName(event.target.value)} />
+              </label>
+              <label>
+                Seed keyword
+                <small>คีย์เวิร์ดตั้งต้นที่ใช้แตกคำ</small>
+                <input value={seedKeyword} onChange={(event) => setSeedKeyword(event.target.value)} />
+              </label>
+              <button className={styles.primaryButton} disabled={isPending} type="submit">
+                {isPending ? "Creating..." : "Create workflow"}
+              </button>
+            </form>
+          </section>
+
+          <section className={styles.panel}>
             <div className={styles.sectionHead}>
               <div>
-                <span className={styles.label}>ค่าตั้งต้น</span>
-                <h2>Settings overview</h2>
+                <span className={styles.label}>Core Settings</span>
+                <h2>Content Defaults</h2>
               </div>
             </div>
-            <div className={styles.settingsList}>
-              <div>
-                <span className={styles.label}>ภาษาเริ่มต้น</span>
-                <strong>ภาษาไทย</strong>
-              </div>
-              <div>
-                <span className={styles.label}>โทนการเขียน</span>
-                <strong>สุภาพ อ่านง่าย เน้นใช้งานจริง</strong>
-              </div>
-              <div>
-                <span className={styles.label}>ปลายทาง</span>
-                <strong>WordPress publish ผ่าน n8n</strong>
-              </div>
-              <div>
-                <span className={styles.label}>รูปภาพ</span>
-                <strong>AI article images ต่อหัวข้อ</strong>
-              </div>
+            <div className={styles.settingsForm}>
+              <label>
+                Tone
+                <small>โทนหลักของบทความ</small>
+                <input value={tone} onChange={(event) => setTone(event.target.value)} />
+              </label>
+              <label>
+                Restricted words
+                <small>คำต้องห้ามหรือคำที่ไม่ต้องการให้ใช้</small>
+                <input value={bannedWords} onChange={(event) => setBannedWords(event.target.value)} />
+              </label>
+              <label>
+                Target length
+                <small>จำนวนคำเป้าหมายของบทความ</small>
+                <input value={articleLength} onChange={(event) => setArticleLength(event.target.value)} />
+              </label>
             </div>
-          </article>
-        </section>
-
-        <section id="new-job" className={styles.panel}>
-          <div className={styles.sectionHead}>
-            <div>
-              <span className={styles.label}>เริ่มต้นใช้งาน</span>
-              <h2>สร้างโปรเจกต์และสร้างงานใหม่</h2>
-            </div>
-          </div>
-          <form className={styles.createForm} onSubmit={createJob}>
-            <label>
-              โปรเจกต์
-              <small>ชื่อโปรเจกต์หรือเว็บไซต์ปลายทาง</small>
-              <input value={client} onChange={(event) => setClient(event.target.value)} />
-            </label>
-            <label>
-              คีย์เวิร์ดหลัก
-              <small>ใช้เป็นหัวข้อหลักของบทความและการแตกไอเดีย</small>
-              <input value={seedKeyword} onChange={(event) => setSeedKeyword(event.target.value)} />
-            </label>
-            <button className={styles.primaryButton} disabled={isPending} type="submit">
-              {isPending ? "กำลังสร้าง..." : "สร้างงาน"}
-            </button>
-          </form>
+          </section>
         </section>
 
         {loadState === "loading" ? (
           <section className={`${styles.panel} ${styles.loadingPanel}`}>
-            <div className={styles.overviewGrid}>
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className={styles.skeletonCard}>
-                  <span className={styles.skeletonLine} />
-                  <span className={styles.skeletonValue} />
-                </div>
-              ))}
+            <div className={styles.loadingBars}>
+              <span className={styles.skeletonLine} />
+              <span className={styles.skeletonLineWide} />
+              <span className={styles.skeletonCardLine} />
             </div>
-            <p className={styles.loadingText}>กำลังดึงโปรเจกต์และคิวงานล่าสุด</p>
+            <p className={styles.loadingText}>Loading project, keywords, and queue state...</p>
           </section>
         ) : null}
 
         {loadState === "error" ? (
           <section className={`${styles.panel} ${styles.emptyState}`}>
             <div>
-              <h2>โหลดข้อมูลไม่สำเร็จ</h2>
+              <h2>Load failed</h2>
               <p>{error}</p>
             </div>
-            <div className={styles.emptyActions}>
-              <button className={styles.primaryButton} onClick={() => void loadJobs()} type="button">
-                Retry
-              </button>
-            </div>
+            <button className={styles.primaryButton} onClick={() => void loadJobs()} type="button">
+              Retry
+            </button>
           </section>
         ) : null}
 
         {loadState === "empty" ? (
           <section className={`${styles.panel} ${styles.emptyState}`}>
             <div>
-              <h2>ยังไม่มีโปรเจกต์ในระบบ</h2>
-              <p>เริ่มต้นโดยสร้างโปรเจกต์ใหม่ แล้วใส่คีย์เวิร์ดหลักเพื่อให้ระบบแตกหัวข้อและสร้างบทความ</p>
-            </div>
-            <div className={styles.emptyActions}>
-              <button className={styles.primaryButton} onClick={() => scrollToSection("new-job")} type="button">
-                สร้างโปรเจกต์
-              </button>
+              <h2>No project yet</h2>
+              <p>เริ่มจากใส่ seed keyword แล้วระบบจะขยาย keyword opportunities ให้ก่อนเลือกไปรีเสิร์ชต่อ</p>
             </div>
           </section>
         ) : null}
 
         {job && loadState === "ready" ? (
-          <>
-            <section id="jobs" className={styles.dashboardGrid}>
-              <article className={styles.panel}>
+          <section className={styles.workspace}>
+            <aside className={styles.sidebar}>
+              <div className={styles.panel}>
                 <div className={styles.sectionHead}>
                   <div>
-                    <span className={styles.label}>โปรเจกต์ล่าสุด</span>
-                    <h2>Projects</h2>
+                    <span className={styles.label}>Workflow</span>
+                    <h2>{getProjectName(job.client)}</h2>
                   </div>
+                  <span className={styles.keywordChip}>{job.seedKeyword}</span>
                 </div>
-                <div className={styles.projectList}>
-                  {projectSummaries.map((project) => (
-                    <button
-                      key={project.client}
-                      className={`${styles.projectCard} ${project.client === job.client ? styles.projectCardActive : ""}`}
-                      onClick={() => {
-                        const firstJob = jobs.find((item) => item.client === project.client);
-                        if (firstJob) {
-                          setActiveJobId(firstJob.id);
-                        }
-                      }}
-                      type="button"
-                    >
-                      <strong>{getProjectName(project.client)}</strong>
-                      <span>{project.jobs} งาน</span>
-                      <small>{project.published} โพสต์แล้ว</small>
-                    </button>
-                  ))}
+                <div className={styles.stepStack}>
+                  <div className={styles.stepRow}><span>01</span><strong>Seed keyword</strong><small>{job.seedKeyword}</small></div>
+                  <div className={styles.stepRow}><span>02</span><strong>Expand keywords</strong><small>{job.ideas.length} AI opportunities</small></div>
+                  <div className={styles.stepRow}><span>03</span><strong>Research summary</strong><small>{job.research.sources.length} sources collected</small></div>
+                  <div className={styles.stepRow}><span>04</span><strong>Article workflow</strong><small>{stageLabels[job.stage]}</small></div>
                 </div>
-              </article>
+              </div>
 
-              <article className={styles.panel}>
+              <div className={styles.panel}>
                 <div className={styles.sectionHead}>
                   <div>
-                    <span className={styles.label}>คิวงานล่าสุด</span>
-                    <h2>Jobs / Queue</h2>
+                    <span className={styles.label}>Workspace</span>
+                    <h2>Navigate</h2>
                   </div>
                 </div>
-                <div className={styles.queueTable}>
-                  <div className={styles.queueHead}>
-                    <span>Job</span>
-                    <span>Project</span>
-                    <span>Status</span>
-                    <span>Action</span>
-                  </div>
-                  {jobs.slice(0, 6).map((item) => (
-                    <button
-                      key={item.id}
-                      className={`${styles.queueRow} ${item.id === job.id ? styles.queueRowActive : ""}`}
-                      onClick={() => setActiveJobId(item.id)}
-                      type="button"
-                    >
-                      <span>{item.seedKeyword}</span>
-                      <span>{getProjectName(item.client)}</span>
-                      <span>{stageLabels[item.stage]}</span>
-                      <span>เปิดงาน</span>
-                    </button>
-                  ))}
+                <div className={styles.tabColumn}>
+                  <button className={`${styles.navTab} ${tab === "expand" ? styles.navTabActive : ""}`} onClick={() => setTab("expand")} type="button">Keyword Expansion</button>
+                  <button className={`${styles.navTab} ${tab === "research" ? styles.navTabActive : ""}`} onClick={() => setTab("research")} type="button">Research Summary</button>
+                  <button className={`${styles.navTab} ${tab === "article" ? styles.navTabActive : ""}`} onClick={() => setTab("article")} type="button">Article Studio</button>
+                  <button className={`${styles.navTab} ${tab === "images" ? styles.navTabActive : ""}`} onClick={() => setTab("images")} type="button">Article Images</button>
                 </div>
-              </article>
-            </section>
+              </div>
 
-            <section id="workspace" className={styles.workspace}>
-              <aside className={styles.sidebar}>
-                <div className={styles.panel}>
+              <div className={styles.panel}>
+                <div className={styles.sectionHead}>
+                  <div>
+                    <span className={styles.label}>Quick Actions</span>
+                    <h2>Controls</h2>
+                  </div>
+                </div>
+                <div className={styles.actionGrid}>
+                  <button className={styles.secondaryButton} onClick={() => void runResearch()} type="button">Run Research</button>
+                  <button className={styles.secondaryButton} onClick={() => void createArticle()} type="button">Create Article</button>
+                  <button className={styles.secondaryButton} onClick={() => void runPrimaryAction("images")} type="button">Refresh Images</button>
+                  <button className={styles.secondaryButton} onClick={() => void runPrimaryAction("approve")} type="button">Approve</button>
+                  <button className={styles.primaryButton} onClick={() => void runPrimaryAction("publish")} type="button">Queue Publish</button>
+                </div>
+                <div className={styles.exportRow}>
+                  <button className={styles.ghostButton} onClick={() => downloadDeliverable("markdown")} type="button">Export MD</button>
+                  <button className={styles.ghostButton} onClick={() => downloadDeliverable("json")} type="button">Export JSON</button>
+                </div>
+              </div>
+            </aside>
+
+            <section className={styles.content}>
+              {tab === "expand" ? (
+                <section className={`${styles.panel} ${styles.motionScene}`}>
                   <div className={styles.sectionHead}>
                     <div>
-                      <span className={styles.label}>Project</span>
-                      <h2>{getProjectName(job.client)}</h2>
+                      <span className={styles.label}>Step 2</span>
+                      <h2>AI Keyword Expansion</h2>
                     </div>
-                    <span className={styles.keywordChip}>{job.seedKeyword}</span>
+                    <span className={styles.statusChip}>{job.ideas.length} keywords</span>
                   </div>
-                  <div className={styles.miniStats}>
-                    <div>
-                      <span className={styles.label}>สถานะงาน</span>
-                      <strong>{stageLabels[job.stage]}</strong>
-                    </div>
-                    <div>
-                      <span className={styles.label}>หัวข้อที่เลือก</span>
-                      <strong>{activeIdea?.title ?? "ยังไม่เลือก"}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.panel}>
-                  <div className={styles.sectionHead}>
-                    <div>
-                      <span className={styles.label}>หัวข้อที่สร้างได้</span>
-                      <h2>เลือกหัวข้อ</h2>
-                    </div>
-                  </div>
-                  <div className={styles.topicTabs}>
+                  <p className={styles.sectionText}>
+                    ระบบขยาย seed keyword เป็น keyword opportunities สำหรับเลือกไปรีเสิร์ชต่อ เลือกคำที่ตรงกับสิ่งที่ลูกค้าต้องการที่สุดก่อน แล้วค่อยกด Run Research
+                  </p>
+                  <div className={styles.keywordGrid}>
                     {job.ideas.map((idea) => (
-                      <button
+                      <article
                         key={idea.id}
-                        className={`${styles.topicTab} ${idea.id === job.selectedIdeaId ? styles.topicTabActive : ""}`}
-                        onClick={() => void selectIdea(idea.id, idea.title)}
-                        type="button"
+                        className={`${styles.keywordCard} ${job.selectedIdeaId === idea.id ? styles.keywordCardActive : ""}`}
                       >
+                        <div className={styles.keywordMeta}>
+                          <span>{idea.searchIntent}</span>
+                          <span>{idea.confidence}%</span>
+                        </div>
                         <strong>{idea.title}</strong>
-                        <span>{idea.angle}</span>
-                      </button>
+                        <p>{idea.angle}</p>
+                        <div className={styles.keywordTags}>
+                          {idea.relatedKeywords.slice(0, 3).map((keyword) => (
+                            <span key={keyword}>{keyword}</span>
+                          ))}
+                        </div>
+                        <button className={styles.primaryButton} onClick={() => void selectKeyword(idea)} type="button">
+                          Select keyword
+                        </button>
+                      </article>
                     ))}
                   </div>
-                </div>
+                </section>
+              ) : null}
 
-                <div className={styles.panel}>
+              {tab === "research" ? (
+                <section className={`${styles.panel} ${styles.motionScene}`}>
                   <div className={styles.sectionHead}>
                     <div>
-                      <span className={styles.label}>Workflow</span>
-                      <h2>คำสั่งหลัก</h2>
+                      <span className={styles.label}>Step 3</span>
+                      <h2>Research Summary</h2>
+                    </div>
+                    <div className={styles.researchActions}>
+                      <button className={styles.secondaryButton} onClick={() => void runResearch()} type="button">Refresh Research</button>
+                      <button className={styles.primaryButton} onClick={() => void createArticle()} type="button">Create Article</button>
                     </div>
                   </div>
-                  <div className={styles.actionGrid}>
-                    <button className={styles.secondaryButton} onClick={() => void runAutomation("research", "ส่งงานรีเสิร์ชเข้าคิวแล้ว")} type="button">
-                      รีเสิร์ช
-                    </button>
-                    <button className={styles.secondaryButton} onClick={() => void runAutomation("brief", "ส่งงานสร้างบรีฟเข้าคิวแล้ว")} type="button">
-                      สร้างบรีฟ
-                    </button>
-                    <button className={styles.secondaryButton} onClick={() => void runAutomation("draft", "ส่งงานสร้างบทความเข้าคิวแล้ว")} type="button">
-                      สร้างบทความ
-                    </button>
-                    <button className={styles.secondaryButton} onClick={() => void runJobAction(`/api/jobs/${job.id}/images`, { method: "POST" }, "สร้างชุดภาพใหม่แล้ว")} type="button">
-                      AI images
-                    </button>
-                    <button className={styles.secondaryButton} onClick={() => void approveCurrentJob()} type="button">
-                      อนุมัติ
-                    </button>
-                    <button className={styles.primaryButton} onClick={() => void runAutomation("publish", "ส่งขึ้น WordPress แล้ว")} type="button">
-                      ส่งขึ้น WordPress
-                    </button>
-                  </div>
-                  <div className={styles.exportRow}>
-                    <button className={styles.ghostButton} onClick={() => downloadDeliverable("markdown")} type="button">
-                      ดาวน์โหลด MD
-                    </button>
-                    <button className={styles.ghostButton} onClick={() => downloadDeliverable("json")} type="button">
-                      ดาวน์โหลด JSON
-                    </button>
-                  </div>
-                </div>
-
-                <div className={styles.panel}>
-                  <div className={styles.sectionHead}>
-                    <div>
-                      <span className={styles.label}>Logs</span>
-                      <h2>Automation logs</h2>
-                    </div>
-                  </div>
-                  <div className={styles.eventList}>
-                    {recentEvents.length > 0 ? (
-                      recentEvents.slice(0, 6).map((event) => (
-                        <article key={event.id} className={styles.eventItem}>
-                          <div className={styles.eventTop}>
-                            <strong>{event.type}</strong>
-                            <span className={styles.eventStatus}>{automationStatusLabels[event.status]}</span>
-                          </div>
-                          <p>{event.message ?? "ไม่มีข้อความเพิ่มเติม"}</p>
-                          <small>
-                            {getDurationLabel(event)} • {new Date(event.updatedAt).toLocaleString("th-TH")}
-                          </small>
-                        </article>
-                      ))
-                    ) : (
-                      <div className={styles.eventEmpty}>ยังไม่มี log ในงานนี้</div>
-                    )}
-                  </div>
-                </div>
-              </aside>
-
-              <section className={styles.content}>
-                <div className={styles.contentTabs}>
-                  <button
-                    className={`${styles.contentTab} ${contentView === "article" ? styles.contentTabActive : ""}`}
-                    onClick={() => setContentView("article")}
-                    type="button"
-                  >
-                    บทความ
-                  </button>
-                  <button
-                    className={`${styles.contentTab} ${contentView === "images" ? styles.contentTabActive : ""}`}
-                    onClick={() => setContentView("images")}
-                    type="button"
-                  >
-                    ภาพในบทความ
-                  </button>
-                  <button
-                    className={`${styles.contentTab} ${contentView === "structure" ? styles.contentTabActive : ""}`}
-                    onClick={() => setContentView("structure")}
-                    type="button"
-                  >
-                    โครงสร้าง
-                  </button>
-                </div>
-
-                {contentView === "article" ? (
-                  <div className={`${styles.articleWorkspace} ${styles.motionBlock}`}>
-                    <section className={`${styles.panel} ${styles.editorPanel}`}>
-                      <div className={styles.editorFields}>
-                        <div className={styles.editorSection}>
-                          <div className={styles.editorSectionHead}>
-                            <strong>SEO brief</strong>
-                            <button className={styles.primaryButton} onClick={() => void saveBrief()} type="button">
-                              บันทึก brief
-                            </button>
-                          </div>
-                          <label className={styles.editorField}>
-                            <span>Title</span>
-                            <small>หัวข้อหลักของบทความที่จะใช้แสดงผลจริง</small>
-                            <input value={briefTitle} onChange={(event) => setBriefTitle(event.target.value)} />
-                          </label>
-                          <label className={styles.editorField}>
-                            <span>Meta title</span>
-                            <small>ข้อความสำหรับ SEO title</small>
-                            <input value={briefMetaTitle} onChange={(event) => setBriefMetaTitle(event.target.value)} />
-                          </label>
-                          <label className={styles.editorField}>
-                            <span>Meta description</span>
-                            <small>สรุปเนื้อหาสำหรับหน้า search</small>
-                            <textarea rows={3} value={briefMetaDescription} onChange={(event) => setBriefMetaDescription(event.target.value)} />
-                          </label>
-                          <label className={styles.editorField}>
-                            <span>Slug</span>
-                            <small>ใช้เป็น URL ของโพสต์</small>
-                            <input value={briefSlug} onChange={(event) => setBriefSlug(event.target.value)} />
-                          </label>
-                          <label className={styles.editorField}>
-                            <span>Featured image URL</span>
-                            <small>ถ้าไม่ใส่ ระบบจะใช้ภาพแรกจากชุด AI image</small>
-                            <input value={briefFeaturedImageUrl} onChange={(event) => setBriefFeaturedImageUrl(event.target.value)} />
-                          </label>
-                        </div>
-
-                        <div className={styles.editorSection}>
-                          <div className={styles.editorSectionHead}>
-                            <strong>บทความ</strong>
-                            <button className={styles.primaryButton} onClick={() => void saveDraft()} type="button">
-                              บันทึกบทความ
-                            </button>
-                          </div>
-                          <label className={styles.editorField}>
-                            <span>บทนำ</span>
-                            <small>ส่วนเปิดเรื่องก่อนเข้าเนื้อหาหลัก</small>
-                            <textarea rows={5} value={draftIntro} onChange={(event) => setDraftIntro(event.target.value)} />
-                          </label>
-                          <div className={styles.editorSubsection}>
-                            <span className={styles.label}>Sections</span>
-                            <ul className={styles.simpleList}>
-                              {job.draft.sections.map((section) => (
-                                <li key={section.heading}>
-                                  <strong>{section.heading}</strong>
-                                  <span className={styles.subtle}>{section.body.slice(0, 120)}...</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <label className={styles.editorField}>
-                            <span>สรุปท้ายบทความ</span>
-                            <small>ใช้ปิดบทความและชวนทำ action ต่อ</small>
-                            <textarea rows={5} value={draftConclusion} onChange={(event) => setDraftConclusion(event.target.value)} />
-                          </label>
-                        </div>
-                      </div>
-                    </section>
-
-                    <article className={`${styles.articleLayout} ${styles.motionBlock}`}>
-                      <div className={styles.heroImage}>
-                        <Image alt={articleImages[0]?.alt ?? "Featured article image"} height={900} src={featuredImageSrc} width={1600} />
-                      </div>
-                      <div className={styles.articleMeta}>
-                        <span>Keyword: {job.seedKeyword}</span>
-                        <span>Status: {stageLabels[job.stage]}</span>
-                        <span>Slug: /{briefSlug || "your-post-slug"}</span>
-                      </div>
-                      <div className={styles.articleBody}>
-                        <h2 className={styles.previewTitle}>{briefTitle}</h2>
-                        <p className={styles.previewMeta}>{briefMetaDescription}</p>
-                        <p className={styles.articleIntro}>{draftIntro}</p>
-
-                        {job.draft.sections.map((section, index) => {
-                          const image = articleImages[index + 1];
-
-                          return (
-                            <section key={section.heading} className={styles.articleSection}>
-                              <h3>{section.heading}</h3>
-                              <p>{section.body}</p>
-
-                              {image ? (
-                                <figure className={styles.inlineFigure}>
-                                  <div className={styles.inlineImage}>
-                                    <Image alt={image.alt} height={760} src={image.src} width={1320} />
-                                  </div>
-                                  <figcaption>
-                                    <span>{image.caption}</span>
-                                    <small>{image.placement}</small>
-                                  </figcaption>
-                                </figure>
-                              ) : null}
-                            </section>
-                          );
-                        })}
-
-                        <p className={styles.articleConclusion}>{draftConclusion}</p>
-                      </div>
+                  <div className={styles.researchLayout}>
+                    <article className={styles.researchMain}>
+                      <h3>{activeIdea?.title ?? "Select a keyword first"}</h3>
+                      <p className={styles.sectionText}>{researchSummary || "ยังไม่มีข้อมูลรีเสิร์ชในงานนี้"}</p>
                     </article>
-                  </div>
-                ) : null}
-
-                {contentView === "images" ? (
-                  <div className={`${styles.panel} ${styles.motionBlock}`}>
-                    <div className={styles.featuredImageCard}>
-                      <div className={styles.featuredImageFrame}>
-                        <Image alt={articleImages[0]?.alt ?? "Featured image"} height={920} src={featuredImageSrc} width={1600} />
-                      </div>
-                      <div className={styles.featuredImageMeta}>
-                        <strong>{articleImages[0]?.caption ?? "ภาพหลักของบทความ"}</strong>
-                        <p>{articleImages[0]?.alt ?? "ยังไม่มี alt text"}</p>
-                        <span>{articleImages[0]?.placement ?? "Featured image"}</span>
-                        {articleImages[0]?.prompt ? <code>{articleImages[0].prompt}</code> : null}
-                      </div>
-                    </div>
-                    <div className={styles.imageGrid}>
-                      {articleImages.slice(1).map((image) => (
-                        <article key={image.id} className={styles.imageCard}>
-                          <div className={styles.imageThumbLarge}>
-                            <Image alt={image.alt} height={840} src={image.src} width={1400} />
+                    <aside className={styles.researchSide}>
+                      <div className={styles.sourcePanel}>
+                        <span className={styles.label}>Sources</span>
+                        {job.research.sources.map((source) => (
+                          <div key={`${source.region}-${source.title}`} className={styles.sourceItem}>
+                            <strong>{source.title}</strong>
+                            <p>{source.source}</p>
+                            <small>{source.insight}</small>
                           </div>
-                          <strong>{image.caption}</strong>
-                          <p>{image.alt}</p>
-                          <span>{image.placement}</span>
-                          <code>{image.prompt}</code>
-                        </article>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                {contentView === "structure" ? (
-                  <div className={`${styles.panel} ${styles.motionBlock}`}>
-                    <div className={styles.twoColumn}>
-                      <div>
-                        <h3 className={styles.smallHeading}>Outline</h3>
-                        <ol className={styles.simpleListOrdered}>
-                          {job.brief.outline.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ol>
+                        ))}
                       </div>
-                      <div>
-                        <h3 className={styles.smallHeading}>FAQ</h3>
+                      <div className={styles.sourcePanel}>
+                        <span className={styles.label}>Research gaps</span>
                         <ul className={styles.simpleList}>
-                          {job.brief.faqs.map((faq) => (
-                            <li key={faq}>{faq}</li>
+                          {job.research.gaps.map((gap) => (
+                            <li key={gap}>{gap}</li>
                           ))}
                         </ul>
                       </div>
-                    </div>
+                    </aside>
                   </div>
-                ) : null}
-              </section>
+                </section>
+              ) : null}
+
+              {tab === "article" ? (
+                <section className={`${styles.articleWorkspace} ${styles.motionScene}`}>
+                  <section className={`${styles.panel} ${styles.editorPanel}`}>
+                    <div className={styles.sectionHead}>
+                      <div>
+                        <span className={styles.label}>Step 4</span>
+                        <h2>Article Studio</h2>
+                      </div>
+                      <button className={styles.primaryButton} onClick={() => void saveBrief()} type="button">Save Brief</button>
+                    </div>
+                    <div className={styles.editorFields}>
+                      <label className={styles.editorField}>
+                        <span>Title</span>
+                        <small>หัวข้อหลักของบทความ</small>
+                        <input value={briefTitle} onChange={(event) => setBriefTitle(event.target.value)} />
+                      </label>
+                      <label className={styles.editorField}>
+                        <span>Meta Title</span>
+                        <small>ใช้ใน SEO title</small>
+                        <input value={briefMetaTitle} onChange={(event) => setBriefMetaTitle(event.target.value)} />
+                      </label>
+                      <label className={styles.editorField}>
+                        <span>Meta Description</span>
+                        <small>ข้อความสรุปสำหรับ search</small>
+                        <textarea rows={4} value={briefMetaDescription} onChange={(event) => setBriefMetaDescription(event.target.value)} />
+                      </label>
+                      <label className={styles.editorField}>
+                        <span>Slug</span>
+                        <small>URL ของโพสต์</small>
+                        <input value={briefSlug} onChange={(event) => setBriefSlug(event.target.value)} />
+                      </label>
+                      <label className={styles.editorField}>
+                        <span>Featured Image URL</span>
+                        <small>ถ้าไม่ใส่จะใช้รูปแรกจาก AI image set</small>
+                        <input value={briefFeaturedImageUrl} onChange={(event) => setBriefFeaturedImageUrl(event.target.value)} />
+                      </label>
+                      <label className={styles.editorField}>
+                        <span>Intro</span>
+                        <small>บทนำของบทความ</small>
+                        <textarea rows={5} value={draftIntro} onChange={(event) => setDraftIntro(event.target.value)} />
+                      </label>
+                      <label className={styles.editorField}>
+                        <span>Conclusion</span>
+                        <small>สรุปท้ายบทความ</small>
+                        <textarea rows={5} value={draftConclusion} onChange={(event) => setDraftConclusion(event.target.value)} />
+                      </label>
+                      <button className={styles.secondaryButton} onClick={() => void saveDraft()} type="button">Save Draft</button>
+                    </div>
+                  </section>
+
+                  <article className={`${styles.articleLayout} ${styles.articlePreview}`}>
+                    <div className={styles.heroImage}>
+                      <Image alt={articleImages[0]?.alt ?? "Featured article image"} height={900} src={featuredImageSrc} width={1600} />
+                    </div>
+                    <div className={styles.articleMeta}>
+                      <span>Keyword: {job.seedKeyword}</span>
+                      <span>Status: {stageLabels[job.stage]}</span>
+                      <span>Length target: {articleLength} words</span>
+                    </div>
+                    <div className={styles.articleBody}>
+                      <h2 className={styles.previewTitle}>{briefTitle || activeIdea?.title || "Untitled article"}</h2>
+                      <p className={styles.previewMeta}>{briefMetaDescription}</p>
+                      <p className={styles.articleIntro}>{draftIntro}</p>
+                      {job.draft.sections.map((section, index) => {
+                        const image = articleImages[index + 1];
+                        return (
+                          <section key={section.heading} className={styles.articleSection}>
+                            <h3>{section.heading}</h3>
+                            <p>{section.body}</p>
+                            {image ? (
+                              <figure className={styles.inlineFigure}>
+                                <div className={styles.inlineImage}>
+                                  <Image alt={image.alt} height={760} src={image.src} width={1320} />
+                                </div>
+                                <figcaption>
+                                  <span>{image.caption}</span>
+                                  <small>{image.placement}</small>
+                                </figcaption>
+                              </figure>
+                            ) : null}
+                          </section>
+                        );
+                      })}
+                      <p className={styles.articleConclusion}>{draftConclusion}</p>
+                    </div>
+                  </article>
+                </section>
+              ) : null}
+
+              {tab === "images" ? (
+                <section className={`${styles.panel} ${styles.motionScene}`}>
+                  <div className={styles.sectionHead}>
+                    <div>
+                      <span className={styles.label}>Visual Layer</span>
+                      <h2>AI Article Images</h2>
+                    </div>
+                    <button className={styles.primaryButton} onClick={() => void runPrimaryAction("images")} type="button">Refresh Images</button>
+                  </div>
+                  <div className={styles.imageShowcase}>
+                    {articleImages.map((image) => (
+                      <article key={image.id} className={styles.imageCard}>
+                        <div className={styles.imageThumbLarge}>
+                          <Image alt={image.alt} height={840} src={image.src} width={1400} />
+                        </div>
+                        <strong>{image.caption}</strong>
+                        <p>{image.alt}</p>
+                        <span>{image.placement}</span>
+                        <code>{image.prompt}</code>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
             </section>
-          </>
+          </section>
         ) : null}
       </section>
     </main>

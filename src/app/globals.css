@@ -1,13 +1,13 @@
 :root {
-  --background: #030405;
-  --surface: rgba(7, 9, 12, 0.96);
+  --background: #04050a;
+  --surface: rgba(9, 11, 20, 0.92);
   --foreground: #f5f7fb;
-  --muted: #8e98a8;
+  --muted: #93a0b4;
   --line: rgba(255, 255, 255, 0.07);
-  --accent: #f08b3e;
-  --accent-deep: #f4c787;
+  --accent: #00d9ff;
+  --accent-deep: #7c6bff;
   --success: #5fcf98;
-  --shadow: 0 30px 90px rgba(0, 0, 0, 0.32);
+  --shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
 }
 
 * {
@@ -22,10 +22,12 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(240, 139, 62, 0.12), transparent 22%),
-    linear-gradient(180deg, #020304 0%, #06080b 100%);
+    radial-gradient(circle at top left, rgba(0, 217, 255, 0.08), transparent 20%),
+    radial-gradient(circle at top right, rgba(124, 107, 255, 0.09), transparent 24%),
+    linear-gradient(180deg, #03040a 0%, #060813 42%, #04050a 100%);
   color: var(--foreground);
   font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+  overflow-x: hidden;
 }
 
 a {
@@ -38,4 +40,16 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+button {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+button:hover {
+  box-shadow: 0 10px 30px rgba(0, 217, 255, 0.08);
 }

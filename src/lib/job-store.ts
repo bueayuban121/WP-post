@@ -469,33 +469,42 @@ export async function selectIdea(jobId: string, ideaId: string) {
   const selectedIdea = job.ideas.find((idea) => idea.id === ideaId);
   if (!selectedIdea) return null;
 
-  const research = generateResearch(job.seedKeyword, selectedIdea);
-  const brief = generateBrief(job.seedKeyword, selectedIdea, research);
-  const draft = generateDraft(brief);
-  const images = generateArticleImages({
-    seedKeyword: job.seedKeyword,
-    title: brief.title,
-    brief,
-    draft
-  });
-
   if (!isDatabaseConfigured()) {
     job.selectedIdeaId = ideaId;
     job.stage = "selected";
-    job.research = research;
-    job.brief = brief;
-    job.draft = draft;
-    job.images = images;
+    job.research = {
+      objective: "",
+      audience: "",
+      gaps: [],
+      sources: []
+    };
+    job.brief = {
+      title: "",
+      slug: "",
+      metaTitle: "",
+      metaDescription: "",
+      audience: "",
+      angle: "",
+      publishStatus: "draft",
+      categoryIds: [],
+      tagIds: [],
+      featuredImageUrl: "",
+      outline: [],
+      faqs: [],
+      internalLinks: []
+    };
+    job.draft = {
+      intro: "",
+      sections: [],
+      conclusion: ""
+    };
+    job.images = [];
     jobs.set(job.id, job);
     return cloneJob(job);
   }
 
   return updateStoredWorkflow(jobId, "selected", {
-    selectedIdeaId: ideaId,
-    research,
-    brief,
-    draft,
-    images
+    selectedIdeaId: ideaId
   });
 }
 
@@ -520,43 +529,29 @@ export async function generateJobBrief(jobId: string) {
   if (!job) return null;
   const selectedIdea = job.ideas.find((idea) => idea.id === job.selectedIdeaId) as TopicIdea;
   const brief = generateBrief(job.seedKeyword, selectedIdea, job.research);
-  const images = generateArticleImages({
-    seedKeyword: job.seedKeyword,
-    title: brief.title,
-    brief,
-    draft: job.draft
-  });
 
   if (!isDatabaseConfigured()) {
     job.brief = brief;
-    job.images = images;
     job.stage = "brief_ready";
     jobs.set(job.id, job);
     return cloneJob(job);
   }
 
-  return updateStoredWorkflow(jobId, "brief_ready", { brief, images });
+  return updateStoredWorkflow(jobId, "brief_ready", { brief });
 }
 
 export async function saveJobBrief(jobId: string, brief: ContentBrief) {
   const job = await getJob(jobId);
   if (!job) return null;
-  const images = generateArticleImages({
-    seedKeyword: job.seedKeyword,
-    title: brief.title,
-    brief,
-    draft: job.draft
-  });
 
   if (!isDatabaseConfigured()) {
     job.brief = brief;
-    job.images = images;
     job.stage = "brief_ready";
     jobs.set(job.id, job);
     return cloneJob(job);
   }
 
-  return updateStoredWorkflow(jobId, "brief_ready", { brief, images });
+  return updateStoredWorkflow(jobId, "brief_ready", { brief });
 }
 
 export async function generateJobDraft(jobId: string) {
