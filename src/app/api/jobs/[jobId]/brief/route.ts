@@ -33,7 +33,7 @@ export async function POST(
         metaDescription: body.metaDescription ?? "",
         audience: body.audience ?? "",
         angle: body.angle ?? "",
-        publishStatus: body.publishStatus,
+        publishStatus: body.publishStatus === "publish" ? "publish" : "draft",
         categoryIds: (body.categoryIds ?? []).filter((item): item is string => typeof item === "string"),
         tagIds: (body.tagIds ?? []).filter((item): item is string => typeof item === "string"),
         featuredImageUrl: body.featuredImageUrl ?? "",
