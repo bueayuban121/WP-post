@@ -3,11 +3,11 @@
 import Image from "next/image";
 import { type FormEvent, useCallback, useEffect, useState, useTransition } from "react";
 import type { ArticleDraft, ContentBrief, TopicIdea, WorkflowAutomationEvent, WorkflowJob } from "@/types/workflow";
+import { ConsoleNav } from "@/components/console-nav";
 import styles from "./workflow-dashboard.module.css";
 
 type WorkspaceTab = "expand" | "research" | "queue" | "article" | "images";
 type LoadState = "loading" | "ready" | "empty" | "error";
-type NavSection = "projects" | "keywords" | "queue" | "articles" | "settings";
 
 const stageLabels = {
   idea_pool: "Keyword Expansion",
@@ -26,14 +26,6 @@ const automationLabels: Record<WorkflowAutomationEvent["status"], string> = {
   succeeded: "Succeeded",
   failed: "Failed"
 };
-
-const navItems: Array<{ id: NavSection; label: string }> = [
-  { id: "projects", label: "Projects" },
-  { id: "keywords", label: "Keywords" },
-  { id: "queue", label: "Queue" },
-  { id: "articles", label: "Articles" },
-  { id: "settings", label: "Settings" }
-];
 
 function getProjectName(name: string) {
   return name.trim() || "Untitled Project";
@@ -87,7 +79,7 @@ async function readJson(response: Response) {
   return data;
 }
 
-export function WorkflowDashboard() {
+export function WorkflowDashboard({ initialTab = "expand" }: { initialTab?: WorkspaceTab }) {
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [activeJobId, setActiveJobId] = useState("");
   const [projectName, setProjectName] = useState("AquaCare Thailand");
@@ -95,8 +87,7 @@ export function WorkflowDashboard() {
   const [tone, setTone] = useState("Calm expert");
   const [bannedWords, setBannedWords] = useState("ดีที่สุด, การันตี, รักษาหาย");
   const [articleLength, setArticleLength] = useState("1800");
-  const [tab, setTab] = useState<WorkspaceTab>("expand");
-  const [activeNav, setActiveNav] = useState<NavSection>("projects");
+  const [tab, setTab] = useState<WorkspaceTab>(initialTab);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [statusMessage, setStatusMessage] = useState("Loading workspace");
   const [error, setError] = useState("");
@@ -151,22 +142,6 @@ export function WorkflowDashboard() {
   useEffect(() => {
     void loadJobs();
   }, [loadJobs]);
-
-  useEffect(() => {
-    if (tab === "article" || tab === "images") {
-      setActiveNav("articles");
-      return;
-    }
-
-    if (tab === "queue") {
-      setActiveNav("queue");
-      return;
-    }
-
-    if (tab === "expand" || tab === "research") {
-      setActiveNav("keywords");
-    }
-  }, [tab]);
 
   function replaceJob(nextJob: WorkflowJob, message: string, nextTab?: WorkspaceTab) {
     setJobs((current) =>
@@ -334,52 +309,10 @@ export function WorkflowDashboard() {
   );
   const queueCount = queueEvents.filter((event) => event.status === "queued" || event.status === "running").length;
 
-  function focusSection(section: NavSection) {
-    setActiveNav(section);
-
-    if (section === "keywords") {
-      setTab("expand");
-      document.getElementById("workspace-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
-
-    if (section === "queue") {
-      setTab("queue");
-      document.getElementById("workspace-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
-
-    if (section === "articles") {
-      setTab("article");
-      document.getElementById("workspace-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
-
-    const targetId = section === "projects" ? "projects-section" : "settings-section";
-    document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
-        <nav className={styles.topNav}>
-          <div className={styles.navBrand}>
-            <span className={styles.kicker}>Auto Post Content</span>
-            <strong>Keyword to research-backed article workflow</strong>
-          </div>
-          <div className={styles.navLinks}>
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                className={activeNav === item.id ? styles.navLinkActive : ""}
-                onClick={() => focusSection(item.id)}
-                type="button"
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </nav>
+        <ConsoleNav />
 
         <section className={styles.hero}>
           <div className={styles.heroGlow} />
@@ -391,10 +324,21 @@ export function WorkflowDashboard() {
               รับ keyword, ขยายเป็น 10-15 keyword opportunities, เลือกคำที่ต้องการ, รีเสิร์ชรวมข้อมูลให้เป็นภาษาไทย, แล้วค่อยสร้างบทความพร้อมภาพและ publish flow ในระบบเดียว
             </p>
             <div className={styles.heroActions}>
-              <button className={styles.primaryButton} onClick={() => focusSection("projects")} type="button">
+              <button
+                className={styles.primaryButton}
+                onClick={() => document.getElementById("projects-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                type="button"
+              >
                 Start Project
               </button>
-              <button className={styles.ghostButton} onClick={() => focusSection("articles")} type="button">
+              <button
+                className={styles.ghostButton}
+                onClick={() => {
+                  setTab("article");
+                  document.getElementById("workspace-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                type="button"
+              >
                 Open Article Studio
               </button>
             </div>
