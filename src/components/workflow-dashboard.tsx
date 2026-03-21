@@ -69,6 +69,10 @@ export function WorkflowDashboard() {
   const [briefMetaDescription, setBriefMetaDescription] = useState("");
   const [briefSlug, setBriefSlug] = useState("");
   const [briefAudience, setBriefAudience] = useState("");
+  const [briefPublishStatus, setBriefPublishStatus] = useState<"draft" | "publish">("draft");
+  const [briefCategoryIds, setBriefCategoryIds] = useState("");
+  const [briefTagIds, setBriefTagIds] = useState("");
+  const [briefFeaturedImageUrl, setBriefFeaturedImageUrl] = useState("");
 
   const [draftIntro, setDraftIntro] = useState("");
   const [draftConclusion, setDraftConclusion] = useState("");
@@ -84,6 +88,7 @@ export function WorkflowDashboard() {
     () => (selectedIdea ? getArticleImages(selectedIdea.title) : []),
     [selectedIdea]
   );
+  const featuredImageSrc = briefFeaturedImageUrl.trim() || articleImages[0]?.src || "/article-images/goldfish-water-1.svg";
   const latestEvent = job?.automationEvents?.[0] ?? null;
 
   const loadJobs = useCallback(async () => {
@@ -117,6 +122,10 @@ export function WorkflowDashboard() {
     setBriefMetaDescription(job.brief.metaDescription);
     setBriefSlug(job.brief.slug);
     setBriefAudience(job.brief.audience);
+    setBriefPublishStatus(job.brief.publishStatus);
+    setBriefCategoryIds(job.brief.categoryIds.join(", "));
+    setBriefTagIds(job.brief.tagIds.join(", "));
+    setBriefFeaturedImageUrl(job.brief.featuredImageUrl);
     setDraftIntro(job.draft.intro);
     setDraftConclusion(job.draft.conclusion);
     setDraftSections(job.draft.sections.map((section) => ({ ...section })));
@@ -228,7 +237,11 @@ export function WorkflowDashboard() {
       briefMetaTitle !== job.brief.metaTitle ||
       briefMetaDescription !== job.brief.metaDescription ||
       briefSlug !== job.brief.slug ||
-      briefAudience !== job.brief.audience);
+      briefAudience !== job.brief.audience ||
+      briefPublishStatus !== job.brief.publishStatus ||
+      briefCategoryIds !== job.brief.categoryIds.join(", ") ||
+      briefTagIds !== job.brief.tagIds.join(", ") ||
+      briefFeaturedImageUrl !== job.brief.featuredImageUrl);
 
   const isDraftDirty =
     !!job &&
@@ -246,7 +259,17 @@ export function WorkflowDashboard() {
       metaTitle: briefMetaTitle,
       metaDescription: briefMetaDescription,
       slug: briefSlug,
-      audience: briefAudience
+      audience: briefAudience,
+      publishStatus: briefPublishStatus,
+      categoryIds: briefCategoryIds
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+      tagIds: briefTagIds
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+      featuredImageUrl: briefFeaturedImageUrl.trim()
     };
 
     startTransition(async () => {
@@ -376,6 +399,42 @@ export function WorkflowDashboard() {
                 <span>Audience</span>
                 <input value={briefAudience} onChange={(event) => setBriefAudience(event.target.value)} />
               </label>
+              <label className={styles.editorField}>
+                <span>Publish status</span>
+                <select
+                  value={briefPublishStatus}
+                  onChange={(event) =>
+                    setBriefPublishStatus(event.target.value === "publish" ? "publish" : "draft")
+                  }
+                >
+                  <option value="draft">Draft</option>
+                  <option value="publish">Publish</option>
+                </select>
+              </label>
+              <label className={styles.editorField}>
+                <span>Category IDs</span>
+                <input
+                  placeholder="1, 2"
+                  value={briefCategoryIds}
+                  onChange={(event) => setBriefCategoryIds(event.target.value)}
+                />
+              </label>
+              <label className={styles.editorField}>
+                <span>Tag IDs or slugs</span>
+                <input
+                  placeholder="seo, goldfish"
+                  value={briefTagIds}
+                  onChange={(event) => setBriefTagIds(event.target.value)}
+                />
+              </label>
+              <label className={styles.editorField}>
+                <span>Featured image URL</span>
+                <input
+                  placeholder="https://..."
+                  value={briefFeaturedImageUrl}
+                  onChange={(event) => setBriefFeaturedImageUrl(event.target.value)}
+                />
+              </label>
             </div>
 
             <div className={styles.editorSection}>
@@ -443,7 +502,7 @@ export function WorkflowDashboard() {
               alt={articleImages[0]?.alt ?? (briefTitle || "Hero image")}
               height={900}
               priority
-              src={articleImages[0]?.src ?? "/article-images/goldfish-water-1.svg"}
+              src={featuredImageSrc}
               width={1600}
             />
           </div>
@@ -502,7 +561,7 @@ export function WorkflowDashboard() {
             <Image
               alt={articleImages[0]?.alt ?? "Featured image"}
               height={920}
-              src={articleImages[0]?.src ?? "/article-images/goldfish-water-1.svg"}
+              src={featuredImageSrc}
               width={1600}
             />
           </div>

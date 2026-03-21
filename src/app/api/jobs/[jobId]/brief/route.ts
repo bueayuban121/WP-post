@@ -17,6 +17,10 @@ export async function POST(
     typeof body.metaDescription === "string" &&
     typeof body.audience === "string" &&
     typeof body.angle === "string" &&
+    (body.publishStatus === "draft" || body.publishStatus === "publish") &&
+    typeof body.featuredImageUrl === "string" &&
+    Array.isArray(body.categoryIds) &&
+    Array.isArray(body.tagIds) &&
     Array.isArray(body.outline) &&
     Array.isArray(body.faqs) &&
     Array.isArray(body.internalLinks);
@@ -29,6 +33,10 @@ export async function POST(
         metaDescription: body.metaDescription ?? "",
         audience: body.audience ?? "",
         angle: body.angle ?? "",
+        publishStatus: body.publishStatus,
+        categoryIds: (body.categoryIds ?? []).filter((item): item is string => typeof item === "string"),
+        tagIds: (body.tagIds ?? []).filter((item): item is string => typeof item === "string"),
+        featuredImageUrl: body.featuredImageUrl ?? "",
         outline: (body.outline ?? []).filter((item): item is string => typeof item === "string"),
         faqs: (body.faqs ?? []).filter((item): item is string => typeof item === "string"),
         internalLinks: (body.internalLinks ?? []).filter((item): item is string => typeof item === "string")

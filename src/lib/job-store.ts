@@ -97,6 +97,10 @@ function toStoredJob(job: WorkflowJob) {
         metaDescription: job.brief.metaDescription,
         audience: job.brief.audience,
         angle: job.brief.angle,
+        publishStatus: job.brief.publishStatus,
+        categoryIds: job.brief.categoryIds,
+        tagIds: job.brief.tagIds,
+        featuredImageUrl: job.brief.featuredImageUrl,
         outline: job.brief.outline,
         faqs: job.brief.faqs,
         internalLinks: job.brief.internalLinks
@@ -156,6 +160,10 @@ function fromStoredJob(job: StoredJob): WorkflowJob {
       metaDescription: job.contentBrief?.metaDescription ?? "",
       audience: job.contentBrief?.audience ?? "",
       angle: job.contentBrief?.angle ?? "",
+      publishStatus: (job.contentBrief?.publishStatus as "draft" | "publish" | undefined) ?? "draft",
+      categoryIds: job.contentBrief?.categoryIds ?? [],
+      tagIds: job.contentBrief?.tagIds ?? [],
+      featuredImageUrl: job.contentBrief?.featuredImageUrl ?? "",
       outline: job.contentBrief?.outline ?? [],
       faqs: job.contentBrief?.faqs ?? [],
       internalLinks: job.contentBrief?.internalLinks ?? []
@@ -251,6 +259,10 @@ async function updateStoredWorkflow(
                   metaDescription: payload.brief.metaDescription,
                   audience: payload.brief.audience,
                   angle: payload.brief.angle,
+                  publishStatus: payload.brief.publishStatus,
+                  categoryIds: payload.brief.categoryIds,
+                  tagIds: payload.brief.tagIds,
+                  featuredImageUrl: payload.brief.featuredImageUrl,
                   outline: payload.brief.outline,
                   faqs: payload.brief.faqs,
                   internalLinks: payload.brief.internalLinks
@@ -262,6 +274,10 @@ async function updateStoredWorkflow(
                   metaDescription: payload.brief.metaDescription,
                   audience: payload.brief.audience,
                   angle: payload.brief.angle,
+                  publishStatus: payload.brief.publishStatus,
+                  categoryIds: payload.brief.categoryIds,
+                  tagIds: payload.brief.tagIds,
+                  featuredImageUrl: payload.brief.featuredImageUrl,
                   outline: payload.brief.outline,
                   faqs: payload.brief.faqs,
                   internalLinks: payload.brief.internalLinks

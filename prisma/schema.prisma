@@ -130,6 +130,10 @@ model ContentBrief {
   metaDescription  String
   audience         String
   angle            String
+  publishStatus    String      @default("draft")
+  categoryIds      String[]
+  tagIds           String[]
+  featuredImageUrl String      @default("")
   outline          String[]
   faqs             String[]
   internalLinks    String[]

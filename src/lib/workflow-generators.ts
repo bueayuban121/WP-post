@@ -91,6 +91,10 @@ export function generateBrief(
     metaDescription: `สรุปเรื่อง ${coreTitle} จากข้อมูลไทยและต่างประเทศ พร้อมคำแนะนำที่นำไปใช้ได้จริง`,
     audience: research.audience,
     angle: selectedIdea.angle,
+    publishStatus: "draft",
+    categoryIds: [],
+    tagIds: [],
+    featuredImageUrl: "",
     outline: [
       `${coreTitle}: คำตอบสั้นสำหรับคนที่อยากได้คำตอบเร็ว`,
       `สิ่งที่ควรเข้าใจก่อนเกี่ยวกับ ${seedKeyword}`,

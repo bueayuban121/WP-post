@@ -42,6 +42,10 @@ export type ContentBrief = {
   metaDescription: string;
   audience: string;
   angle: string;
+  publishStatus: "draft" | "publish";
+  categoryIds: string[];
+  tagIds: string[];
+  featuredImageUrl: string;
   outline: string[];
   faqs: string[];
   internalLinks: string[];

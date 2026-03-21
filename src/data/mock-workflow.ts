@@ -98,6 +98,10 @@ export const mockWorkflowJob: WorkflowJob = {
       "สรุปค่า pH ที่เหมาะกับปลาทอง อธิบายความต่างของน้ำด่าง น้ำกระด้าง และวิธีปรับน้ำให้ปลาทองแบบปลอดภัย",
     audience: "เจ้าของปลาทองที่กำลังดูเรื่องคุณภาพน้ำและอาการปลาซึม",
     angle: "ตอบคำถามแบบ practical โดยใช้ทั้งข้อมูลไทยและต่างประเทศ แล้วเชื่อมไปสู่การดูแลน้ำในตู้ระยะยาว",
+    publishStatus: "draft",
+    categoryIds: ["1"],
+    tagIds: ["seo", "goldfish"],
+    featuredImageUrl: "https://wp-post.srv1455358.hstgr.cloud/article-images/goldfish-water-1.svg",
     outline: [
       "ปลาทองชอบน้ำด่างไหม: คำตอบสั้นและสิ่งที่ควรรู้ก่อน",
       "ค่า pH ที่เหมาะกับปลาทองอยู่ประมาณเท่าไร",

@@ -49,7 +49,9 @@ function buildWordPressContent(job: WorkflowJob) {
   const images = getArticleImages(selectedIdea?.title ?? job.brief.title);
   const blocks: string[] = [];
 
-  if (images[0]) {
+  if (job.brief.featuredImageUrl) {
+    blocks.push(buildImageHtml(job.brief.featuredImageUrl, job.brief.title, "Featured image"));
+  } else if (images[0]) {
     blocks.push(buildImageHtml(images[0].src, images[0].alt, images[0].caption));
   }
 
@@ -93,12 +95,14 @@ export async function publishToWordPress(job: WorkflowJob): Promise<WordPressPub
     throw new Error("WordPress credentials are not configured.");
   }
 
-  const categoryIds = (getEnv("WORDPRESS_CATEGORY_IDS") ?? "")
+  const categoryIds = (job.brief.categoryIds.length > 0
+    ? job.brief.categoryIds.join(",")
+    : getEnv("WORDPRESS_CATEGORY_IDS") ?? "")
     .split(",")
     .map((item) => Number.parseInt(item.trim(), 10))
     .filter((item) => Number.isFinite(item));
 
-  const tagIds = (getEnv("WORDPRESS_TAG_IDS") ?? "")
+  const tagIds = (job.brief.tagIds.length > 0 ? job.brief.tagIds.join(",") : getEnv("WORDPRESS_TAG_IDS") ?? "")
     .split(",")
     .map((item) => Number.parseInt(item.trim(), 10))
     .filter((item) => Number.isFinite(item));
@@ -114,7 +118,7 @@ export async function publishToWordPress(job: WorkflowJob): Promise<WordPressPub
       slug: job.brief.slug,
       excerpt: job.brief.metaDescription,
       content: buildWordPressContent(job),
-      status: getEnv("WORDPRESS_POST_STATUS") ?? "draft",
+      status: job.brief.publishStatus || getEnv("WORDPRESS_POST_STATUS") || "draft",
       categories: categoryIds,
       tags: tagIds
     })
