@@ -11,7 +11,7 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const clientName = "AquaCare Thailand";
-  const seededJob = buildNewJob("ปลาทอง", clientName);
+  const seededJob = await buildNewJob("ปลาทอง", clientName);
 
   const existingClient = await prisma.client.findUnique({
     where: { name: clientName }
