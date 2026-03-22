@@ -24,6 +24,14 @@ function getApiKey() {
   return getEnv("PHAYA_API_KEY");
 }
 
+function getModel() {
+  return getEnv("PHAYA_MODEL") || "nano-banana-2";
+}
+
+function getResolution() {
+  return getEnv("PHAYA_RESOLUTION");
+}
+
 function getCreatePath() {
   return getEnv("PHAYA_TEXT_TO_IMAGE_PATH") || "/text-to-image/generate";
 }
@@ -161,7 +169,8 @@ export async function generateImageWithPhaya(input: GeneratePhayaImageInput): Pr
     body: JSON.stringify({
       prompt: input.prompt,
       aspect_ratio: inferAspectRatio(input.width ?? 1400, input.height ?? 840),
-      ...(getEnv("PHAYA_MODEL") ? { model: getEnv("PHAYA_MODEL") } : {})
+      model: getModel(),
+      ...(getResolution() ? { resolution: getResolution() } : {})
     })
   });
 
