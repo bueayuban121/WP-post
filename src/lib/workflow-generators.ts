@@ -1,4 +1,5 @@
 import { mockWorkflowJob } from "@/data/mock-workflow";
+import { tavilySearch } from "@/lib/tavily";
 import type {
   ArticleDraft,
   ContentBrief,
@@ -278,7 +279,143 @@ function buildIdeaSet(seedKeyword: string) {
   return buildGenericIdeas(seedKeyword);
 }
 
-export function generateIdeas(seedKeyword: string): TopicIdea[] {
+function inferIntentFromTitle(title: string): TopicIdea["searchIntent"] {
+  const normalized = title.toLowerCase();
+
+  if (/ราคา|ซื้อ|รีวิว|เปรียบเทียบ|vs|ดีที่สุด|แนะนำ/.test(title) || /price|review|compare|best/.test(normalized)) {
+    return "commercial";
+  }
+
+  if (/วิธี|แก้|ทำยังไง|ทำอย่างไร|ปัญหา|ผิดพลาด|ทำไม|ควร|ต้อง/.test(title)) {
+    return "problem-solving";
+  }
+
+  return "informational";
+}
+
+function inferDifficultyFromTitle(title: string): TopicIdea["difficulty"] {
+  const normalized = title.toLowerCase();
+
+  if (/advanced|technical|enterprise|architecture/.test(normalized)) {
+    return "high";
+  }
+
+  if (/เปรียบเทียบ|strategy|framework|ราคา|รีวิว|compare|review|best/.test(title) || /strategy|framework/.test(normalized)) {
+    return "medium";
+  }
+
+  return "low";
+}
+
+function normalizeTopicLine(seedKeyword: string, value: string) {
+  const cleaned = value
+    .replace(/^[\s\-•*–—]+/g, "")
+    .replace(/^\d+[\).\-\s]+/g, "")
+    .replace(/^(หัวข้อ|topic|title)\s*[:\-]\s*/i, "")
+    .replace(/^["'“”‘’]+|["'“”‘’]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned) return "";
+
+  const compact = cleaned
+    .replace(/\s+[—–-]\s+.+$/, "")
+    .replace(/\s*[:：]\s*(.+)$/, "$1")
+    .trim();
+
+  if (!compact || compact.length < 8 || compact.length > 120) {
+    return "";
+  }
+
+  if (compact.includes(seedKeyword)) {
+    return compact;
+  }
+
+  return `${seedKeyword} ${compact}`.trim();
+}
+
+function buildIdeaBlueprintFromTitle(seedKeyword: string, title: string, index: number): IdeaBlueprint {
+  const intent = inferIntentFromTitle(title);
+  const difficulty = inferDifficultyFromTitle(title);
+  const suffix = title.replace(seedKeyword, "").trim() || "คืออะไร";
+  const keywordHints = suffix
+    .split(/,|\/| และ | กับ | หรือ | for | and /i)
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 2 && part.length <= 28)
+    .slice(0, 4)
+    .map((part) => ` ${part}`);
+
+  return {
+    title,
+    angle: `อธิบายหัวข้อ "${title}" โดยอิง search intent จริงของผู้ใช้ไทย ใช้ข้อมูลไทยและต่างประเทศรองรับ และพาไปสู่การตัดสินใจหรือการลงมือทำได้จริง`,
+    searchIntent: intent,
+    difficulty,
+    confidence: Math.max(78, 95 - index),
+    whyItMatters: `หัวข้อนี้ช่วยขยายจาก seed keyword "${seedKeyword}" ไปสู่ intent ที่เฉพาะขึ้นและนำไปรีเสิร์ชต่อได้ตรงกว่าเดิม`,
+    thaiSignal: `หัวข้อนี้ควรใช้ภาษาที่ตรงกับคำถามของผู้ใช้ไทย และเน้นบริบทที่นำไปใช้ได้จริงกับ "${seedKeyword}"`,
+    globalSignal: `ใช้แหล่งต่างประเทศเพื่อเติมกรอบคิด คำเทคนิค และ best practices ที่ช่วยยกระดับเนื้อหาเรื่อง "${title}"`,
+    relatedKeywords: buildKeywordCluster(seedKeyword, keywordHints.length > 0 ? keywordHints : [" คืออะไร", " วิธี", " เปรียบเทียบ", " รีวิว"])
+  };
+}
+
+function parseTopicCandidates(seedKeyword: string, response: { answer?: string; results?: Array<{ title?: string }> }) {
+  const answerLines = String(response.answer ?? "")
+    .split(/\r?\n|•|●|▪|◆/g)
+    .map((line) => normalizeTopicLine(seedKeyword, line))
+    .filter(Boolean);
+
+  const titleLines = (response.results ?? [])
+    .map((result) => normalizeTopicLine(seedKeyword, String(result.title ?? "")))
+    .filter(Boolean);
+
+  return dedupe([...answerLines, ...titleLines]);
+}
+
+async function generateIdeasFromTavily(seedKeyword: string): Promise<TopicIdea[] | null> {
+  try {
+    const [thai, global] = await Promise.all([
+      tavilySearch(
+        `Seed keyword: ${seedKeyword}. Generate 15 Thai SEO article topic titles only, one per line. Mix beginner intent, how-to, problem solving, myths, comparisons, buying intent, mistakes, and FAQ angles.`,
+        {
+          country: "thailand",
+          maxResults: 8,
+          includeAnswer: true
+        }
+      ),
+      tavilySearch(
+        `Seed keyword: ${seedKeyword}. Suggest high-intent article angles, user questions, comparisons, and decision-stage topics related to this keyword.`,
+        {
+          country: "united states",
+          maxResults: 6,
+          includeAnswer: true
+        }
+      )
+    ]);
+
+    const candidates = dedupe([
+      ...parseTopicCandidates(seedKeyword, thai),
+      ...parseTopicCandidates(seedKeyword, global)
+    ]).slice(0, 15);
+
+    if (candidates.length < 8) {
+      return null;
+    }
+
+    return candidates.slice(0, 12).map((title, index) => ({
+      id: crypto.randomUUID(),
+      ...buildIdeaBlueprintFromTitle(seedKeyword, title, index)
+    }));
+  } catch {
+    return null;
+  }
+}
+
+export async function generateIdeas(seedKeyword: string): Promise<TopicIdea[]> {
+  const aiIdeas = await generateIdeasFromTavily(seedKeyword);
+  if (aiIdeas && aiIdeas.length > 0) {
+    return aiIdeas;
+  }
+
   return buildIdeaSet(seedKeyword)
     .slice(0, 12)
     .map((idea) => ({
@@ -495,8 +632,8 @@ export function generateDraft(
   };
 }
 
-export function buildNewJob(seedKeyword: string, client: string): WorkflowJob {
-  const ideas = generateIdeas(seedKeyword);
+export async function buildNewJob(seedKeyword: string, client: string): Promise<WorkflowJob> {
+  const ideas = await generateIdeas(seedKeyword);
 
   return {
     id: crypto.randomUUID(),

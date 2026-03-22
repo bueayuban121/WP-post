@@ -3,55 +3,12 @@ import {
   generateDraft,
   generateResearch
 } from "@/lib/workflow-generators";
+import { tavilySearch } from "@/lib/tavily";
 import type { N8nCallbackPayload } from "@/types/n8n";
 import type { ResearchPack, TopicIdea, WorkflowAutomationType, WorkflowJob } from "@/types/workflow";
 
-const TAVILY_API_KEY =
-  process.env.TAVILY_API_KEY ?? "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";
-
 function getSelectedIdea(job: WorkflowJob): TopicIdea {
-  return (
-    job.ideas.find((idea) => idea.id === job.selectedIdeaId) ??
-    job.ideas[0]
-  );
-}
-
-async function tavilySearch(query: string, country: string) {
-  if (!TAVILY_API_KEY) {
-    return { answer: "", results: [] as Array<Record<string, unknown>> };
-  }
-
-  const response = await fetch("https://api.tavily.com/search", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${TAVILY_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      query,
-      topic: "general",
-      search_depth: "advanced",
-      max_results: 4,
-      include_answer: "advanced",
-      include_raw_content: "text",
-      country
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Tavily search failed with status ${response.status}`);
-  }
-
-  return (await response.json()) as {
-    answer?: string;
-    results?: Array<{
-      title?: string;
-      url?: string;
-      favicon?: string;
-      content?: string;
-      raw_content?: string;
-    }>;
-  };
+  return job.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? job.ideas[0];
 }
 
 function toInsight(
@@ -74,11 +31,21 @@ async function buildResearchPack(job: WorkflowJob) {
     const [thai, global] = await Promise.all([
       tavilySearch(
         `${selectedIdea.title} ${seedKeyword} วิธีใช้ ข้อควรระวัง แนวทางไทย`,
-        "thailand"
+        {
+          country: "thailand",
+          maxResults: 4,
+          includeAnswer: true,
+          includeRawContent: true
+        }
       ),
       tavilySearch(
         `${selectedIdea.title} ${seedKeyword} best practices guide use cases`,
-        "united states"
+        {
+          country: "united states",
+          maxResults: 4,
+          includeAnswer: true,
+          includeRawContent: true
+        }
       )
     ]);
 
@@ -103,8 +70,8 @@ async function buildResearchPack(job: WorkflowJob) {
       audience: `ผู้อ่านที่กำลังค้นหา ${seedKeyword} และต้องการคำตอบที่อิงข้อมูลจริง เข้าใจง่าย และนำไปใช้หรือเปรียบเทียบก่อนตัดสินใจได้`,
       gaps: [
         `ต้องอธิบาย ${selectedIdea.title} ให้เป็นภาษาไทยที่อ่านลื่น แต่ยังคงศัพท์เทคนิคที่จำเป็นจากแหล่งสากล`,
-        `หลายบทความสรุปกว้างเกินไปและไม่เชื่อมระหว่างคำค้นไทยกับ evidence จากต่างประเทศ`,
-        `คอนเทนต์ที่ดีควรแปลงข้อมูลจากแหล่งจริงให้กลายเป็นคำตอบที่ผู้อ่านทำตามหรือนำไปตัดสินใจต่อได้`
+        "หลายบทความสรุปกว้างเกินไปและไม่เชื่อมระหว่างคำค้นไทยกับ evidence จากต่างประเทศ",
+        "คอนเทนต์ที่ดีควรแปลงข้อมูลจากแหล่งจริงให้กลายเป็นคำตอบที่ผู้อ่านทำตามหรือนำไปตัดสินใจต่อได้"
       ],
       sources: [...thaiSources, ...globalSources]
     };

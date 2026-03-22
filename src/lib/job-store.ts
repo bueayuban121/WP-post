@@ -423,7 +423,7 @@ export async function getJob(jobId: string) {
 }
 
 export async function createJob(input: { client: string; seedKeyword: string }) {
-  const job = buildNewJob(input.seedKeyword, input.client);
+  const job = await buildNewJob(input.seedKeyword, input.client);
 
   if (!isDatabaseConfigured()) {
     jobs.set(job.id, job);
