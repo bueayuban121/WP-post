@@ -35,13 +35,56 @@
         }
       },
       {
-        "id": "build_brief_v3",
-        "name": "Build Brief V3",
+        "id": "prepare_brief_v3",
+        "name": "Prepare Brief V3",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
-        "position": [820, 300],
+        "position": [780, 300],
         "parameters": {
-          "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nconst job = body.job ?? {};\nconst eventId = body.event?.id ?? body.eventId;\nconst jobId = job.id ?? body.jobId;\nconst callbackUrl = body.callbackUrl;\nconst callbackSecret = body.callbackSecret;\nconst selectedIdea = (job.ideas ?? []).find((idea) => idea.id === (job.selectedIdeaId ?? body.selectedIdeaId)) ?? (job.ideas ?? [])[0] ?? null;\nif (!jobId || !eventId || !callbackUrl) {\n  return [];\n}\n\nconst seedKeyword = job.seedKeyword ?? body.seedKeyword ?? 'Untitled topic';\nconst title = selectedIdea?.title ?? seedKeyword;\nconst angle = selectedIdea?.angle ?? 'Build a practical SEO brief';\nconst relatedKeywords = Array.isArray(selectedIdea?.relatedKeywords) ? selectedIdea.relatedKeywords : [];\nconst research = job.research ?? { objective: '', audience: '', gaps: [], sources: [] };\nconst sources = Array.isArray(research.sources) ? research.sources : [];\nconst thaiSource = sources.find((source) => source.region === 'TH') ?? sources[0] ?? null;\nconst globalSource = sources.find((source) => source.region === 'Global') ?? sources[1] ?? sources[0] ?? null;\n\nfunction slugify(value) {\n  return String(value)\n    .normalize('NFKC')\n    .replace(/[^\\p{Letter}\\p{Number}\\s-]/gu, '')\n    .trim()\n    .replace(/\\s+/g, '-') || 'seo-article';\n}\n\nconst seoTitle = title.includes('?')\n  ? `${title} พร้อมคำอธิบายที่ใช้งานได้จริง`\n  : `${title} คืออะไร และควรเริ่มจากตรงไหน`;\nconst metaDescription = [\n  `สรุป ${title} จากข้อมูลไทยและต่างประเทศ`,\n  angle,\n  'พร้อมวิธีนำไปใช้ ข้อควรระวัง และคำถามที่คนค้นต่อจริง'\n].join(' ');\nconst outline = [\n  `${title}: คำตอบสั้นและภาพรวมที่ควรรู้`,\n  `สิ่งที่ต้องเข้าใจก่อนลงมือเรื่อง ${seedKeyword}`,\n  thaiSource ? `สิ่งที่แหล่งไทยสะท้อนเกี่ยวกับ ${title}` : `มุมมองแบบไทยที่ควรเข้าใจเกี่ยวกับ ${title}`,\n  globalSource ? 'สิ่งที่แหล่งต่างประเทศใช้ยืนยันประเด็นนี้' : `แนวทางจากต่างประเทศที่ช่วยให้เนื้อหาครบขึ้น`,\n  `วิธีนำข้อมูลเรื่อง ${title} ไปใช้จริงแบบไม่เสี่ยง`,\n  'คำถามที่คนค้นต่อจากหัวข้อนี้'\n];\nconst faqs = [\n  `${seedKeyword} ต้องเช็กอะไรเป็นอย่างแรก`,\n  `${title} ควรระวังความเข้าใจผิดเรื่องไหน`,\n  `มีสัญญาณอะไรที่บอกว่าควรรีบจัดการเรื่อง ${title}`\n];\nconst internalLinks = [...new Set([\n  `คู่มือพื้นฐานเกี่ยวกับ ${seedKeyword}`,\n  `วิธีดูแล ${seedKeyword} สำหรับมือใหม่`,\n  ...relatedKeywords.slice(0, 3)\n])];\n\nconst brief = {\n  title: seoTitle,\n  slug: slugify(title),\n  metaTitle: seoTitle,\n  metaDescription,\n  audience: research.audience || `Readers searching for ${seedKeyword}`,\n  angle,\n  outline,\n  faqs,\n  internalLinks,\n  publishStatus: 'draft',\n  categoryIds: [],\n  tagIds: [],\n  featuredImageUrl: ''\n};\n\nconst callbackResponse = await fetch(callbackUrl, {\n  method: 'POST',\n  headers: {\n    'Content-Type': 'application/json',\n    ...(callbackSecret ? { 'x-callback-secret': callbackSecret } : {})\n  },\n  body: JSON.stringify({\n    eventId,\n    jobId,\n    type: 'brief',\n    status: 'succeeded',\n    workflowRunId: $execution.id,\n    message: 'Brief workflow completed in n8n poller.',\n    stage: 'brief_ready',\n    payload: { provider: 'n8n-poller', executionId: $execution.id },\n    brief\n  })\n});\n\nif (!callbackResponse.ok) {\n  throw new Error(`Brief callback failed with status ${callbackResponse.status}`);\n}\n\nreturn [];"
+          "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nif (!body.job || !body.event?.id || !body.callbackUrl) {\n  return [];\n}\nreturn [{ json: body }];"
+        }
+      },
+      {
+        "id": "run_brief_v3",
+        "name": "Run Brief V3",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1040, 300],
+        "parameters": {
+          "url": "https://wp-post.srv1455358.hstgr.cloud/api/n8n/run/brief",
+          "method": "POST",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ $json }}",
+          "options": {
+            "timeout": 120000
+          }
+        }
+      },
+      {
+        "id": "callback_brief_v3",
+        "name": "Callback Brief V3",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1300, 300],
+        "parameters": {
+          "url": "={{ $json.callbackUrl }}",
+          "method": "POST",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-callback-secret",
+                "value": "={{ $json.callbackSecret || '' }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ $json.callbackPayload }}",
+          "options": {
+            "timeout": 60000
+          }
         }
       }
     ],
@@ -50,7 +93,13 @@
         "main": [[{ "node": "Claim Brief Job V3", "type": "main", "index": 0 }]]
       },
       "Claim Brief Job V3": {
-        "main": [[{ "node": "Build Brief V3", "type": "main", "index": 0 }]]
+        "main": [[{ "node": "Prepare Brief V3", "type": "main", "index": 0 }]]
+      },
+      "Prepare Brief V3": {
+        "main": [[{ "node": "Run Brief V3", "type": "main", "index": 0 }]]
+      },
+      "Run Brief V3": {
+        "main": [[{ "node": "Callback Brief V3", "type": "main", "index": 0 }]]
       }
     },
     "settings": {

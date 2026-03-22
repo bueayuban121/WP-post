@@ -35,13 +35,56 @@
         }
       },
       {
-        "id": "build_research_pack_v3",
-        "name": "Build Research Pack V3",
+        "id": "prepare_research_v3",
+        "name": "Prepare Research V3",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
-        "position": [820, 300],
+        "position": [780, 300],
         "parameters": {
-          "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nconst job = body.job ?? {};\nconst eventId = body.event?.id ?? body.eventId;\nconst jobId = job.id ?? body.jobId;\nconst callbackUrl = body.callbackUrl;\nconst callbackSecret = body.callbackSecret;\nconst selectedIdea = (job.ideas ?? []).find((idea) => idea.id === (job.selectedIdeaId ?? body.selectedIdeaId)) ?? (job.ideas ?? [])[0] ?? null;\nif (!jobId || !eventId || !callbackUrl) {\n  return [];\n}\nconst seedKeyword = job.seedKeyword ?? body.seedKeyword ?? 'Untitled topic';\nconst client = job.client ?? body.client ?? 'Unknown client';\nconst title = selectedIdea?.title ?? seedKeyword;\nconst angle = selectedIdea?.angle ?? 'Research the topic from a practical SEO angle';\nconst relatedKeywords = selectedIdea?.relatedKeywords ?? [];\nconst apiKey = $env.TAVILY_API_KEY;\n\nasync function tavilySearch(query, country) {\n  if (!apiKey) {\n    return { answer: '', results: [] };\n  }\n\n  const response = await fetch('https://api.tavily.com/search', {\n    method: 'POST',\n    headers: {\n      Authorization: `Bearer ${apiKey}`,\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      query,\n      topic: 'general',\n      search_depth: 'advanced',\n      max_results: 4,\n      include_answer: 'advanced',\n      include_raw_content: 'text',\n      country\n    })\n  });\n\n  if (!response.ok) {\n    throw new Error(`Tavily search failed with status ${response.status}`);\n  }\n\n  return response.json();\n}\n\nfunction toInsight(result, fallback) {\n  const raw = String(result.raw_content ?? result.content ?? fallback ?? '').replace(/\\s+/g, ' ').trim();\n  return raw.slice(0, 320) || fallback;\n}\n\nlet thSearch;\nlet globalSearch;\nlet searchError = null;\n\ntry {\n  thSearch = await tavilySearch(`${title} ${seedKeyword} วิธีดูแล อาการ สาเหตุ ข้อควรระวัง`, 'thailand');\n  globalSearch = await tavilySearch(`${title} ${seedKeyword} symptoms causes care best practices`, 'united states');\n} catch (error) {\n  searchError = error instanceof Error ? error.message : 'Unknown Tavily error';\n  thSearch = { answer: '', results: [] };\n  globalSearch = { answer: '', results: [] };\n}\n\nconst thResults = Array.isArray(thSearch.results) ? thSearch.results : [];\nconst globalResults = Array.isArray(globalSearch.results) ? globalSearch.results : [];\nconst thAnswer = typeof thSearch.answer === 'string' ? thSearch.answer : '';\nconst globalAnswer = typeof globalSearch.answer === 'string' ? globalSearch.answer : '';\n\nconst sources = [\n  ...thResults.slice(0, 4).map((result) => ({\n    region: 'TH',\n    title: result.title || `${title} Thai source`,\n    source: result.url || result.favicon || 'Thai search result',\n    insight: toInsight(result, `Thai search result related to ${title}`)\n  })),\n  ...globalResults.slice(0, 4).map((result) => ({\n    region: 'Global',\n    title: result.title || `${title} global source`,\n    source: result.url || result.favicon || 'Global search result',\n    insight: toInsight(result, `Global search result related to ${title}`)\n  }))\n];\n\nconst fallbackSources = [\n  { region: 'TH', title: `${title} in Thai search context`, source: 'Thai search synthesis', insight: `Use the angle \"${angle}\" and connect it to Thai wording and decision factors.` },\n  { region: 'Global', title: `${title} global best-practice baseline`, source: 'International search synthesis', insight: 'Use global sources to strengthen factual framing, terminology, and reader trust.' }\n];\n\nconst objective = searchError\n  ? `Research pack fallback for \"${title}\" because Tavily was unavailable.`\n  : `Build a Thai and Global research pack for \"${title}\" for client ${client}.`;\n\nconst audience = `Readers searching for ${seedKeyword} who need practical guidance, trustworthy context, and a clear next step.`;\n\nconst gaps = [\n  `Need a Thai-first explanation for ${title} that still cites global terminology where useful.`,\n  `Competitors often skip side-by-side comparison between local phrasing and international best practices.`,\n  `Content should cover related keywords such as ${relatedKeywords.join(', ') || 'supporting long-tail phrases'} and convert them into FAQ and internal links.`\n];\n\nconst summaryHooks = [thAnswer, globalAnswer].filter(Boolean).join(' ');\nconst callbackPayload = {\n  eventId,\n  jobId,\n  type: 'research',\n  status: 'succeeded',\n  workflowRunId: $execution.id,\n  message: 'Research workflow completed in n8n poller.',\n  stage: 'researching',\n  payload: {\n    provider: searchError ? 'n8n-poller-fallback' : 'tavily',\n    executionId: $execution.id,\n    error: searchError,\n    summaryHooks\n  },\n  research: {\n    objective,\n    audience,\n    gaps,\n    sources: sources.length > 0 ? sources : fallbackSources\n  }\n};\n\nconst callbackResponse = await fetch(callbackUrl, {\n  method: 'POST',\n  headers: {\n    'Content-Type': 'application/json',\n    ...(callbackSecret ? { 'x-callback-secret': callbackSecret } : {})\n  },\n  body: JSON.stringify(callbackPayload)\n});\n\nif (!callbackResponse.ok) {\n  throw new Error(`Research callback failed with status ${callbackResponse.status}`);\n}\n\nreturn [];"
+          "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nif (!body.job || !body.event?.id || !body.callbackUrl) {\n  return [];\n}\nreturn [{ json: body }];"
+        }
+      },
+      {
+        "id": "run_research_v3",
+        "name": "Run Research V3",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1040, 300],
+        "parameters": {
+          "url": "https://wp-post.srv1455358.hstgr.cloud/api/n8n/run/research",
+          "method": "POST",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ $json }}",
+          "options": {
+            "timeout": 120000
+          }
+        }
+      },
+      {
+        "id": "callback_research_v3",
+        "name": "Callback Research V3",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1300, 300],
+        "parameters": {
+          "url": "={{ $json.callbackUrl }}",
+          "method": "POST",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-callback-secret",
+                "value": "={{ $json.callbackSecret || '' }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ $json.callbackPayload }}",
+          "options": {
+            "timeout": 60000
+          }
         }
       }
     ],
@@ -50,7 +93,13 @@
         "main": [[{ "node": "Claim Research Job V3", "type": "main", "index": 0 }]]
       },
       "Claim Research Job V3": {
-        "main": [[{ "node": "Build Research Pack V3", "type": "main", "index": 0 }]]
+        "main": [[{ "node": "Prepare Research V3", "type": "main", "index": 0 }]]
+      },
+      "Prepare Research V3": {
+        "main": [[{ "node": "Run Research V3", "type": "main", "index": 0 }]]
+      },
+      "Run Research V3": {
+        "main": [[{ "node": "Callback Research V3", "type": "main", "index": 0 }]]
       }
     },
     "settings": {
