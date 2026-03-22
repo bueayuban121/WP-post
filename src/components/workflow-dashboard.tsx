@@ -171,6 +171,21 @@ export function WorkflowDashboard({
   const hasResearch = Boolean(job?.research.sources.length);
   const hasDraft = Boolean(job?.draft.sections.length);
   const imageEvent = job ? getLatestEvent(job, "images") : undefined;
+  const imageStatusLabel = imageEvent
+    ? imageEvent.status === "running"
+      ? "Generating images..."
+      : imageEvent.status === "queued"
+        ? "Waiting for image generation..."
+        : imageEvent.status === "succeeded"
+          ? "Images ready"
+          : "Image generation failed"
+    : hasDraft
+      ? "Images not generated yet"
+      : "Create the article first";
+  const imageStatusDetail =
+    typeof imageEvent?.payload?.provider === "string" ? imageEvent.payload.provider : "";
+  const imageErrorCount =
+    typeof imageEvent?.payload?.errorCount === "number" ? imageEvent.payload.errorCount : 0;
 
   function hydrate(nextJob: WorkflowJob) {
     setBriefTitle(nextJob.brief.title);
@@ -1007,7 +1022,9 @@ export function WorkflowDashboard({
                       <h2>AI Article Images</h2>
                     </div>
                     <span className={styles.statusChipMuted}>
-                      {imageEvent ? `Images ${automationLabels[imageEvent.status]}` : hasDraft ? "Images not generated yet" : "Create the article first"}
+                      {imageStatusLabel}
+                      {imageStatusDetail ? ` · ${imageStatusDetail}` : ""}
+                      {imageErrorCount > 0 ? ` · ${imageErrorCount} issues` : ""}
                     </span>
                     <button
                       className={styles.primaryButton}

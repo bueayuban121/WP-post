@@ -15,7 +15,12 @@ function wait(ms: number) {
 }
 
 function getSelectedIdea(job: WorkflowJob): TopicIdea {
-  return job.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? job.ideas[0];
+  const selected = job.ideas.find((idea) => idea.id === job.selectedIdeaId);
+  if (!selected) {
+    throw new Error("Select one keyword opportunity before running this step.");
+  }
+
+  return selected;
 }
 
 function toInsight(

@@ -39,6 +39,47 @@ type DraftResponse = {
   conclusion: string;
 };
 
+function cleanText(value: string) {
+  return value
+    .replace(/https?:\/\/\S+/gi, "")
+    .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
+    .replace(/^\s*[-*•]\s+/gm, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function dedupeList(values: string[], limit: number) {
+  const seen = new Set<string>();
+  const output: string[] = [];
+
+  for (const value of values) {
+    const cleaned = cleanText(value);
+    const key = cleaned.toLocaleLowerCase();
+
+    if (!cleaned || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    output.push(cleaned);
+
+    if (output.length >= limit) {
+      break;
+    }
+  }
+
+  return output;
+}
+
+function cleanParagraphBlock(value: string) {
+  return cleanText(value)
+    .split(/\n{2,}/)
+    .map((paragraph) => cleanText(paragraph))
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 function getApiKey() {
   return process.env.OPENAI_API_KEY?.trim() || "";
 }
@@ -134,7 +175,7 @@ export async function generateKeywordIdeasWithOpenAi(input: {
       {
         role: "system",
         content:
-          "You are a Thai SEO strategist. Generate only topic options, not research findings. The output must be JSON only. Produce 10 to 12 Thai topic ideas directly related to the seed keyword. Each title must feel like a real article topic a content strategist would let a client choose before research begins. Avoid generic SEO/meta topics unless the seed keyword itself is about SEO. Keep titles natural, specific, and useful."
+          "You are a Thai SEO strategist. Generate only topic options, not research findings. The output must be JSON only. Produce 10 to 12 Thai topic ideas directly related to the seed keyword. Each title must feel like a real article topic a content strategist would let a client choose before research begins. Avoid generic SEO/meta topics unless the seed keyword itself is about SEO. Keep titles natural, specific, useful, and distinct from each other. Do not include URLs, source citations, or summary-style writing."
       },
       {
         role: "user",
@@ -150,12 +191,12 @@ export async function generateKeywordIdeasWithOpenAi(input: {
     .slice(0, 12)
     .map((idea) => ({
       ...idea,
-      title: idea.title.trim(),
-      angle: idea.angle.trim(),
-      whyItMatters: idea.whyItMatters.trim(),
-      thaiSignal: idea.thaiSignal.trim(),
-      globalSignal: idea.globalSignal.trim(),
-      relatedKeywords: idea.relatedKeywords.map((keyword) => keyword.trim()).filter(Boolean)
+      title: cleanText(idea.title),
+      angle: cleanText(idea.angle),
+      whyItMatters: cleanText(idea.whyItMatters),
+      thaiSignal: cleanText(idea.thaiSignal),
+      globalSignal: cleanText(idea.globalSignal),
+      relatedKeywords: dedupeList(idea.relatedKeywords, 8)
     }));
 }
 
@@ -185,7 +226,10 @@ export async function synthesizeResearchWithOpenAi(input: {
     "- Summary must be 1500 to 2000 Thai words.",
     "- It must read like a real research summary before article writing begins.",
     "- It must synthesize, compare, and explain findings, not just list sources.",
-    "- Do not write the final article. Do not use H1/H2 headings."
+    "- Use short section labels inside normal prose if needed, but do not write the final article.",
+    "- Do not use H1/H2 markdown, bullet spam, raw links, or pasted URLs.",
+    "- Explain what sources agree on, what they disagree on, and what remains uncertain.",
+    "- End with a clear recommendation on what the article should emphasize next."
   ].join("\n");
 
   const content = await complete(
@@ -205,10 +249,10 @@ export async function synthesizeResearchWithOpenAi(input: {
 
   const parsed = parseJson<ResearchSynthesisResponse>(content);
   return {
-    objective: parsed.objective.trim(),
-    audience: parsed.audience.trim(),
-    gaps: parsed.gaps.map((gap) => gap.trim()).filter(Boolean).slice(0, 6),
-    summary: parsed.summary.trim()
+    objective: cleanText(parsed.objective),
+    audience: cleanText(parsed.audience),
+    gaps: dedupeList(parsed.gaps, 6),
+    summary: cleanParagraphBlock(parsed.summary)
   };
 }
 
@@ -243,7 +287,9 @@ export async function generateBriefWithOpenAi(input: {
     "- Title must feel like a real client-ready SEO article title.",
     "- Outline must be 5 to 7 headings and should not repeat the same concept.",
     "- FAQs must be useful and non-repetitive.",
-    "- Internal links should be generic article ideas, not full URLs."
+    "- Internal links should be generic article ideas, not full URLs.",
+    "- Do not include raw links, markdown, or source dump language.",
+    "- Avoid vague phrases like 'สิ่งที่ควรรู้' repeated across many headings unless truly necessary."
   ].join("\n");
 
   const content = await complete(
@@ -263,15 +309,15 @@ export async function generateBriefWithOpenAi(input: {
 
   const parsed = parseJson<BriefResponse>(content);
   return {
-    title: parsed.title.trim(),
-    slug: parsed.slug.trim(),
-    metaTitle: parsed.metaTitle.trim(),
-    metaDescription: parsed.metaDescription.trim(),
-    audience: parsed.audience.trim(),
-    angle: parsed.angle.trim(),
-    outline: parsed.outline.map((item) => item.trim()).filter(Boolean).slice(0, 7),
-    faqs: parsed.faqs.map((item) => item.trim()).filter(Boolean).slice(0, 6),
-    internalLinks: parsed.internalLinks.map((item) => item.trim()).filter(Boolean).slice(0, 6)
+    title: cleanText(parsed.title),
+    slug: cleanText(parsed.slug).replace(/\s+/g, "-").replace(/-+/g, "-"),
+    metaTitle: cleanText(parsed.metaTitle),
+    metaDescription: cleanText(parsed.metaDescription),
+    audience: cleanText(parsed.audience),
+    angle: cleanText(parsed.angle),
+    outline: dedupeList(parsed.outline, 7),
+    faqs: dedupeList(parsed.faqs, 6),
+    internalLinks: dedupeList(parsed.internalLinks, 6)
   } satisfies Omit<ContentBrief, "publishStatus" | "categoryIds" | "tagIds" | "featuredImageUrl">;
 }
 
@@ -309,7 +355,10 @@ export async function generateDraftWithOpenAi(input: {
     "- Do not insert URLs, raw source links, or markdown.",
     "- Avoid repetitive phrases and repeated explanations.",
     "- Each section body should add new value, not restate the intro.",
-    "- The draft should sound like a polished article, not a stitched summary."
+    "- The draft should sound like a polished article, not a stitched summary.",
+    "- Use short paragraphs and practical transitions.",
+    "- Do not mention 'จากการรีเสิร์ชพบว่า' repeatedly.",
+    "- Do not echo the same warning, definition, or sentence structure in every section."
   ].join("\n");
 
   const content = await complete(
@@ -329,13 +378,13 @@ export async function generateDraftWithOpenAi(input: {
 
   const parsed = parseJson<DraftResponse>(content);
   return {
-    intro: parsed.intro.trim(),
+    intro: cleanParagraphBlock(parsed.intro),
     sections: parsed.sections
       .map((section) => ({
-        heading: section.heading.trim(),
-        body: section.body.trim()
+        heading: cleanText(section.heading),
+        body: cleanParagraphBlock(section.body)
       }))
       .filter((section) => section.heading && section.body),
-    conclusion: parsed.conclusion.trim()
+    conclusion: cleanParagraphBlock(parsed.conclusion)
   } satisfies ArticleDraft;
 }
