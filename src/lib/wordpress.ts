@@ -6,12 +6,22 @@ type WordPressPublishResult = {
   status?: string;
   featuredMediaId?: number;
   uploadedMediaCount: number;
+  uploadErrors: Array<{
+    assetId: string;
+    placement: string;
+    message: string;
+  }>;
 };
 
 type UploadedWordPressImage = {
   asset: ArticleImageAsset;
   id: number;
   src: string;
+};
+
+type FailedWordPressImage = {
+  asset: ArticleImageAsset;
+  message: string;
 };
 
 function getEnv(name: string) {
@@ -180,6 +190,24 @@ async function uploadImageToWordPress(input: {
   } satisfies UploadedWordPressImage;
 }
 
+async function withRetries<T>(task: () => Promise<T>, attempts: number, delayMs: number) {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await task();
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Unknown retry failure.");
+}
+
 function buildImageHtml(image: UploadedWordPressImage) {
   return [
     "<figure>",
@@ -229,24 +257,38 @@ async function uploadJobImages(input: {
   job: WorkflowJob;
 }) {
   const uploaded: UploadedWordPressImage[] = [];
+  const failed: FailedWordPressImage[] = [];
 
   for (const [index, asset] of input.job.images.entries()) {
     try {
       uploaded.push(
-        await uploadImageToWordPress({
-          baseUrl: input.baseUrl,
-          authHeader: input.authHeader,
-          asset,
-          slug: input.job.brief.slug || input.job.seedKeyword,
-          index
-        })
+        await withRetries(
+          () =>
+            uploadImageToWordPress({
+              baseUrl: input.baseUrl,
+              authHeader: input.authHeader,
+              asset,
+              slug: input.job.brief.slug || input.job.seedKeyword,
+              index
+            }),
+          3,
+          1500
+        )
       );
-    } catch {
-      continue;
+    } catch (error) {
+      failed.push({
+        asset,
+        message: error instanceof Error ? error.message : "WordPress media upload failed."
+      });
     }
+
+    await new Promise((resolve) => setTimeout(resolve, 750));
   }
 
-  return uploaded;
+  return {
+    uploaded,
+    failed
+  };
 }
 
 export function isWordPressConfigured() {
@@ -278,11 +320,12 @@ export async function publishToWordPress(job: WorkflowJob): Promise<WordPressPub
     .map((item) => Number.parseInt(item.trim(), 10))
     .filter((item) => Number.isFinite(item));
 
-  const uploadedImages = await uploadJobImages({
+  const uploadResult = await uploadJobImages({
     baseUrl,
     authHeader,
     job
   });
+  const uploadedImages = uploadResult.uploaded;
 
   const featuredMediaId =
     uploadedImages.find((image) => image.asset.kind === "featured")?.id ?? undefined;
@@ -318,6 +361,11 @@ export async function publishToWordPress(job: WorkflowJob): Promise<WordPressPub
     link: typeof payload?.link === "string" ? payload.link : undefined,
     status: typeof payload?.status === "string" ? payload.status : undefined,
     featuredMediaId,
-    uploadedMediaCount: uploadedImages.length
+    uploadedMediaCount: uploadedImages.length,
+    uploadErrors: uploadResult.failed.map((item) => ({
+      assetId: item.asset.id,
+      placement: item.asset.placement,
+      message: item.message
+    }))
   };
 }

@@ -18,6 +18,13 @@ export async function POST(
         id: number;
         link?: string;
         status?: string;
+        featuredMediaId?: number;
+        uploadedMediaCount: number;
+        uploadErrors: Array<{
+          assetId: string;
+          placement: string;
+          message: string;
+        }>;
       }
     | undefined;
 
