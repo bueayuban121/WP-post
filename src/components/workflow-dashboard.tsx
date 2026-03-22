@@ -60,7 +60,7 @@ function buildResearchSummary(seedKeyword: string, idea: TopicIdea | null, job: 
     summaryHooks
   });
 
-  const sourceNarrative = job.research.sources
+  /* const sourceNarrative = job.research.sources
     .map(
       (source, index) =>
         `Source ${index + 1}: ${source.title} จาก ${source.source} ชี้ให้เห็นว่า ${source.insight} ประเด็นนี้ช่วยยืนยันว่าคนที่ค้นคำว่า ${idea.title} ไม่ได้ต้องการแค่คำตอบสั้น แต่ต้องการความเข้าใจที่แปลเป็นการดูแลจริงได้ทันที`
@@ -94,6 +94,9 @@ function buildResearchSummary(seedKeyword: string, idea: TopicIdea | null, job: 
     repeatedSection,
     repeatedSection
   ].join(" ");
+}
+
+*/
 }
 
 async function readJson(response: Response) {
