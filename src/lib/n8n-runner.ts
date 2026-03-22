@@ -85,16 +85,16 @@ async function buildResearchPack(job: WorkflowJob) {
     const thaiSources =
       thai.results?.slice(0, 4).map((result) => ({
         region: "TH" as const,
-        title: result.title || `${selectedIdea.title} Thai source`,
-        source: result.url || result.favicon || "Thai search result",
+        title: String(result.title || `${selectedIdea.title} Thai source`),
+        source: String(result.url || result.favicon || "Thai search result"),
         insight: toInsight(result, `Thai search result related to ${selectedIdea.title}`)
       })) ?? [];
 
     const globalSources =
       global.results?.slice(0, 4).map((result) => ({
         region: "Global" as const,
-        title: result.title || `${selectedIdea.title} global source`,
-        source: result.url || result.favicon || "Global search result",
+        title: String(result.title || `${selectedIdea.title} global source`),
+        source: String(result.url || result.favicon || "Global search result"),
         insight: toInsight(result, `Global search result related to ${selectedIdea.title}`)
       })) ?? [];
 
