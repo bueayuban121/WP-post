@@ -1,0 +1,115 @@
+[
+  {
+    "id": "ImP3Q1nK2LmV4aXd",
+    "name": "SEO Content Images Poller V1",
+    "nodes": [
+      {
+        "id": "schedule_images_v1",
+        "name": "Images Queue Poller V1",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [260, 300],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "claim_images_job_v1",
+        "name": "Claim Images Job V1",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [520, 300],
+        "parameters": {
+          "url": "https://wp-post.srv1455358.hstgr.cloud/api/n8n/claim/images",
+          "method": "POST",
+          "options": {
+            "timeout": 60000
+          }
+        }
+      },
+      {
+        "id": "prepare_images_v1",
+        "name": "Prepare Images V1",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [780, 300],
+        "parameters": {
+          "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nif (!body.job || !body.job.draft?.sections?.length || !body.event?.id || !body.callbackUrl) {\n  return [];\n}\nreturn [{ json: body }];"
+        }
+      },
+      {
+        "id": "run_images_v1",
+        "name": "Run Images V1",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1040, 300],
+        "parameters": {
+          "url": "https://wp-post.srv1455358.hstgr.cloud/api/n8n/run/images",
+          "method": "POST",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ $json }}",
+          "options": {
+            "timeout": 600000
+          }
+        }
+      },
+      {
+        "id": "callback_images_v1",
+        "name": "Callback Images V1",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1300, 300],
+        "parameters": {
+          "url": "={{ $json.callbackUrl }}",
+          "method": "POST",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-callback-secret",
+                "value": "={{ $json.callbackSecret || '' }}"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ $json.callbackPayload }}",
+          "options": {
+            "timeout": 60000
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Images Queue Poller V1": {
+        "main": [[{ "node": "Claim Images Job V1", "type": "main", "index": 0 }]]
+      },
+      "Claim Images Job V1": {
+        "main": [[{ "node": "Prepare Images V1", "type": "main", "index": 0 }]]
+      },
+      "Prepare Images V1": {
+        "main": [[{ "node": "Run Images V1", "type": "main", "index": 0 }]]
+      },
+      "Run Images V1": {
+        "main": [[{ "node": "Callback Images V1", "type": "main", "index": 0 }]]
+      }
+    },
+    "settings": {
+      "availableInMCP": false,
+      "saveExecutionProgress": true,
+      "executionOrder": "v1",
+      "saveManualExecutions": true,
+      "saveDataSuccessExecution": "all",
+      "callerPolicy": "workflowsFromSameOwner",
+      "saveDataErrorExecution": "all"
+    }
+  }
+]

@@ -4,6 +4,7 @@ import {
   synthesizeResearchWithOpenAi
 } from "@/lib/openai";
 import { generateArticleImages } from "@/lib/article-images";
+import { generateImageWithPhaya, isPhayaConfigured } from "@/lib/phaya";
 import { tavilySearch } from "@/lib/tavily";
 import { generateBrief, generateDraft, generateResearch } from "@/lib/workflow-generators";
 import type { N8nCallbackPayload } from "@/types/n8n";
@@ -187,6 +188,28 @@ export async function buildRunnerCallback(input: {
       brief: job.brief,
       draft: job.draft
     });
+    const phayaEnabled = isPhayaConfigured();
+    const resolvedImages = phayaEnabled
+      ? await Promise.all(
+          images.map(async (image) => {
+            try {
+              const generated = await generateImageWithPhaya({
+                prompt: image.prompt,
+                width: image.kind === "featured" ? 1600 : 1400,
+                height: image.kind === "featured" ? 900 : 840
+              });
+
+              return {
+                ...image,
+                src: generated.src
+              };
+            } catch {
+              return image;
+            }
+          })
+        )
+      : images;
+    const fullyGenerated = resolvedImages.every((image) => image.src !== "" && image.src !== undefined);
 
     return {
       eventId,
@@ -197,10 +220,11 @@ export async function buildRunnerCallback(input: {
       message: "Image workflow completed via app runner.",
       stage: job.stage,
       payload: {
-        provider: "app-image-runner",
-        imageStatus: "ready"
+        provider: phayaEnabled ? "phaya" : "app-image-runner",
+        imageStatus: "ready",
+        usedFallback: phayaEnabled && !fullyGenerated
       },
-      images
+      images: resolvedImages
     };
   }
 

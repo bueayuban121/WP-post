@@ -952,7 +952,7 @@ export function WorkflowDashboard({
 
                   <article className={`${styles.articleLayout} ${styles.articlePreview}`}>
                     <div className={styles.heroImage}>
-                      <Image alt={articleImages[0]?.alt ?? "Featured article image"} height={900} src={featuredImageSrc} width={1600} />
+                      <Image alt={articleImages[0]?.alt ?? "Featured article image"} height={900} src={featuredImageSrc} unoptimized width={1600} />
                     </div>
                     <div className={styles.articleMeta}>
                       <span>Keyword: {job.seedKeyword}</span>
@@ -978,7 +978,7 @@ export function WorkflowDashboard({
                             {image ? (
                               <figure className={styles.inlineFigure}>
                                 <div className={styles.inlineImage}>
-                                  <Image alt={image.alt} height={760} src={image.src} width={1320} />
+                                  <Image alt={image.alt} height={760} src={image.src} unoptimized width={1320} />
                                 </div>
                                 <figcaption>
                                   <span>{image.caption}</span>
@@ -1022,7 +1022,7 @@ export function WorkflowDashboard({
                     {articleImages.map((image) => (
                       <article key={image.id} className={styles.imageCard}>
                         <div className={styles.imageThumbLarge}>
-                          <Image alt={image.alt} height={840} src={image.src} width={1400} />
+                            <Image alt={image.alt} height={840} src={image.src} unoptimized width={1400} />
                         </div>
                         <strong>{image.caption}</strong>
                         <p>{image.alt}</p>
