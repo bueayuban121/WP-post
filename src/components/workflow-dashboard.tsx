@@ -9,6 +9,17 @@ import styles from "./workflow-dashboard.module.css";
 
 type WorkspaceTab = "expand" | "research" | "queue" | "article" | "images";
 type LoadState = "loading" | "ready" | "empty" | "error";
+type PendingAction =
+  | ""
+  | "create-project"
+  | "select-keyword"
+  | "run-research"
+  | "create-article"
+  | "save-brief"
+  | "save-draft"
+  | "refresh-images"
+  | "approve"
+  | "publish";
 const settingsStorageKey = "auto-post-content-settings";
 
 const stageLabels = {
@@ -140,6 +151,7 @@ export function WorkflowDashboard({
   const [statusMessage, setStatusMessage] = useState("Loading workspace");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [pendingAction, setPendingAction] = useState<PendingAction>("");
 
   const [briefTitle, setBriefTitle] = useState("");
   const [briefMetaTitle, setBriefMetaTitle] = useState("");
@@ -324,6 +336,9 @@ export function WorkflowDashboard({
   async function createProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     startTransition(async () => {
+      setPendingAction("create-project");
+      setStatusMessage("Creating project");
+      setError("");
       try {
         await postJob(
           "/api/jobs",
@@ -333,6 +348,8 @@ export function WorkflowDashboard({
         );
       } catch (createError) {
         setError(createError instanceof Error ? createError.message : "Create failed");
+      } finally {
+        setPendingAction("");
       }
     });
   }
@@ -340,6 +357,9 @@ export function WorkflowDashboard({
   async function selectKeyword(idea: TopicIdea) {
     if (!job) return;
     startTransition(async () => {
+      setPendingAction("select-keyword");
+      setStatusMessage("Selecting keyword");
+      setError("");
       try {
         await postJob(
           `/api/jobs/${job.id}/ideas/select`,
@@ -349,6 +369,8 @@ export function WorkflowDashboard({
         );
       } catch (selectError) {
         setError(selectError instanceof Error ? selectError.message : "Select failed");
+      } finally {
+        setPendingAction("");
       }
     });
   }
@@ -356,10 +378,15 @@ export function WorkflowDashboard({
   async function runResearch() {
     if (!job) return;
     startTransition(async () => {
+      setPendingAction("run-research");
+      setStatusMessage("Queueing research");
+      setError("");
       try {
         await queueAutomation("research", "Research queued in n8n", "Research summary ready", "research");
       } catch (researchError) {
         setError(researchError instanceof Error ? researchError.message : "Research failed");
+      } finally {
+        setPendingAction("");
       }
     });
   }
@@ -367,6 +394,9 @@ export function WorkflowDashboard({
   async function createArticle() {
     if (!job) return;
     startTransition(async () => {
+      setPendingAction("create-article");
+      setStatusMessage("Generating article");
+      setError("");
       try {
         const briefJob = await queueAutomation("brief", "Brief queued in n8n", "Brief ready", "article");
         if (!briefJob) {
@@ -379,6 +409,8 @@ export function WorkflowDashboard({
         }
       } catch (draftError) {
         setError(draftError instanceof Error ? draftError.message : "Draft failed");
+      } finally {
+        setPendingAction("");
       }
     });
   }
@@ -395,10 +427,15 @@ export function WorkflowDashboard({
     };
 
     startTransition(async () => {
+      setPendingAction("save-brief");
+      setStatusMessage("Saving brief");
+      setError("");
       try {
         await postJob(`/api/jobs/${job.id}/brief`, brief, "Brief saved", "article");
       } catch (saveError) {
         setError(saveError instanceof Error ? saveError.message : "Save failed");
+      } finally {
+        setPendingAction("");
       }
     });
   }
@@ -412,10 +449,15 @@ export function WorkflowDashboard({
     };
 
     startTransition(async () => {
+      setPendingAction("save-draft");
+      setStatusMessage("Saving draft");
+      setError("");
       try {
         await postJob(`/api/jobs/${job.id}/draft`, draft, "Draft saved", "article");
       } catch (saveError) {
         setError(saveError instanceof Error ? saveError.message : "Save failed");
+      } finally {
+        setPendingAction("");
       }
     });
   }
@@ -433,10 +475,19 @@ export function WorkflowDashboard({
       type === "approve" ? "Article approved" : type === "publish" ? "Publish queued" : "AI image set refreshed";
 
     startTransition(async () => {
+      setPendingAction(
+        type === "approve" ? "approve" : type === "publish" ? "publish" : "refresh-images"
+      );
+      setStatusMessage(
+        type === "approve" ? "Approving article" : type === "publish" ? "Queueing publish" : "Refreshing image set"
+      );
+      setError("");
       try {
         await postJob(path, undefined, message, type === "images" ? "images" : tab);
       } catch (actionError) {
         setError(actionError instanceof Error ? actionError.message : "Action failed");
+      } finally {
+        setPendingAction("");
       }
     });
   }
@@ -453,6 +504,7 @@ export function WorkflowDashboard({
     right.updatedAt.localeCompare(left.updatedAt)
   );
   const queueCount = queueEvents.filter((event) => event.status === "queued" || event.status === "running").length;
+  const liveEvent = queueEvents.find((event) => event.status === "queued" || event.status === "running") ?? null;
 
   return (
     <main className={styles.page}>
@@ -639,11 +691,51 @@ export function WorkflowDashboard({
                   <span className={styles.statusChipMuted}>{queueCount} active</span>
                 </div>
                 <div className={styles.actionGrid}>
-                  <button className={styles.secondaryButton} disabled={!hasSelectedIdea} onClick={() => void runResearch()} type="button">Run Research</button>
-                  <button className={styles.secondaryButton} disabled={!hasResearch} onClick={() => void createArticle()} type="button">Create Article</button>
-                  <button className={styles.secondaryButton} onClick={() => void runPrimaryAction("images")} type="button">Refresh Images</button>
-                  <button className={styles.secondaryButton} onClick={() => void runPrimaryAction("approve")} type="button">Approve</button>
-                  <button className={styles.primaryButton} onClick={() => void runPrimaryAction("publish")} type="button">Queue Publish</button>
+                  <button
+                    className={styles.secondaryButton}
+                    disabled={!hasSelectedIdea || Boolean(pendingAction)}
+                    onClick={() => void runResearch()}
+                    type="button"
+                  >
+                    {pendingAction === "run-research" ? "Running Research..." : "Run Research"}
+                  </button>
+                  <button
+                    className={styles.secondaryButton}
+                    disabled={!hasResearch || Boolean(pendingAction)}
+                    onClick={() => void createArticle()}
+                    type="button"
+                  >
+                    {pendingAction === "create-article" ? "Creating Article..." : "Create Article"}
+                  </button>
+                  <button
+                    className={styles.secondaryButton}
+                    disabled={Boolean(pendingAction)}
+                    onClick={() => void runPrimaryAction("images")}
+                    type="button"
+                  >
+                    {pendingAction === "refresh-images" ? "Refreshing Images..." : "Refresh Images"}
+                  </button>
+                  <button
+                    className={styles.secondaryButton}
+                    disabled={Boolean(pendingAction)}
+                    onClick={() => void runPrimaryAction("approve")}
+                    type="button"
+                  >
+                    {pendingAction === "approve" ? "Approving..." : "Approve"}
+                  </button>
+                  <button
+                    className={styles.primaryButton}
+                    disabled={Boolean(pendingAction)}
+                    onClick={() => void runPrimaryAction("publish")}
+                    type="button"
+                  >
+                    {pendingAction === "publish" ? "Queueing Publish..." : "Queue Publish"}
+                  </button>
+                </div>
+                <div className={styles.statusRow}>
+                  <span className={styles.statusChipMuted}>
+                    {pendingAction ? statusMessage : liveEvent ? `${liveEvent.type} ${automationLabels[liveEvent.status]}` : statusMessage}
+                  </span>
                 </div>
                 <div className={styles.exportRow}>
                   <button className={styles.ghostButton} onClick={() => downloadDeliverable("markdown")} type="button">Export MD</button>
@@ -676,8 +768,17 @@ export function WorkflowDashboard({
                           <span>{idea.confidence}%</span>
                         </div>
                         <strong>{idea.title}</strong>
-                        <button className={styles.primaryButton} onClick={() => void selectKeyword(idea)} type="button">
-                          Select keyword
+                        <button
+                          className={styles.primaryButton}
+                          disabled={Boolean(pendingAction)}
+                          onClick={() => void selectKeyword(idea)}
+                          type="button"
+                        >
+                          {pendingAction === "select-keyword" && job.selectedIdeaId !== idea.id
+                            ? "Selecting..."
+                            : job.selectedIdeaId === idea.id
+                              ? "Selected"
+                              : "Select keyword"}
                         </button>
                       </article>
                     ))}
@@ -693,8 +794,22 @@ export function WorkflowDashboard({
                       <h2>Research Summary</h2>
                     </div>
                     <div className={styles.researchActions}>
-                      <button className={styles.secondaryButton} disabled={!hasSelectedIdea} onClick={() => void runResearch()} type="button">Run Research</button>
-                      <button className={styles.primaryButton} disabled={!hasResearch} onClick={() => void createArticle()} type="button">Create Article</button>
+                      <button
+                        className={styles.secondaryButton}
+                        disabled={!hasSelectedIdea || Boolean(pendingAction)}
+                        onClick={() => void runResearch()}
+                        type="button"
+                      >
+                        {pendingAction === "run-research" ? "Running Research..." : "Run Research"}
+                      </button>
+                      <button
+                        className={styles.primaryButton}
+                        disabled={!hasResearch || Boolean(pendingAction)}
+                        onClick={() => void createArticle()}
+                        type="button"
+                      >
+                        {pendingAction === "create-article" ? "Creating Article..." : "Create Article"}
+                      </button>
                     </div>
                   </div>
                   <div className={styles.researchLayout}>
@@ -779,7 +894,14 @@ export function WorkflowDashboard({
                         <span className={styles.label}>Step 4</span>
                         <h2>Article Studio</h2>
                       </div>
-                      <button className={styles.primaryButton} onClick={() => void saveBrief()} type="button">Save Brief</button>
+                      <button
+                        className={styles.primaryButton}
+                        disabled={Boolean(pendingAction)}
+                        onClick={() => void saveBrief()}
+                        type="button"
+                      >
+                        {pendingAction === "save-brief" ? "Saving Brief..." : "Save Brief"}
+                      </button>
                     </div>
                     <div className={styles.editorFields}>
                       <label className={styles.editorField}>
@@ -817,7 +939,14 @@ export function WorkflowDashboard({
                         <small>สรุปท้ายบทความ</small>
                         <textarea rows={5} value={draftConclusion} onChange={(event) => setDraftConclusion(event.target.value)} />
                       </label>
-                      <button className={styles.secondaryButton} onClick={() => void saveDraft()} type="button">Save Draft</button>
+                      <button
+                        className={styles.secondaryButton}
+                        disabled={Boolean(pendingAction)}
+                        onClick={() => void saveDraft()}
+                        type="button"
+                      >
+                        {pendingAction === "save-draft" ? "Saving Draft..." : "Save Draft"}
+                      </button>
                     </div>
                   </section>
 
@@ -877,7 +1006,14 @@ export function WorkflowDashboard({
                       <span className={styles.label}>Visual Layer</span>
                       <h2>AI Article Images</h2>
                     </div>
-                    <button className={styles.primaryButton} onClick={() => void runPrimaryAction("images")} type="button">Refresh Images</button>
+                    <button
+                      className={styles.primaryButton}
+                      disabled={Boolean(pendingAction)}
+                      onClick={() => void runPrimaryAction("images")}
+                      type="button"
+                    >
+                      {pendingAction === "refresh-images" ? "Refreshing Images..." : "Refresh Images"}
+                    </button>
                   </div>
                   <div className={styles.imageShowcase}>
                     {articleImages.map((image) => (

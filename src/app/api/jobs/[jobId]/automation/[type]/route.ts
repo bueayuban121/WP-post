@@ -47,6 +47,27 @@ export async function POST(
     return NextResponse.json({ error: "Job not found." }, { status: 404 });
   }
 
+  if ((type === "research" || type === "brief" || type === "draft") && !job.selectedIdeaId) {
+    return NextResponse.json(
+      { error: "Select one keyword opportunity before running this step." },
+      { status: 400 }
+    );
+  }
+
+  if ((type === "brief" || type === "draft") && job.research.sources.length === 0) {
+    return NextResponse.json(
+      { error: "Research must finish before article generation can start." },
+      { status: 400 }
+    );
+  }
+
+  if (type === "draft" && !job.brief.title.trim()) {
+    return NextResponse.json(
+      { error: "Brief must be ready before the draft step can run." },
+      { status: 400 }
+    );
+  }
+
   const event = await createWorkflowEvent({
     jobId,
     type,

@@ -41,7 +41,7 @@
         "typeVersion": 2,
         "position": [780, 300],
         "parameters": {
-          "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nif (!body.job || !body.event?.id || !body.callbackUrl) {\n  return [];\n}\nreturn [{ json: body }];"
+          "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nif (!body.job || !body.job.selectedIdeaId || !body.event?.id || !body.callbackUrl) {\n  return [];\n}\nreturn [{ json: body }];"
         }
       },
       {

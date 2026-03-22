@@ -702,7 +702,7 @@ export async function buildNewJob(seedKeyword: string, client: string): Promise<
     client,
     seedKeyword,
     stage: "idea_pool",
-    selectedIdeaId: ideas[0]?.id ?? "",
+    selectedIdeaId: "",
     ideas,
     research: {
       objective: "",
