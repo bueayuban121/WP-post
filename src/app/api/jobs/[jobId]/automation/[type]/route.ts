@@ -3,12 +3,14 @@ import {
   generateJobBrief,
   generateJobDraft,
   getJob,
+  publishJob,
   regenerateJobImages,
   runResearch
 } from "@/lib/job-store";
 import { shouldQueueAutomation, triggerN8nWorkflow } from "@/lib/n8n";
 import { createWorkflowEvent, updateWorkflowEvent } from "@/lib/workflow-events";
 import type { WorkflowAutomationType } from "@/types/workflow";
+import { isWordPressConfigured, publishToWordPress } from "@/lib/wordpress";
 import { NextResponse } from "next/server";
 
 const supportedTypes = new Set<WorkflowAutomationType>(["research", "brief", "draft", "images", "publish"]);
@@ -78,6 +80,62 @@ export async function POST(
       { error: "Create the article before generating images." },
       { status: 400 }
     );
+  }
+
+  if (type === "publish") {
+    const event = await createWorkflowEvent({
+      jobId,
+      type,
+      status: "running",
+      source: "app",
+      message: "Publishing article directly through the app pipeline."
+    });
+
+    try {
+      let payload: Record<string, unknown> | undefined;
+
+      if (isWordPressConfigured()) {
+        const publishResult = await publishToWordPress(job);
+        payload = {
+          provider: "app-wordpress-media",
+          uploadedMediaCount: publishResult.uploadedMediaCount,
+          uploadErrors: publishResult.uploadErrors,
+          wordpress: publishResult
+        };
+      }
+
+      const updatedJob = await publishJob(jobId);
+      const updatedEvent = await updateWorkflowEvent(event.id, {
+        status: "succeeded",
+        message: "Article published through the direct app pipeline.",
+        payload
+      });
+
+      return NextResponse.json({
+        job: updatedJob,
+        event: updatedEvent ?? event,
+        automation: {
+          mode: "direct",
+          accepted: true,
+          message: "publish completed through the app pipeline.",
+          fallbackApplied: false
+        }
+      });
+    } catch (error) {
+      const updatedEvent = await updateWorkflowEvent(event.id, {
+        status: "failed",
+        message: error instanceof Error ? error.message : "Publish failed."
+      });
+
+      return NextResponse.json(
+        {
+          error: error instanceof Error ? error.message : "Publish failed.",
+          job: await getJob(jobId),
+          event: updatedEvent ?? event
+        },
+        { status: 502 }
+      );
+    }
   }
 
   const event = await createWorkflowEvent({
