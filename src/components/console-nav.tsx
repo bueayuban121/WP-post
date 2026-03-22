@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 import styles from "./console-nav.module.css";
 
 const navItems = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/projects", label: "Projects" },
-  { href: "/", label: "Keywords" },
+  { href: "/keywords", label: "Keywords" },
   { href: "/queue", label: "Queue" },
   { href: "/articles", label: "Articles" },
   { href: "/settings", label: "Settings" }
@@ -22,15 +23,21 @@ export function ConsoleNav() {
         <strong>Keyword to research-backed article workflow</strong>
       </div>
       <div className={styles.navLinks}>
-        {navItems.map((item) => (
+        {navItems.map((item) => {
+          const isActive =
+            pathname === item.href ||
+            (item.href === "/keywords" && pathname === "/");
+
+          return (
           <Link
             key={item.href}
-            className={pathname === item.href ? styles.navActive : ""}
+            className={isActive ? styles.navActive : ""}
             href={item.href}
           >
             {item.label}
           </Link>
-        ))}
+          );
+        })}
       </div>
     </nav>
   );

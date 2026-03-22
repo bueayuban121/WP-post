@@ -39,9 +39,10 @@ export default async function ProjectsPage() {
 
       <section className={styles.hero}>
         <span className={styles.eyebrow}>Projects</span>
-        <h1 className={styles.title}>Manage content projects from one workspace</h1>
+        <h1 className={styles.title}>Manage every content project from a single workspace</h1>
         <p className={styles.description}>
-          ดูภาพรวมของแต่ละโปรเจกต์ว่ามีคีย์เวิร์ดเท่าไร งานล่าสุดอยู่ขั้นไหน และพร้อมกดกลับไปทำ workflow ต่อได้ทันที
+          Review how many jobs each project contains, where the latest keyword sits in the pipeline,
+          and jump straight back into the next production step.
         </p>
       </section>
 
@@ -71,9 +72,9 @@ export default async function ProjectsPage() {
               <div>
                 <span className={styles.eyebrow}>Project list</span>
                 <h2>Active projects</h2>
-                <p>เลือกดูแต่ละโปรเจกต์จากชื่อเว็บไซต์หรือทีมที่ใช้งาน แล้วกลับไปทำคีย์เวิร์ดต่อใน workflow หลัก</p>
+                <p>Open a project by client or website, then jump back to keyword expansion or article editing.</p>
               </div>
-              <Link className={styles.primaryButton} href="/">
+              <Link className={styles.primaryButton} href="/keywords">
                 Create project
               </Link>
             </div>
@@ -89,7 +90,7 @@ export default async function ProjectsPage() {
                     <span className={styles.pill}>{stageLabels[project.latestStage]}</span>
                   </div>
                   <div className={styles.actions}>
-                    <Link className={styles.linkButton} href={`/?job=${project.latestJobId}&tab=expand`}>
+                    <Link className={styles.linkButton} href={`/keywords?job=${project.latestJobId}&tab=expand`}>
                       Open keywords
                     </Link>
                     <Link className={styles.linkButton} href={`/articles?job=${project.latestJobId}`}>
@@ -105,20 +106,20 @@ export default async function ProjectsPage() {
             <div className={styles.panelHead}>
               <div>
                 <span className={styles.eyebrow}>Next step</span>
-                <h2>Open the workflow</h2>
-                <p>หน้า workflow หลักยังเป็นศูนย์กลางสำหรับสร้างคีย์เวิร์ด รีเสิร์ช สร้างบทความ และส่งขึ้น WordPress</p>
+                <h2>Return to production flow</h2>
+                <p>The core workflow still handles keyword expansion, research, article creation, and WordPress delivery.</p>
               </div>
             </div>
             <div className={styles.helperList}>
               <div className={styles.settingCard}>
                 <strong>Keywords</strong>
-                <p className={styles.muted}>แตกคีย์เวิร์ด 10-15 คำจาก seed keyword แล้วเลือกคำที่จะเอาไปรีเสิร์ชต่อ</p>
+                <p className={styles.muted}>Expand 10-15 keyword angles from one seed keyword, then choose one before research starts.</p>
               </div>
               <div className={styles.settingCard}>
                 <strong>Articles</strong>
-                <p className={styles.muted}>แก้ SEO brief, draft, image set และส่ง publish queue ได้ในหน้าเดียว</p>
+                <p className={styles.muted}>Edit the SEO brief, article draft, image set, and publish queue in one place.</p>
               </div>
-              <Link className={styles.linkButton} href="/">
+              <Link className={styles.linkButton} href="/keywords">
                 Open workflow
               </Link>
             </div>
@@ -126,10 +127,10 @@ export default async function ProjectsPage() {
         </section>
       ) : (
         <section className={styles.emptyState}>
-          <strong>ยังไม่มีโปรเจกต์</strong>
-          <p className={styles.muted}>เริ่มต้นด้วยการสร้างโปรเจกต์จาก seed keyword บนหน้า workflow หลัก</p>
+          <strong>No projects yet</strong>
+          <p className={styles.muted}>Start by creating the first project from the main keyword workflow.</p>
           <div className={styles.actions}>
-            <Link className={styles.primaryButton} href="/">
+            <Link className={styles.primaryButton} href="/keywords">
               Go to workflow
             </Link>
           </div>
