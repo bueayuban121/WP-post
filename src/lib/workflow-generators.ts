@@ -371,11 +371,22 @@ function parseTopicCandidates(seedKeyword: string, response: { answer?: string; 
   return dedupe([...answerLines, ...titleLines]);
 }
 
+function isOffTopicCandidate(seedKeyword: string, title: string) {
+  const normalizedSeed = seedKeyword.toLowerCase();
+  const normalizedTitle = title.toLowerCase();
+
+  if (/seo|marketing|wordpress|backlink|search console|keyword research|google/.test(normalizedSeed)) {
+    return false;
+  }
+
+  return /seo|marketing|wordpress|backlink|search console|keyword research|google/.test(normalizedTitle);
+}
+
 async function generateIdeasFromTavily(seedKeyword: string): Promise<TopicIdea[] | null> {
   try {
-    const [thai, global] = await Promise.all([
+    const [thai, global, expansion] = await Promise.all([
       tavilySearch(
-        `Seed keyword: ${seedKeyword}. Generate 15 Thai SEO article topic titles only, one per line. Mix beginner intent, how-to, problem solving, myths, comparisons, buying intent, mistakes, and FAQ angles.`,
+        `${seedKeyword} รีวิว วิธีเลือก เปรียบเทียบ ปัญหา คำถามที่พบบ่อย รุ่นไหนดี ใช้ยังไง`,
         {
           country: "thailand",
           maxResults: 8,
@@ -383,10 +394,18 @@ async function generateIdeasFromTavily(seedKeyword: string): Promise<TopicIdea[]
         }
       ),
       tavilySearch(
-        `Seed keyword: ${seedKeyword}. Suggest high-intent article angles, user questions, comparisons, and decision-stage topics related to this keyword.`,
+        `${seedKeyword} buying guide comparison common problems FAQ best practices`,
         {
           country: "united states",
           maxResults: 6,
+          includeAnswer: true
+        }
+      ),
+      tavilySearch(
+        `The seed keyword is "${seedKeyword}". Return only Thai article topic titles directly related to this keyword. Do not mention SEO, marketing, Google, WordPress, or keyword research unless they are part of the seed keyword itself. Mix how-to, comparison, FAQ, mistakes, buying intent, beginner questions, and problem-solving. One title per line.`,
+        {
+          country: "thailand",
+          maxResults: 4,
           includeAnswer: true
         }
       )
@@ -394,8 +413,11 @@ async function generateIdeasFromTavily(seedKeyword: string): Promise<TopicIdea[]
 
     const candidates = dedupe([
       ...parseTopicCandidates(seedKeyword, thai),
-      ...parseTopicCandidates(seedKeyword, global)
-    ]).slice(0, 15);
+      ...parseTopicCandidates(seedKeyword, global),
+      ...parseTopicCandidates(seedKeyword, expansion)
+    ])
+      .filter((title) => !isOffTopicCandidate(seedKeyword, title))
+      .slice(0, 15);
 
     if (candidates.length < 8) {
       return null;
