@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ConsoleNav } from "@/components/console-nav";
 import styles from "@/components/console-pages.module.css";
 import { listJobs } from "@/lib/job-store";
+import { getJobScopeForUser, requirePageSession } from "@/lib/auth";
 
 function getPublishMeta(payload: Record<string, unknown> | undefined) {
   const wordpress = payload?.wordpress as Record<string, unknown> | undefined;
@@ -34,7 +35,8 @@ function getPublishMeta(payload: Record<string, unknown> | undefined) {
 }
 
 export default async function PublishedPage() {
-  const jobs = await listJobs();
+  const user = await requirePageSession();
+  const jobs = await listJobs(getJobScopeForUser(user));
   const publishedItems = jobs
     .map((job) => {
       const publishEvent = [...(job.automationEvents ?? [])]

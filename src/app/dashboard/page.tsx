@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ConsoleNav } from "@/components/console-nav";
 import styles from "@/components/console-pages.module.css";
 import { listJobs } from "@/lib/job-store";
+import { getJobScopeForUser, requirePageSession } from "@/lib/auth";
 
 const stageLabels = {
   idea_pool: "Keyword expansion",
@@ -15,7 +16,8 @@ const stageLabels = {
 } as const;
 
 export default async function DashboardPage() {
-  const jobs = await listJobs();
+  const user = await requirePageSession();
+  const jobs = await listJobs(getJobScopeForUser(user));
   const projectCount = new Set(jobs.map((job) => job.client)).size;
   const keywordCount = jobs.length;
   const runningCount = jobs

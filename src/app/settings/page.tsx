@@ -1,8 +1,16 @@
 import { ConsoleNav } from "@/components/console-nav";
 import styles from "@/components/console-pages.module.css";
 import { SettingsPage } from "@/components/settings-page";
+import { listManagedUsers, requirePageSession } from "@/lib/auth";
 
 export default function SettingsRoute() {
+  return <SettingsRouteContent />;
+}
+
+async function SettingsRouteContent() {
+  const currentUser = await requirePageSession();
+  const managedUsers = currentUser.role === "admin" ? await listManagedUsers() : [];
+
   return (
     <main className={styles.page}>
       <ConsoleNav />
@@ -15,7 +23,7 @@ export default function SettingsRoute() {
         </p>
       </section>
 
-      <SettingsPage />
+      <SettingsPage currentUser={currentUser} managedUsers={managedUsers} />
     </main>
   );
 }

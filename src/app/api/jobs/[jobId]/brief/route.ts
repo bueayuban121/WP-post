@@ -1,4 +1,5 @@
-import { generateJobBrief, saveJobBrief } from "@/lib/job-store";
+import { getJobScopeForUser, requireRouteSession } from "@/lib/auth";
+import { generateJobBrief, getJob, saveJobBrief } from "@/lib/job-store";
 import type { ContentBrief } from "@/types/workflow";
 import { NextResponse } from "next/server";
 
@@ -6,7 +7,16 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ jobId: string }> }
 ) {
+  const session = await requireRouteSession();
+  if (!session.ok) {
+    return NextResponse.json({ error: session.error }, { status: session.status });
+  }
+
   const { jobId } = await context.params;
+  const currentJob = await getJob(jobId, getJobScopeForUser(session.user));
+  if (!currentJob) {
+    return NextResponse.json({ error: "Job not found." }, { status: 404 });
+  }
   const body = (await request.json().catch(() => null)) as Partial<ContentBrief> | null;
 
   const hasBriefPayload =

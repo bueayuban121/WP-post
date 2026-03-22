@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import styles from "./console-pages.module.css";
+import type { AppUserSession } from "@/lib/auth";
 
 const storageKey = "auto-post-content-settings";
 
@@ -21,7 +22,13 @@ const defaultSettings: SavedSettings = {
   publishStatus: "draft"
 };
 
-export function SettingsPage() {
+export function SettingsPage({
+  currentUser,
+  managedUsers
+}: {
+  currentUser: AppUserSession;
+  managedUsers: AppUserSession[];
+}) {
   const [settings, setSettings] = useState<SavedSettings>(() => {
     if (typeof window === "undefined") {
       return defaultSettings;
@@ -41,6 +48,30 @@ export function SettingsPage() {
     }
   });
   const [saved, setSaved] = useState(false);
+  const [accounts, setAccounts] = useState(managedUsers);
+  const [accountStatus, setAccountStatus] = useState("");
+  const [accountPending, setAccountPending] = useState(false);
+  const [accountDrafts, setAccountDrafts] = useState<Record<string, { status: "active" | "expired" | "suspended"; contractEnd: string }>>(
+    () =>
+      Object.fromEntries(
+        managedUsers.map((user) => [
+          user.id,
+          {
+            status: user.status,
+            contractEnd: user.contractEnd ? user.contractEnd.slice(0, 10) : ""
+          }
+        ])
+      )
+  );
+  const [newAccount, setNewAccount] = useState({
+    email: "",
+    name: "",
+    password: "",
+    clientName: "",
+    contractStart: "",
+    contractEnd: "",
+    status: "active" as "active" | "expired" | "suspended"
+  });
 
   function update<K extends keyof SavedSettings>(key: K, value: SavedSettings[K]) {
     setSaved(false);
@@ -50,6 +81,88 @@ export function SettingsPage() {
   function saveSettings() {
     window.localStorage.setItem(storageKey, JSON.stringify(settings));
     setSaved(true);
+  }
+
+  async function createAccount() {
+    setAccountPending(true);
+    setAccountStatus("");
+
+    try {
+      const response = await fetch("/api/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newAccount)
+      });
+      const data = (await response.json()) as { error?: string; user?: AppUserSession };
+
+      if (!response.ok || !data.user) {
+        throw new Error(data.error ?? "Unable to create account.");
+      }
+
+      setAccounts((current) => [data.user!, ...current]);
+      setAccountDrafts((current) => ({
+        ...current,
+        [data.user!.id]: {
+          status: data.user!.status,
+          contractEnd: data.user!.contractEnd ? data.user!.contractEnd.slice(0, 10) : ""
+        }
+      }));
+      setNewAccount({
+        email: "",
+        name: "",
+        password: "",
+        clientName: "",
+        contractStart: "",
+        contractEnd: "",
+        status: "active"
+      });
+      setAccountStatus("Client account created.");
+    } catch (error) {
+      setAccountStatus(error instanceof Error ? error.message : "Unable to create account.");
+    } finally {
+      setAccountPending(false);
+    }
+  }
+
+  async function updateAccount(userId: string, payload: { status?: "active" | "expired" | "suspended"; contractEnd?: string; password?: string; }) {
+    setAccountPending(true);
+    setAccountStatus("");
+
+    try {
+      const response = await fetch(`/api/accounts/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = (await response.json()) as { error?: string; user?: AppUserSession };
+      if (!response.ok || !data.user) {
+        throw new Error(data.error ?? "Unable to update account.");
+      }
+
+      setAccounts((current) => current.map((item) => (item.id === data.user!.id ? data.user! : item)));
+      setAccountDrafts((current) => ({
+        ...current,
+        [data.user!.id]: {
+          status: data.user!.status,
+          contractEnd: data.user!.contractEnd ? data.user!.contractEnd.slice(0, 10) : ""
+        }
+      }));
+      setAccountStatus("Account updated.");
+    } catch (error) {
+      setAccountStatus(error instanceof Error ? error.message : "Unable to update account.");
+    } finally {
+      setAccountPending(false);
+    }
+  }
+
+  function updateAccountDraft(userId: string, field: "status" | "contractEnd", value: string) {
+    setAccountDrafts((current) => ({
+      ...current,
+      [userId]: {
+        ...(current[userId] ?? { status: "active", contractEnd: "" }),
+        [field]: value
+      }
+    }));
   }
 
   return (
@@ -139,6 +252,137 @@ export function SettingsPage() {
           </div>
         </div>
       </section>
+
+      {currentUser.role === "admin" ? (
+        <section className={styles.panel}>
+          <div className={styles.panelHead}>
+            <div>
+              <span className={styles.eyebrow}>Access Control</span>
+              <h2>Client login and contract expiry</h2>
+              <p>Create client accounts, set contract dates, and suspend access when needed.</p>
+            </div>
+            <span className={styles.badge}>Admin only</span>
+          </div>
+
+          <div className={styles.form}>
+            <label>
+              Client name
+              <small>Name used to scope projects and jobs for this account.</small>
+              <input
+                value={newAccount.clientName}
+                onChange={(event) => setNewAccount((current) => ({ ...current, clientName: event.target.value }))}
+              />
+            </label>
+            <label>
+              Contact name
+              <small>Optional display name shown in the access list.</small>
+              <input
+                value={newAccount.name}
+                onChange={(event) => setNewAccount((current) => ({ ...current, name: event.target.value }))}
+              />
+            </label>
+            <label>
+              Login email
+              <small>Email used to enter the program.</small>
+              <input
+                value={newAccount.email}
+                onChange={(event) => setNewAccount((current) => ({ ...current, email: event.target.value }))}
+              />
+            </label>
+            <label>
+              Password
+              <small>Temporary password for the client account.</small>
+              <input
+                type="password"
+                value={newAccount.password}
+                onChange={(event) => setNewAccount((current) => ({ ...current, password: event.target.value }))}
+              />
+            </label>
+            <label>
+              Contract start
+              <small>Optional start date for the agreement.</small>
+              <input
+                type="date"
+                value={newAccount.contractStart}
+                onChange={(event) => setNewAccount((current) => ({ ...current, contractStart: event.target.value }))}
+              />
+            </label>
+            <label>
+              Contract end
+              <small>After this date the client account is treated as expired.</small>
+              <input
+                type="date"
+                value={newAccount.contractEnd}
+                onChange={(event) => setNewAccount((current) => ({ ...current, contractEnd: event.target.value }))}
+              />
+            </label>
+          </div>
+
+          <div className={styles.actions}>
+            <button className={styles.primaryButton} disabled={accountPending} onClick={() => void createAccount()} type="button">
+              {accountPending ? "Saving account..." : "Create client account"}
+            </button>
+            {accountStatus ? <span className={styles.success}>{accountStatus}</span> : null}
+          </div>
+
+          <div className={styles.stack}>
+            {accounts.map((account) => (
+              <article key={account.id} className={styles.projectCard}>
+                <strong>{account.clientName ?? account.name}</strong>
+                <p className={styles.muted}>
+                  {account.email} · {account.role}
+                </p>
+                <div className={styles.projectMeta}>
+                  <span className={styles.pill}>{account.status}</span>
+                  <span className={styles.pill}>
+                    {account.contractEnd ? `Ends ${new Date(account.contractEnd).toLocaleDateString("en-GB")}` : "No expiry"}
+                  </span>
+                </div>
+                {account.role === "client" ? (
+                  <>
+                    <div className={styles.form}>
+                      <label>
+                        Access status
+                        <select
+                          value={accountDrafts[account.id]?.status ?? account.status}
+                          onChange={(event) => updateAccountDraft(account.id, "status", event.target.value)}
+                        >
+                          <option value="active">active</option>
+                          <option value="expired">expired</option>
+                          <option value="suspended">suspended</option>
+                        </select>
+                      </label>
+                      <label>
+                        Contract end
+                        <input
+                          type="date"
+                          value={accountDrafts[account.id]?.contractEnd ?? ""}
+                          onChange={(event) => updateAccountDraft(account.id, "contractEnd", event.target.value)}
+                        />
+                      </label>
+                    </div>
+                    <div className={styles.actions}>
+                      <button
+                        className={styles.linkButton}
+                        disabled={accountPending}
+                        onClick={() =>
+                          void updateAccount(account.id, {
+                            status: accountDrafts[account.id]?.status ?? account.status,
+                            contractEnd: accountDrafts[account.id]?.contractEnd ?? ""
+                          })
+                        }
+                        type="button"
+                      >
+                        Save access
+                      </button>
+                    </div>
+                  </>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </section>
   );
 }

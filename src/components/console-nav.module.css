@@ -39,6 +39,12 @@
   flex-wrap: wrap;
 }
 
+.navUtilities {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .navLinks a {
   border: 0;
   background: transparent;
@@ -60,6 +66,22 @@
   box-shadow: inset 0 0 0 1px rgba(126, 229, 255, 0.12), 0 0 24px rgba(0, 214, 255, 0.12);
 }
 
+.logoutButton {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: #f5f7fb;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.logoutButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 214, 255, 0.4);
+  background: rgba(0, 214, 255, 0.08);
+}
+
 @media (max-width: 720px) {
   .topNav {
     flex-direction: column;
@@ -73,6 +95,14 @@
   }
 
   .navLinks a {
+    width: 100%;
+  }
+
+  .navUtilities {
+    width: 100%;
+  }
+
+  .logoutButton {
     width: 100%;
   }
 }

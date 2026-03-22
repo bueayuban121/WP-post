@@ -48,6 +48,9 @@ const jobInclude = {
 } satisfies Prisma.KeywordJobInclude;
 
 type StoredJob = Prisma.KeywordJobGetPayload<{ include: typeof jobInclude }>;
+type JobAccessScope = {
+  clientId?: string;
+};
 
 function cloneJob(job: WorkflowJob): WorkflowJob {
   return JSON.parse(JSON.stringify(job)) as WorkflowJob;
@@ -148,7 +151,7 @@ function fromStoredJob(job: StoredJob): WorkflowJob {
     client: job.client?.name ?? "Unknown client",
     seedKeyword: job.seedKeyword,
     stage: toAppStage(job.stage),
-    selectedIdeaId: job.selectedIdeaId ?? job.ideas[0]?.id ?? "",
+    selectedIdeaId: job.selectedIdeaId ?? "",
     ideas: job.ideas.map((idea) => ({
       id: idea.id,
       title: idea.title,
@@ -373,7 +376,7 @@ async function updateStoredWorkflow(
   return fromStoredJob(job);
 }
 
-export async function listJobs() {
+export async function listJobs(scope?: JobAccessScope) {
   if (!isDatabaseConfigured()) {
     return Promise.all(
       Array.from(jobs.values()).map(async (job) => ({
@@ -394,6 +397,11 @@ export async function listJobs() {
   }
 
   const storedJobs = await prisma.keywordJob.findMany({
+    where: scope?.clientId
+      ? {
+          clientId: scope.clientId
+        }
+      : undefined,
     include: jobInclude,
     orderBy: {
       createdAt: "desc"
@@ -403,7 +411,7 @@ export async function listJobs() {
   return storedJobs.map(fromStoredJob);
 }
 
-export async function getJob(jobId: string) {
+export async function getJob(jobId: string, scope?: JobAccessScope) {
   if (!isDatabaseConfigured()) {
     const job = jobs.get(jobId);
     if (!job) return null;
@@ -415,14 +423,21 @@ export async function getJob(jobId: string) {
 
   const prisma = getPrismaClient();
   if (!prisma) return null;
-  const job = await prisma.keywordJob.findUnique({
-    where: { id: jobId },
+  const job = await prisma.keywordJob.findFirst({
+    where: {
+      id: jobId,
+      ...(scope?.clientId
+        ? {
+            clientId: scope.clientId
+          }
+        : {})
+    },
     include: jobInclude
   });
   return job ? fromStoredJob(job) : null;
 }
 
-export async function createJob(input: { client: string; seedKeyword: string }) {
+export async function createJob(input: { client: string; seedKeyword: string; clientId?: string | null }) {
   const job = await buildNewJob(input.seedKeyword, input.client);
 
   if (!isDatabaseConfigured()) {
@@ -446,12 +461,18 @@ export async function createJob(input: { client: string; seedKeyword: string }) 
   const createdJob = await prisma.keywordJob.create({
     data: {
       ...jobData,
-      client: {
-        connectOrCreate: {
-          where: { name: input.client },
-          create: { name: input.client }
-        }
-      }
+      client: input.clientId
+        ? {
+            connect: {
+              id: input.clientId
+            }
+          }
+        : {
+            connectOrCreate: {
+              where: { name: input.client },
+              create: { name: input.client }
+            }
+          }
     },
     include: jobInclude
   });

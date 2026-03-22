@@ -120,6 +120,12 @@ function buildResearchSummary(seedKeyword: string, idea: TopicIdea | null, job: 
 
 async function readJson(response: Response) {
   const data = (await response.json()) as { error?: string; job?: WorkflowJob; jobs?: WorkflowJob[] };
+  if (response.status === 401 || response.status === 403) {
+    if (typeof window !== "undefined") {
+      window.location.assign("/login");
+    }
+    throw new Error(data.error ?? "Session expired.");
+  }
   if (!response.ok) {
     throw new Error(data.error ?? "Request failed.");
   }

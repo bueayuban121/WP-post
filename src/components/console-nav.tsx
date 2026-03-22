@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./console-nav.module.css";
+import { LogoutButton } from "@/components/logout-button";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
@@ -39,6 +40,9 @@ export function ConsoleNav() {
           </Link>
           );
         })}
+      </div>
+      <div className={styles.navUtilities}>
+        <LogoutButton />
       </div>
     </nav>
   );

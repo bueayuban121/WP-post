@@ -3,6 +3,7 @@ import { ConsoleNav } from "@/components/console-nav";
 import styles from "@/components/console-pages.module.css";
 import { QueueTableClient } from "@/components/queue-table-client";
 import { listJobs } from "@/lib/job-store";
+import { getJobScopeForUser, requirePageSession } from "@/lib/auth";
 
 function buildQueueMessage(payload: Record<string, unknown> | undefined, fallback: string) {
   const parts: string[] = [fallback];
@@ -39,7 +40,8 @@ function buildQueueMessage(payload: Record<string, unknown> | undefined, fallbac
 }
 
 export default async function QueuePage() {
-  const jobs = await listJobs();
+  const user = await requirePageSession();
+  const jobs = await listJobs(getJobScopeForUser(user));
   const rows = jobs
     .flatMap((job) =>
       (job.automationEvents ?? []).map((event) => ({

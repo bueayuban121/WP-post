@@ -38,12 +38,31 @@ enum WorkflowEventStatus {
   FAILED
 }
 
+enum UserRole {
+  ADMIN
+  CLIENT
+}
+
+enum AccountStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+}
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String?
+  passwordHash  String?
+  role          UserRole      @default(CLIENT)
+  status        AccountStatus @default(ACTIVE)
+  contractStart DateTime?
+  contractEnd   DateTime?
+  clientId      String?
+  client        Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  sessions      AuthSession[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 model Client {
@@ -51,8 +70,19 @@ model Client {
   name        String       @unique
   projects    Project[]
   keywordJobs KeywordJob[]
+  users       User[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+}
+
+model AuthSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Project {

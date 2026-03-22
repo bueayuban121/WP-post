@@ -7,6 +7,7 @@ import {
   regenerateJobImages,
   runResearch
 } from "@/lib/job-store";
+import { getJobScopeForUser, requireRouteSession } from "@/lib/auth";
 import { shouldQueueAutomation, triggerN8nWorkflow } from "@/lib/n8n";
 import { createWorkflowEvent, updateWorkflowEvent } from "@/lib/workflow-events";
 import type { WorkflowAutomationType } from "@/types/workflow";
@@ -43,13 +44,18 @@ export async function POST(
   _request: Request,
   context: { params: Promise<{ jobId: string; type: string }> }
 ) {
+  const session = await requireRouteSession();
+  if (!session.ok) {
+    return NextResponse.json({ error: session.error }, { status: session.status });
+  }
+
   const { jobId, type } = await context.params;
 
   if (!isAutomationType(type)) {
     return NextResponse.json({ error: "Unsupported automation type." }, { status: 400 });
   }
 
-  const job = await getJob(jobId);
+  const job = await getJob(jobId, getJobScopeForUser(session.user));
   if (!job) {
     return NextResponse.json({ error: "Job not found." }, { status: 404 });
   }
@@ -130,7 +136,7 @@ export async function POST(
       return NextResponse.json(
         {
           error: error instanceof Error ? error.message : "Publish failed.",
-          job: await getJob(jobId),
+          job: await getJob(jobId, getJobScopeForUser(session.user)),
           event: updatedEvent ?? event
         },
         { status: 502 }
@@ -170,7 +176,7 @@ export async function POST(
     message: result.message,
     payload: result.payload
   });
-  let updatedJob = await getJob(jobId);
+  let updatedJob = await getJob(jobId, getJobScopeForUser(session.user));
 
   if (!result.accepted) {
     updatedJob = await runLocalFallback(jobId, type);
@@ -193,7 +199,7 @@ export async function POST(
           n8n: result.payload ?? null
         }
       });
-      updatedJob = await getJob(jobId);
+      updatedJob = await getJob(jobId, getJobScopeForUser(session.user));
     }
   }
 
