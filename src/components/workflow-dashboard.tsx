@@ -147,6 +147,8 @@ export function WorkflowDashboard({
   const featuredImageSrc =
     briefFeaturedImageUrl.trim() || articleImages[0]?.src || "/article-images/goldfish-water-1.svg";
   const researchSummary = buildResearchSummary(job?.seedKeyword ?? "", activeIdea, job);
+  const hasSelectedIdea = Boolean(activeIdea);
+  const hasResearch = Boolean(job?.research.sources.length);
 
   function hydrate(nextJob: WorkflowJob) {
     setBriefTitle(nextJob.brief.title);
@@ -464,17 +466,17 @@ export function WorkflowDashboard({
                 onClick={() => document.getElementById("projects-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
                 type="button"
               >
-                Start Project
+                Create Project
               </button>
               <button
                 className={styles.ghostButton}
                 onClick={() => {
-                  setTab("article");
+                  setTab("expand");
                   document.getElementById("workspace-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
                 type="button"
               >
-                Open Article Studio
+                Open Workflow
               </button>
             </div>
           </div>
@@ -521,7 +523,7 @@ export function WorkflowDashboard({
                 <input value={seedKeyword} onChange={(event) => setSeedKeyword(event.target.value)} />
               </label>
               <button className={styles.primaryButton} disabled={isPending} type="submit">
-                {isPending ? "Creating..." : "Create workflow"}
+                {isPending ? "Creating..." : "Create Project"}
               </button>
             </form>
           </section>
@@ -560,7 +562,7 @@ export function WorkflowDashboard({
               <span className={styles.skeletonLineWide} />
               <span className={styles.skeletonCardLine} />
             </div>
-            <p className={styles.loadingText}>Loading project, keywords, and queue state...</p>
+            <p className={styles.loadingText}>Loading projects, keywords, and queue state...</p>
           </section>
         ) : null}
 
@@ -599,8 +601,8 @@ export function WorkflowDashboard({
                 <div className={styles.stepStack}>
                   <div className={styles.stepRow}><span>01</span><strong>Seed keyword</strong><small>{job.seedKeyword}</small></div>
                   <div className={styles.stepRow}><span>02</span><strong>Expand keywords</strong><small>{job.ideas.length} AI opportunities</small></div>
-                  <div className={styles.stepRow}><span>03</span><strong>Research summary</strong><small>{job.research.sources.length} sources collected</small></div>
-                  <div className={styles.stepRow}><span>04</span><strong>Article workflow</strong><small>{stageLabels[job.stage]}</small></div>
+                  <div className={styles.stepRow}><span>03</span><strong>Research summary</strong><small>{hasResearch ? `${job.research.sources.length} sources collected` : "Waiting for research"}</small></div>
+                  <div className={styles.stepRow}><span>04</span><strong>Article workflow</strong><small>{hasResearch ? stageLabels[job.stage] : "Research required first"}</small></div>
                 </div>
               </div>
 
@@ -629,8 +631,8 @@ export function WorkflowDashboard({
                   <span className={styles.statusChipMuted}>{queueCount} active</span>
                 </div>
                 <div className={styles.actionGrid}>
-                  <button className={styles.secondaryButton} onClick={() => void runResearch()} type="button">Run Research</button>
-                  <button className={styles.secondaryButton} onClick={() => void createArticle()} type="button">Create Article</button>
+                  <button className={styles.secondaryButton} disabled={!hasSelectedIdea} onClick={() => void runResearch()} type="button">Run Research</button>
+                  <button className={styles.secondaryButton} disabled={!hasResearch} onClick={() => void createArticle()} type="button">Create Article</button>
                   <button className={styles.secondaryButton} onClick={() => void runPrimaryAction("images")} type="button">Refresh Images</button>
                   <button className={styles.secondaryButton} onClick={() => void runPrimaryAction("approve")} type="button">Approve</button>
                   <button className={styles.primaryButton} onClick={() => void runPrimaryAction("publish")} type="button">Queue Publish</button>
@@ -666,12 +668,6 @@ export function WorkflowDashboard({
                           <span>{idea.confidence}%</span>
                         </div>
                         <strong>{idea.title}</strong>
-                        <p>{idea.angle}</p>
-                        <div className={styles.keywordTags}>
-                          {idea.relatedKeywords.slice(0, 3).map((keyword) => (
-                            <span key={keyword}>{keyword}</span>
-                          ))}
-                        </div>
                         <button className={styles.primaryButton} onClick={() => void selectKeyword(idea)} type="button">
                           Select keyword
                         </button>
@@ -689,8 +685,8 @@ export function WorkflowDashboard({
                       <h2>Research Summary</h2>
                     </div>
                     <div className={styles.researchActions}>
-                      <button className={styles.secondaryButton} onClick={() => void runResearch()} type="button">Refresh Research</button>
-                      <button className={styles.primaryButton} onClick={() => void createArticle()} type="button">Create Article</button>
+                      <button className={styles.secondaryButton} disabled={!hasSelectedIdea} onClick={() => void runResearch()} type="button">Run Research</button>
+                      <button className={styles.primaryButton} disabled={!hasResearch} onClick={() => void createArticle()} type="button">Create Article</button>
                     </div>
                   </div>
                   <div className={styles.researchLayout}>
