@@ -10,6 +10,7 @@ const navItems = [
   { href: "/keywords", label: "Keywords" },
   { href: "/queue", label: "Queue" },
   { href: "/articles", label: "Articles" },
+  { href: "/published", label: "Published" },
   { href: "/settings", label: "Settings" }
 ];
 

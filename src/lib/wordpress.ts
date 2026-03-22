@@ -1,9 +1,17 @@
-import type { WorkflowJob } from "@/types/workflow";
+import type { ArticleImageAsset, WorkflowJob } from "@/types/workflow";
 
 type WordPressPublishResult = {
   id: number;
   link?: string;
   status?: string;
+  featuredMediaId?: number;
+  uploadedMediaCount: number;
+};
+
+type UploadedWordPressImage = {
+  asset: ArticleImageAsset;
+  id: number;
+  src: string;
 };
 
 function getEnv(name: string) {
@@ -33,23 +41,161 @@ function escapeHtml(value: string) {
     .replaceAll("'", "&#39;");
 }
 
-function buildImageHtml(src: string, alt: string, caption: string) {
+function sanitizeFileName(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "article-image";
+}
+
+function inferExtension(contentType?: string | null, sourceUrl?: string) {
+  const normalized = (contentType || "").toLowerCase();
+
+  if (normalized.includes("png")) return "png";
+  if (normalized.includes("webp")) return "webp";
+  if (normalized.includes("jpeg") || normalized.includes("jpg")) return "jpg";
+  if (normalized.includes("gif")) return "gif";
+
+  const match = sourceUrl?.match(/\.([a-zA-Z0-9]{3,4})(?:$|\?)/);
+  return match?.[1]?.toLowerCase() || "png";
+}
+
+function inferMimeType(contentType?: string | null, extension?: string) {
+  const normalized = (contentType || "").toLowerCase();
+  if (normalized.startsWith("image/")) {
+    return normalized;
+  }
+
+  switch ((extension || "").toLowerCase()) {
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "webp":
+      return "image/webp";
+    case "gif":
+      return "image/gif";
+    default:
+      return "image/png";
+  }
+}
+
+function getAuthHeader(username: string, appPassword: string) {
+  return `Basic ${Buffer.from(`${username}:${appPassword}`).toString("base64")}`;
+}
+
+async function parseJsonResponse(response: Response) {
+  const raw = await response.text();
+
+  try {
+    return raw ? (JSON.parse(raw) as Record<string, unknown>) : undefined;
+  } catch {
+    return raw ? ({ raw } as Record<string, unknown>) : undefined;
+  }
+}
+
+async function fetchImageAsset(source: string) {
+  const response = await fetch(toAbsoluteUrl(source));
+  if (!response.ok) {
+    throw new Error(`Image download failed with ${response.status}.`);
+  }
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+  const contentType = response.headers.get("content-type");
+  const extension = inferExtension(contentType, source);
+
+  return {
+    bytes,
+    contentType: inferMimeType(contentType, extension),
+    extension
+  };
+}
+
+async function updateMediaMetadata(input: {
+  baseUrl: string;
+  authHeader: string;
+  mediaId: number;
+  asset: ArticleImageAsset;
+}) {
+  await fetch(`${input.baseUrl}/wp-json/wp/v2/media/${input.mediaId}`, {
+    method: "POST",
+    headers: {
+      Authorization: input.authHeader,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      alt_text: input.asset.alt,
+      caption: input.asset.caption,
+      title: input.asset.caption,
+      description: input.asset.prompt
+    })
+  });
+}
+
+async function uploadImageToWordPress(input: {
+  baseUrl: string;
+  authHeader: string;
+  asset: ArticleImageAsset;
+  slug: string;
+  index: number;
+}) {
+  const image = await fetchImageAsset(input.asset.src);
+  const filename = `${sanitizeFileName(input.slug || "article")}-${String(input.index + 1).padStart(2, "0")}.${image.extension}`;
+
+  const response = await fetch(`${input.baseUrl}/wp-json/wp/v2/media`, {
+    method: "POST",
+    headers: {
+      Authorization: input.authHeader,
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Type": image.contentType
+    },
+    body: image.bytes
+  });
+
+  const payload = await parseJsonResponse(response);
+  if (!response.ok) {
+    throw new Error(
+      typeof payload?.message === "string" ? payload.message : "WordPress media upload failed."
+    );
+  }
+
+  const mediaId = typeof payload?.id === "number" ? payload.id : 0;
+  const mediaUrl = typeof payload?.source_url === "string" ? payload.source_url : "";
+
+  if (!mediaId || !mediaUrl) {
+    throw new Error("WordPress media upload returned an incomplete response.");
+  }
+
+  await updateMediaMetadata({
+    baseUrl: input.baseUrl,
+    authHeader: input.authHeader,
+    mediaId,
+    asset: input.asset
+  });
+
+  return {
+    asset: input.asset,
+    id: mediaId,
+    src: mediaUrl
+  } satisfies UploadedWordPressImage;
+}
+
+function buildImageHtml(image: UploadedWordPressImage) {
   return [
     "<figure>",
-    `<img src="${escapeHtml(toAbsoluteUrl(src))}" alt="${escapeHtml(alt)}" loading="lazy" />`,
-    `<figcaption>${escapeHtml(caption)}</figcaption>`,
+    `<img src="${escapeHtml(image.src)}" alt="${escapeHtml(image.asset.alt)}" loading="lazy" />`,
+    `<figcaption>${escapeHtml(image.asset.caption)}</figcaption>`,
     "</figure>"
   ].join("");
 }
 
-function buildWordPressContent(job: WorkflowJob) {
-  const images = job.images;
+function buildWordPressContent(job: WorkflowJob, images: UploadedWordPressImage[]) {
   const blocks: string[] = [];
+  const featured = images.find((image) => image.asset.kind === "featured");
+  const inlineImages = images.filter((image) => image.asset.kind === "inline");
 
-  if (job.brief.featuredImageUrl) {
-    blocks.push(buildImageHtml(job.brief.featuredImageUrl, job.brief.title, "Featured image"));
-  } else if (images[0]) {
-    blocks.push(buildImageHtml(images[0].src, images[0].alt, images[0].caption));
+  if (featured && !job.brief.featuredImageUrl) {
+    blocks.push(buildImageHtml(featured));
   }
 
   blocks.push(`<p>${escapeHtml(job.draft.intro)}</p>`);
@@ -58,9 +204,9 @@ function buildWordPressContent(job: WorkflowJob) {
     blocks.push(`<h2>${escapeHtml(section.heading)}</h2>`);
     blocks.push(`<p>${escapeHtml(section.body)}</p>`);
 
-    const image = images[index + 1];
+    const image = inlineImages[index];
     if (image) {
-      blocks.push(buildImageHtml(image.src, image.alt, image.caption));
+      blocks.push(buildImageHtml(image));
     }
   });
 
@@ -75,6 +221,32 @@ function buildWordPressContent(job: WorkflowJob) {
   }
 
   return blocks.join("\n");
+}
+
+async function uploadJobImages(input: {
+  baseUrl: string;
+  authHeader: string;
+  job: WorkflowJob;
+}) {
+  const uploaded: UploadedWordPressImage[] = [];
+
+  for (const [index, asset] of input.job.images.entries()) {
+    try {
+      uploaded.push(
+        await uploadImageToWordPress({
+          baseUrl: input.baseUrl,
+          authHeader: input.authHeader,
+          asset,
+          slug: input.job.brief.slug || input.job.seedKeyword,
+          index
+        })
+      );
+    } catch {
+      continue;
+    }
+  }
+
+  return uploaded;
 }
 
 export function isWordPressConfigured() {
@@ -92,6 +264,8 @@ export async function publishToWordPress(job: WorkflowJob): Promise<WordPressPub
     throw new Error("WordPress credentials are not configured.");
   }
 
+  const authHeader = getAuthHeader(username, appPassword);
+
   const categoryIds = (job.brief.categoryIds.length > 0
     ? job.brief.categoryIds.join(",")
     : getEnv("WORDPRESS_CATEGORY_IDS") ?? "")
@@ -104,31 +278,34 @@ export async function publishToWordPress(job: WorkflowJob): Promise<WordPressPub
     .map((item) => Number.parseInt(item.trim(), 10))
     .filter((item) => Number.isFinite(item));
 
+  const uploadedImages = await uploadJobImages({
+    baseUrl,
+    authHeader,
+    job
+  });
+
+  const featuredMediaId =
+    uploadedImages.find((image) => image.asset.kind === "featured")?.id ?? undefined;
+
   const response = await fetch(`${baseUrl}/wp-json/wp/v2/posts`, {
     method: "POST",
     headers: {
-      Authorization: `Basic ${Buffer.from(`${username}:${appPassword}`).toString("base64")}`,
+      Authorization: authHeader,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
       title: job.brief.title,
       slug: job.brief.slug,
       excerpt: job.brief.metaDescription,
-      content: buildWordPressContent(job),
+      content: buildWordPressContent(job, uploadedImages),
       status: job.brief.publishStatus || getEnv("WORDPRESS_POST_STATUS") || "draft",
       categories: categoryIds,
-      tags: tagIds
+      tags: tagIds,
+      ...(featuredMediaId ? { featured_media: featuredMediaId } : {})
     })
   });
 
-  const raw = await response.text();
-  let payload: Record<string, unknown> | undefined;
-
-  try {
-    payload = raw ? (JSON.parse(raw) as Record<string, unknown>) : undefined;
-  } catch {
-    payload = raw ? { raw } : undefined;
-  }
+  const payload = await parseJsonResponse(response);
 
   if (!response.ok) {
     throw new Error(
@@ -139,6 +316,8 @@ export async function publishToWordPress(job: WorkflowJob): Promise<WordPressPub
   return {
     id: typeof payload?.id === "number" ? payload.id : 0,
     link: typeof payload?.link === "string" ? payload.link : undefined,
-    status: typeof payload?.status === "string" ? payload.status : undefined
+    status: typeof payload?.status === "string" ? payload.status : undefined,
+    featuredMediaId,
+    uploadedMediaCount: uploadedImages.length
   };
 }
