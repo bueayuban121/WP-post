@@ -557,7 +557,7 @@ export async function saveJobBrief(jobId: string, brief: ContentBrief) {
 export async function generateJobDraft(jobId: string) {
   const job = await getJob(jobId);
   if (!job) return null;
-  const draft = generateDraft(job.brief);
+  const draft = generateDraft(job.seedKeyword, job.brief, job.research);
   const images = generateArticleImages({
     seedKeyword: job.seedKeyword,
     title: job.brief.title,

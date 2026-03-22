@@ -489,6 +489,7 @@
 .sectionText {
   color: #a8b4c4;
   line-height: 1.8;
+  white-space: pre-line;
 }
 
 .keywordGrid {

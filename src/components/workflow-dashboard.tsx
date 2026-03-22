@@ -4,6 +4,7 @@ import Image from "next/image";
 import { type FormEvent, useCallback, useEffect, useState, useTransition } from "react";
 import type { ArticleDraft, ContentBrief, TopicIdea, WorkflowAutomationEvent, WorkflowJob } from "@/types/workflow";
 import { ConsoleNav } from "@/components/console-nav";
+import { buildLongResearchSummary } from "@/lib/research-copy";
 import styles from "./workflow-dashboard.module.css";
 
 type WorkspaceTab = "expand" | "research" | "queue" | "article" | "images";
@@ -32,10 +33,32 @@ function getProjectName(name: string) {
   return name.trim() || "Untitled Project";
 }
 
+function splitParagraphs(value: string) {
+  return value
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+}
+
 function buildResearchSummary(seedKeyword: string, idea: TopicIdea | null, job: WorkflowJob | null) {
   if (!idea || !job || !job.research.sources.length) {
     return "";
   }
+
+  const latestResearchEvent = [...(job.automationEvents ?? [])]
+    .filter((event) => event.type === "research")
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
+  const summaryHooks =
+    typeof latestResearchEvent?.payload?.summaryHooks === "string"
+      ? latestResearchEvent.payload.summaryHooks
+      : "";
+
+  return buildLongResearchSummary({
+    seedKeyword,
+    idea,
+    job,
+    summaryHooks
+  });
 
   const sourceNarrative = job.research.sources
     .map(
@@ -64,6 +87,7 @@ function buildResearchSummary(seedKeyword: string, idea: TopicIdea | null, job: 
     `Research focus: ${idea.title}.`,
     `Objective: ${job.research.objective}.`,
     `Audience: ${job.research.audience}.`,
+    summaryHooks,
     sourceNarrative,
     gapNarrative,
     repeatedSection,
@@ -802,13 +826,19 @@ export function WorkflowDashboard({
                     <div className={styles.articleBody}>
                       <h2 className={styles.previewTitle}>{briefTitle || activeIdea?.title || "Untitled article"}</h2>
                       <p className={styles.previewMeta}>{briefMetaDescription}</p>
-                      <p className={styles.articleIntro}>{draftIntro}</p>
+                      {splitParagraphs(draftIntro).map((paragraph) => (
+                        <p key={`intro-${paragraph.slice(0, 36)}`} className={styles.articleIntro}>
+                          {paragraph}
+                        </p>
+                      ))}
                       {job.draft.sections.map((section, index) => {
                         const image = articleImages[index + 1];
                         return (
                           <section key={section.heading} className={styles.articleSection}>
                             <h3>{section.heading}</h3>
-                            <p>{section.body}</p>
+                            {splitParagraphs(section.body).map((paragraph) => (
+                              <p key={`${section.heading}-${paragraph.slice(0, 36)}`}>{paragraph}</p>
+                            ))}
                             {image ? (
                               <figure className={styles.inlineFigure}>
                                 <div className={styles.inlineImage}>
@@ -823,7 +853,11 @@ export function WorkflowDashboard({
                           </section>
                         );
                       })}
-                      <p className={styles.articleConclusion}>{draftConclusion}</p>
+                      {splitParagraphs(draftConclusion).map((paragraph) => (
+                        <p key={`conclusion-${paragraph.slice(0, 36)}`} className={styles.articleConclusion}>
+                          {paragraph}
+                        </p>
+                      ))}
                     </div>
                   </article>
                 </section>
