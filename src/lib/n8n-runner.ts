@@ -10,6 +10,10 @@ import { generateBrief, generateDraft, generateResearch } from "@/lib/workflow-g
 import type { N8nCallbackPayload } from "@/types/n8n";
 import type { ResearchPack, TopicIdea, WorkflowAutomationType, WorkflowJob } from "@/types/workflow";
 
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function getSelectedIdea(job: WorkflowJob): TopicIdea {
   return job.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? job.ideas[0];
 }
@@ -189,38 +193,47 @@ export async function buildRunnerCallback(input: {
       draft: job.draft
     });
     const phayaEnabled = isPhayaConfigured();
-    const imageResults = phayaEnabled
-      ? await Promise.all(
-          images.map(async (image) => {
-            try {
-              const generated = await generateImageWithPhaya({
-                prompt: image.prompt,
-                width: image.kind === "featured" ? 1600 : 1400,
-                height: image.kind === "featured" ? 900 : 840
-              });
+    const imageResults = [];
 
-              return {
-                image: {
-                  ...image,
-                  src: generated.src
-                },
-                usedPhaya: true,
-                error: null
-              };
-            } catch (error) {
-              return {
-                image,
-                usedPhaya: false,
-                error: error instanceof Error ? error.message : "Phaya generation failed."
-              };
-            }
-          })
-        )
-      : images.map((image) => ({
+    if (phayaEnabled) {
+      for (const [index, image] of images.entries()) {
+        try {
+          const generated = await generateImageWithPhaya({
+            prompt: image.prompt,
+            width: image.kind === "featured" ? 1600 : 1400,
+            height: image.kind === "featured" ? 900 : 840
+          });
+
+          imageResults.push({
+            image: {
+              ...image,
+              src: generated.src
+            },
+            usedPhaya: true,
+            error: null
+          });
+        } catch (error) {
+          imageResults.push({
+            image,
+            usedPhaya: false,
+            error: error instanceof Error ? error.message : "Phaya generation failed."
+          });
+        }
+
+        if (index < images.length - 1) {
+          await wait(1500);
+        }
+      }
+    } else {
+      imageResults.push(
+        ...images.map((image) => ({
           image,
           usedPhaya: false,
           error: null
-        }));
+        }))
+      );
+    }
+
     const resolvedImages = imageResults.map((result) => result.image);
     const usedPhayaCount = imageResults.filter((result) => result.usedPhaya).length;
     const imageErrors = imageResults
