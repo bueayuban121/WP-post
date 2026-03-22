@@ -1,4 +1,8 @@
-import { synthesizeResearchWithOpenAi } from "@/lib/openai";
+import {
+  generateBriefWithOpenAi,
+  generateDraftWithOpenAi,
+  synthesizeResearchWithOpenAi
+} from "@/lib/openai";
 import { tavilySearch } from "@/lib/tavily";
 import { generateBrief, generateDraft, generateResearch } from "@/lib/workflow-generators";
 import type { N8nCallbackPayload } from "@/types/n8n";
@@ -137,7 +141,29 @@ export async function buildRunnerCallback(input: {
   }
 
   if (type === "brief") {
-    const brief = generateBrief(job.seedKeyword, selectedIdea, job.research);
+    const latestResearchEvent = [...(job.automationEvents ?? [])]
+      .filter((event) => event.type === "research")
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
+    const researchSummary =
+      typeof latestResearchEvent?.payload?.summaryText === "string"
+        ? latestResearchEvent.payload.summaryText
+        : "";
+    const aiBrief = await generateBriefWithOpenAi({
+      seedKeyword: job.seedKeyword,
+      selectedIdea,
+      research: job.research,
+      researchSummary
+    }).catch(() => null);
+    const brief = aiBrief
+      ? {
+          ...job.brief,
+          ...aiBrief,
+          publishStatus: job.brief.publishStatus || "draft",
+          categoryIds: job.brief.categoryIds,
+          tagIds: job.brief.tagIds,
+          featuredImageUrl: job.brief.featuredImageUrl
+        }
+      : generateBrief(job.seedKeyword, selectedIdea, job.research);
     return {
       eventId,
       jobId: job.id,
@@ -147,13 +173,26 @@ export async function buildRunnerCallback(input: {
       message: "Brief workflow completed via app runner.",
       stage: "brief_ready",
       payload: {
-        provider: "app-runner"
+        provider: aiBrief ? "openai-brief" : "app-runner"
       },
       brief
     };
   }
 
-  const draft = generateDraft(job.seedKeyword, job.brief, job.research);
+  const latestResearchEvent = [...(job.automationEvents ?? [])]
+    .filter((event) => event.type === "research")
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
+  const researchSummary =
+    typeof latestResearchEvent?.payload?.summaryText === "string"
+      ? latestResearchEvent.payload.summaryText
+      : "";
+  const aiDraft = await generateDraftWithOpenAi({
+    seedKeyword: job.seedKeyword,
+    brief: job.brief,
+    research: job.research,
+    researchSummary
+  }).catch(() => null);
+  const draft = aiDraft ?? generateDraft(job.seedKeyword, job.brief, job.research);
   return {
     eventId,
     jobId: job.id,
@@ -163,7 +202,7 @@ export async function buildRunnerCallback(input: {
     message: "Draft workflow completed via app runner.",
     stage: "drafting",
     payload: {
-      provider: "app-runner"
+      provider: aiDraft ? "openai-draft" : "app-runner"
     },
     draft
   };

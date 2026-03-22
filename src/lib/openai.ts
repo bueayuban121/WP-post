@@ -1,4 +1,4 @@
-import type { ResearchPack, ResearchSource, TopicIdea } from "@/types/workflow";
+import type { ArticleDraft, ContentBrief, ResearchPack, ResearchSource, TopicIdea } from "@/types/workflow";
 
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const DEFAULT_MODEL = process.env.OPENAI_MODEL?.trim() || "gpt-4.1-mini";
@@ -19,6 +19,24 @@ type ResearchSynthesisResponse = {
   audience: string;
   gaps: string[];
   summary: string;
+};
+
+type BriefResponse = {
+  title: string;
+  slug: string;
+  metaTitle: string;
+  metaDescription: string;
+  audience: string;
+  angle: string;
+  outline: string[];
+  faqs: string[];
+  internalLinks: string[];
+};
+
+type DraftResponse = {
+  intro: string;
+  sections: Array<{ heading: string; body: string }>;
+  conclusion: string;
 };
 
 function getApiKey() {
@@ -192,4 +210,132 @@ export async function synthesizeResearchWithOpenAi(input: {
     gaps: parsed.gaps.map((gap) => gap.trim()).filter(Boolean).slice(0, 6),
     summary: parsed.summary.trim()
   };
+}
+
+export async function generateBriefWithOpenAi(input: {
+  seedKeyword: string;
+  selectedIdea: TopicIdea;
+  research: ResearchPack;
+  researchSummary: string;
+}) {
+  const { seedKeyword, selectedIdea, research, researchSummary } = input;
+  const sourceContext = JSON.stringify(summarizeSources(research.sources), null, 2);
+
+  const prompt = [
+    `Seed keyword: ${seedKeyword}`,
+    `Selected topic: ${selectedIdea.title}`,
+    `Topic angle: ${selectedIdea.angle}`,
+    `Search intent: ${selectedIdea.searchIntent}`,
+    `Research audience: ${research.audience}`,
+    `Research objective: ${research.objective}`,
+    "",
+    "Research summary:",
+    researchSummary || "-",
+    "",
+    "Research sources:",
+    sourceContext,
+    "",
+    "Return JSON only in this shape:",
+    '{"title":"","slug":"","metaTitle":"","metaDescription":"","audience":"","angle":"","outline":[""],"faqs":[""],"internalLinks":[""]}',
+    "",
+    "Rules:",
+    "- Output in Thai, except technical terms or source names.",
+    "- Title must feel like a real client-ready SEO article title.",
+    "- Outline must be 5 to 7 headings and should not repeat the same concept.",
+    "- FAQs must be useful and non-repetitive.",
+    "- Internal links should be generic article ideas, not full URLs."
+  ].join("\n");
+
+  const content = await complete(
+    [
+      {
+        role: "system",
+        content:
+          "You are a Thai SEO content strategist. Build a practical content brief from real research. Avoid repetition, vague headings, and template-like wording. Return JSON only."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    0.35
+  );
+
+  const parsed = parseJson<BriefResponse>(content);
+  return {
+    title: parsed.title.trim(),
+    slug: parsed.slug.trim(),
+    metaTitle: parsed.metaTitle.trim(),
+    metaDescription: parsed.metaDescription.trim(),
+    audience: parsed.audience.trim(),
+    angle: parsed.angle.trim(),
+    outline: parsed.outline.map((item) => item.trim()).filter(Boolean).slice(0, 7),
+    faqs: parsed.faqs.map((item) => item.trim()).filter(Boolean).slice(0, 6),
+    internalLinks: parsed.internalLinks.map((item) => item.trim()).filter(Boolean).slice(0, 6)
+  } satisfies Omit<ContentBrief, "publishStatus" | "categoryIds" | "tagIds" | "featuredImageUrl">;
+}
+
+export async function generateDraftWithOpenAi(input: {
+  seedKeyword: string;
+  brief: ContentBrief;
+  research: ResearchPack;
+  researchSummary: string;
+}) {
+  const { seedKeyword, brief, research, researchSummary } = input;
+  const sourceContext = JSON.stringify(summarizeSources(research.sources), null, 2);
+
+  const prompt = [
+    `Seed keyword: ${seedKeyword}`,
+    `Article title: ${brief.title}`,
+    `Audience: ${brief.audience}`,
+    `Angle: ${brief.angle}`,
+    `Meta description: ${brief.metaDescription}`,
+    "",
+    "Outline:",
+    brief.outline.map((item, index) => `${index + 1}. ${item}`).join("\n"),
+    "",
+    "Research summary:",
+    researchSummary || "-",
+    "",
+    "Research sources:",
+    sourceContext,
+    "",
+    "Return JSON only in this shape:",
+    '{"intro":"","sections":[{"heading":"","body":""}],"conclusion":""}',
+    "",
+    "Rules:",
+    "- Write in Thai as the main language.",
+    "- Make it readable, client-ready, and natural.",
+    "- Do not insert URLs, raw source links, or markdown.",
+    "- Avoid repetitive phrases and repeated explanations.",
+    "- Each section body should add new value, not restate the intro.",
+    "- The draft should sound like a polished article, not a stitched summary."
+  ].join("\n");
+
+  const content = await complete(
+    [
+      {
+        role: "system",
+        content:
+          "You are a senior Thai editorial writer. Write an SEO article draft from a research-backed brief. The output must be clear, readable, non-repetitive, and suitable for client delivery. Return JSON only."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    0.45
+  );
+
+  const parsed = parseJson<DraftResponse>(content);
+  return {
+    intro: parsed.intro.trim(),
+    sections: parsed.sections
+      .map((section) => ({
+        heading: section.heading.trim(),
+        body: section.body.trim()
+      }))
+      .filter((section) => section.heading && section.body),
+    conclusion: parsed.conclusion.trim()
+  } satisfies ArticleDraft;
 }
