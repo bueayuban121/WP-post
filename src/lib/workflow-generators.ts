@@ -65,7 +65,7 @@ function detectDomain(seedKeyword: string) {
 function buildPetIdeas(seedKeyword: string): IdeaBlueprint[] {
   return [
     {
-      title: `${seedKeyword}ชอบน้ำแบบไหน`,
+      title: `${seedKeyword} ชอบน้ำแบบไหน`,
       angle: `อธิบายค่าน้ำ ค่า pH อุณหภูมิ และสภาพแวดล้อมที่เหมาะกับ ${seedKeyword} แบบใช้งานได้จริง`,
       searchIntent: "informational",
       difficulty: "low",
@@ -76,7 +76,7 @@ function buildPetIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" pH", " น้ำ", " อุณหภูมิ", " น้ำด่าง"])
     },
     {
-      title: `${seedKeyword}กินอะไรดี`,
+      title: `${seedKeyword} กินอะไรดี`,
       angle: `สรุปอาหารหลัก อาหารเสริม ปริมาณ และข้อผิดพลาดที่ทำให้ ${seedKeyword} ท้องอืดหรือโตช้า`,
       searchIntent: "commercial",
       difficulty: "medium",
@@ -87,7 +87,7 @@ function buildPetIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" อาหาร", " กินอะไร", " ให้อาหาร", " ท้องอืด"])
     },
     {
-      title: `${seedKeyword}เป็นโรคอะไรได้บ้าง`,
+      title: `${seedKeyword} เป็นโรคอะไรได้บ้าง`,
       angle: `แยกอาการเริ่มต้น สาเหตุที่พบบ่อย และจังหวะที่ควรรีบแยกปลาหรือรักษา`,
       searchIntent: "problem-solving",
       difficulty: "medium",
@@ -98,7 +98,7 @@ function buildPetIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" ป่วย", " โรค", " ซึม", " จุดขาว"])
     },
     {
-      title: `วิธีดูแล${seedKeyword}ไม่ให้ตาย`,
+      title: `วิธีดูแล ${seedKeyword} ไม่ให้ตาย`,
       angle: `ทำ checklist การดูแล ${seedKeyword} ตั้งแต่น้ำ อาหาร ตู้ปลา ไปจนถึงสัญญาณเตือนที่ไม่ควรมองข้าม`,
       searchIntent: "problem-solving",
       difficulty: "medium",
@@ -109,7 +109,7 @@ function buildPetIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" ดูแล", " มือใหม่", " ไม่ให้ตาย", " เริ่มเลี้ยง"])
     },
     {
-      title: `${seedKeyword}ต้องเปลี่ยนน้ำบ่อยแค่ไหน`,
+      title: `${seedKeyword} ต้องเปลี่ยนน้ำบ่อยแค่ไหน`,
       angle: `สรุปรอบการเปลี่ยนน้ำ ปริมาณที่เหมาะสม และข้อผิดพลาดที่ทำให้ ${seedKeyword} เครียดหลังเปลี่ยนน้ำ`,
       searchIntent: "problem-solving",
       difficulty: "low",
@@ -120,7 +120,7 @@ function buildPetIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" เปลี่ยนน้ำ", " เครียด", " น้ำใหม่", " กี่วัน"])
     },
     {
-      title: `${seedKeyword}ใช้ตู้ขนาดเท่าไร`,
+      title: `${seedKeyword} ใช้ตู้ขนาดเท่าไร`,
       angle: `อธิบายขนาดตู้ขั้นต่ำ จำนวนตัวต่อพื้นที่ และผลเสียของการเลี้ยงแน่นเกินไป`,
       searchIntent: "commercial",
       difficulty: "low",
@@ -131,7 +131,7 @@ function buildPetIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" ตู้", " กี่ลิตร", " พื้นที่", " เลี้ยงกี่ตัว"])
     },
     {
-      title: `${seedKeyword}มีอาการเครียดดูยังไง`,
+      title: `${seedKeyword} มีอาการเครียดดูยังไง`,
       angle: `อธิบายสัญญาณเตือน พฤติกรรมที่เปลี่ยนไป และวิธีเช็กสภาพแวดล้อมก่อนอาการลุกลาม`,
       searchIntent: "problem-solving",
       difficulty: "medium",
@@ -147,7 +147,7 @@ function buildPetIdeas(seedKeyword: string): IdeaBlueprint[] {
 function buildMarketingIdeas(seedKeyword: string): IdeaBlueprint[] {
   return [
     {
-      title: `${seedKeyword}คืออะไร`,
+      title: `${seedKeyword} คืออะไร`,
       angle: `อธิบายความหมาย หลักคิด วิธีทำงาน และทำไมธุรกิจควรเริ่มใช้ ${seedKeyword}`,
       searchIntent: "informational",
       difficulty: "low",
@@ -158,7 +158,7 @@ function buildMarketingIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" คืออะไร", " ความหมาย", " ทำงานยังไง", " ใช้ทำอะไร"])
     },
     {
-      title: `วิธีวัดผล${seedKeyword}`,
+      title: `วิธีวัดผล ${seedKeyword}`,
       angle: `สรุป metric, KPI, baseline และวิธีดูว่า ${seedKeyword} ที่ทำอยู่ได้ผลจริงหรือไม่`,
       searchIntent: "informational",
       difficulty: "medium",
@@ -169,7 +169,7 @@ function buildMarketingIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" KPI", " วัดผล", " metric", " benchmark"])
     },
     {
-      title: `เทคนิคทำ${seedKeyword}ให้เห็นผล`,
+      title: `เทคนิคทำ ${seedKeyword} ให้เห็นผล`,
       angle: `จัดเทคนิคเป็นลำดับจากพื้นฐานถึงขั้นนำไปใช้จริง พร้อมตัวอย่างจุดที่ควรเริ่มก่อน`,
       searchIntent: "problem-solving",
       difficulty: "medium",
@@ -180,7 +180,7 @@ function buildMarketingIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" เทคนิค", " วิธีทำ", " checklist", " best practice"])
     },
     {
-      title: `ข้อผิดพลาดที่ทำให้${seedKeyword}ไม่เวิร์ก`,
+      title: `ข้อผิดพลาดที่ทำให้ ${seedKeyword} ไม่เวิร์ก`,
       angle: `ชี้จุดพลาดที่พบบ่อยพร้อมอธิบายผลกระทบต่อ conversion, lead หรือ revenue`,
       searchIntent: "problem-solving",
       difficulty: "medium",
@@ -191,7 +191,7 @@ function buildMarketingIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" ผิดพลาด", " ไม่เวิร์ก", " conversion ลด", " แก้ยังไง"])
     },
     {
-      title: `เครื่องมือที่ใช้ทำ${seedKeyword}`,
+      title: `เครื่องมือที่ใช้ทำ ${seedKeyword}`,
       angle: `สรุปเครื่องมือหลัก วิธีเลือกใช้ และวิธีเชื่อมข้อมูลให้ทีมทำงานต่อเนื่อง`,
       searchIntent: "commercial",
       difficulty: "low",
@@ -202,7 +202,7 @@ function buildMarketingIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" เครื่องมือ", " software", " tool", " ใช้อะไร"])
     },
     {
-      title: `${seedKeyword}เหมาะกับธุรกิจแบบไหน`,
+      title: `${seedKeyword} เหมาะกับธุรกิจแบบไหน`,
       angle: `อธิบาย use case และตัวอย่างว่าธุรกิจประเภทไหนควรเริ่มจากจุดใดก่อน`,
       searchIntent: "commercial",
       difficulty: "low",
@@ -218,7 +218,7 @@ function buildMarketingIdeas(seedKeyword: string): IdeaBlueprint[] {
 function buildGenericIdeas(seedKeyword: string): IdeaBlueprint[] {
   return [
     {
-      title: `${seedKeyword}คืออะไร`,
+      title: `${seedKeyword} คืออะไร`,
       angle: `สรุปความหมาย ประโยชน์ และสิ่งที่ควรรู้ก่อนเริ่มศึกษา ${seedKeyword}`,
       searchIntent: "informational",
       difficulty: "low",
@@ -229,7 +229,7 @@ function buildGenericIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" คืออะไร", " ใช้ทำอะไร", " ทำงานยังไง", " ประโยชน์"])
     },
     {
-      title: `วิธีเริ่มต้นกับ${seedKeyword}`,
+      title: `วิธีเริ่มต้นกับ ${seedKeyword}`,
       angle: `เรียงขั้นตอนเริ่มต้นแบบไม่ซับซ้อน พร้อมสิ่งที่ควรเตรียมก่อนลงมือ`,
       searchIntent: "problem-solving",
       difficulty: "low",
@@ -240,7 +240,7 @@ function buildGenericIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" เริ่มต้น", " checklist", " step by step", " มือใหม่"])
     },
     {
-      title: `ข้อผิดพลาดที่พบบ่อยเกี่ยวกับ${seedKeyword}`,
+      title: `ข้อผิดพลาดที่พบบ่อยเกี่ยวกับ ${seedKeyword}`,
       angle: `รวบรวมความเข้าใจผิดและปัญหาที่ทำให้การใช้งาน ${seedKeyword} ไม่ได้ผล`,
       searchIntent: "problem-solving",
       difficulty: "medium",
@@ -251,7 +251,7 @@ function buildGenericIdeas(seedKeyword: string): IdeaBlueprint[] {
       relatedKeywords: buildKeywordCluster(seedKeyword, [" ผิดพลาด", " ปัญหา", " ไม่เวิร์ก", " แก้ยังไง"])
     },
     {
-      title: `คำถามที่คนค้นบ่อยเกี่ยวกับ${seedKeyword}`,
+      title: `คำถามที่คนค้นบ่อยเกี่ยวกับ ${seedKeyword}`,
       angle: `รวมคำถามยอดฮิตและคำตอบแบบกระชับที่ต่อยอดไป FAQ section ได้ทันที`,
       searchIntent: "informational",
       difficulty: "low",
@@ -325,6 +325,10 @@ export function generateResearch(seedKeyword: string, selectedIdea: TopicIdea): 
 }
 
 function makeSeoTitle(title: string) {
+  if (title.includes("คืออะไร")) {
+    return title;
+  }
+
   if (title.includes("?")) {
     return `${title} พร้อมคำอธิบายที่ใช้งานได้จริง`;
   }
