@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import styles from "./console-pages.module.css";
 import type { WorkflowAutomationStatus, WorkflowAutomationType } from "@/types/workflow";
 
@@ -36,6 +36,26 @@ export function QueueTableClient({ rows }: { rows: QueueRow[] }) {
   const [isPending, startTransition] = useTransition();
   const [activeRetryId, setActiveRetryId] = useState("");
   const [feedback, setFeedback] = useState<Record<string, string>>({});
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<WorkflowAutomationStatus | "all">("all");
+  const [typeFilter, setTypeFilter] = useState<WorkflowAutomationType | "all">("all");
+
+  const filteredRows = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return rows.filter((row) => {
+      const matchesQuery =
+        !normalizedQuery ||
+        row.project.toLowerCase().includes(normalizedQuery) ||
+        row.keyword.toLowerCase().includes(normalizedQuery) ||
+        row.message.toLowerCase().includes(normalizedQuery);
+
+      const matchesStatus = statusFilter === "all" || row.status === statusFilter;
+      const matchesType = typeFilter === "all" || row.type === typeFilter;
+
+      return matchesQuery && matchesStatus && matchesType;
+    });
+  }, [query, rows, statusFilter, typeFilter]);
 
   function retry(row: QueueRow) {
     setActiveRetryId(row.id);
@@ -69,15 +89,64 @@ export function QueueTableClient({ rows }: { rows: QueueRow[] }) {
   }
 
   return (
-    <section className={styles.table}>
-      <div className={styles.tableHead}>
-        <span>Project</span>
-        <span>Keyword</span>
-        <span>Action</span>
-        <span>Status</span>
-        <span>Updated</span>
+    <section className={styles.tableWrap}>
+      <div className={styles.toolbar}>
+        <label className={styles.toolbarField}>
+          <span>Search</span>
+          <input
+            placeholder="Project, keyword, or log detail"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+
+        <label className={styles.toolbarField}>
+          <span>Status</span>
+          <select
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(event.target.value as WorkflowAutomationStatus | "all")
+            }
+          >
+            <option value="all">All</option>
+            <option value="queued">Queued</option>
+            <option value="running">Running</option>
+            <option value="succeeded">Succeeded</option>
+            <option value="failed">Failed</option>
+          </select>
+        </label>
+
+        <label className={styles.toolbarField}>
+          <span>Type</span>
+          <select
+            value={typeFilter}
+            onChange={(event) =>
+              setTypeFilter(event.target.value as WorkflowAutomationType | "all")
+            }
+          >
+            <option value="all">All</option>
+            <option value="research">Research</option>
+            <option value="brief">Brief</option>
+            <option value="draft">Draft</option>
+            <option value="publish">Publish</option>
+          </select>
+        </label>
       </div>
-      {rows.map((row) => {
+
+      <div className={styles.tableMeta}>
+        <strong>{filteredRows.length}</strong>
+        <span>visible jobs</span>
+      </div>
+
+      <section className={styles.table}>
+        <div className={styles.tableHead}>
+          <span>Project</span>
+          <span>Keyword</span>
+          <span>Action</span>
+          <span>Status</span>
+          <span>Updated</span>
+        </div>
+        {filteredRows.map((row) => {
         const isRetrying = isPending && activeRetryId === row.id;
 
         return (
@@ -117,7 +186,11 @@ export function QueueTableClient({ rows }: { rows: QueueRow[] }) {
             </div>
           </div>
         );
-      })}
+        })}
+        {filteredRows.length === 0 ? (
+          <div className={styles.emptyInline}>No queue items match this filter.</div>
+        ) : null}
+      </section>
     </section>
   );
 }

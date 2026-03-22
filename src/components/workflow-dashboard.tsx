@@ -8,6 +8,7 @@ import styles from "./workflow-dashboard.module.css";
 
 type WorkspaceTab = "expand" | "research" | "queue" | "article" | "images";
 type LoadState = "loading" | "ready" | "empty" | "error";
+const settingsStorageKey = "auto-post-content-settings";
 
 const stageLabels = {
   idea_pool: "Keyword Expansion",
@@ -77,6 +78,12 @@ async function readJson(response: Response) {
     throw new Error(data.error ?? "Request failed.");
   }
   return data;
+}
+
+function getLatestEvent(job: WorkflowJob, type: WorkflowAutomationEvent["type"]) {
+  return [...(job.automationEvents ?? [])]
+    .filter((event) => event.type === type)
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
 }
 
 export function WorkflowDashboard({
@@ -152,6 +159,39 @@ export function WorkflowDashboard({
     void loadJobs();
   }, [initialJobId, loadJobs]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const raw = window.localStorage.getItem(settingsStorageKey);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as Partial<{
+        tone: string;
+        restrictedWords: string;
+        articleLength: string;
+      }>;
+
+      if (typeof parsed.tone === "string") {
+        setTone(parsed.tone);
+      }
+
+      if (typeof parsed.restrictedWords === "string") {
+        setBannedWords(parsed.restrictedWords);
+      }
+
+      if (typeof parsed.articleLength === "string") {
+        setArticleLength(parsed.articleLength);
+      }
+    } catch {
+      window.localStorage.removeItem(settingsStorageKey);
+    }
+  }, []);
+
   function replaceJob(nextJob: WorkflowJob, message: string, nextTab?: WorkspaceTab) {
     setJobs((current) =>
       current.some((item) => item.id === nextJob.id)
@@ -179,6 +219,69 @@ export function WorkflowDashboard({
       throw new Error("Job payload missing.");
     }
     replaceJob(data.job, message, nextTab);
+  }
+
+  async function fetchJob(jobId: string) {
+    const response = await fetch(`/api/jobs/${jobId}`, { cache: "no-store" });
+    const data = await readJson(response);
+    if (!data.job) {
+      throw new Error("Job payload missing.");
+    }
+    return data.job;
+  }
+
+  async function waitForAutomation(jobId: string, type: WorkflowAutomationEvent["type"]) {
+    const maxAttempts = 18;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      const nextJob = await fetchJob(jobId);
+      replaceJob(nextJob, `${type} workflow running`, type === "research" ? "research" : "article");
+      const event = getLatestEvent(nextJob, type);
+
+      if (!event) {
+        continue;
+      }
+
+      if (event.status === "failed") {
+        throw new Error(event.message ?? `${type} failed.`);
+      }
+
+      if (event.status === "succeeded") {
+        return nextJob;
+      }
+    }
+
+    throw new Error(`${type} timed out. Check Queue for the latest status.`);
+  }
+
+  async function queueAutomation(
+    type: "research" | "brief" | "draft" | "publish",
+    queuedMessage: string,
+    successMessage: string,
+    nextTab?: WorkspaceTab
+  ) {
+    if (!job) return null;
+
+    const response = await fetch(`/api/jobs/${job.id}/automation/${type}`, { method: "POST" });
+    const data = (await response.json()) as {
+      error?: string;
+      job?: WorkflowJob;
+      event?: WorkflowAutomationEvent;
+      automation?: { message?: string; accepted?: boolean; fallbackApplied?: boolean };
+    };
+
+    if (!response.ok) {
+      throw new Error(data.error ?? `${type} failed.`);
+    }
+
+    if (data.job) {
+      replaceJob(data.job, data.automation?.message ?? queuedMessage, nextTab ?? tab);
+    }
+
+    const nextJob = await waitForAutomation(job.id, type);
+    replaceJob(nextJob, successMessage, nextTab ?? tab);
+    return nextJob;
   }
 
   async function createProject(event: FormEvent<HTMLFormElement>) {
@@ -217,7 +320,7 @@ export function WorkflowDashboard({
     if (!job) return;
     startTransition(async () => {
       try {
-        await postJob(`/api/jobs/${job.id}/research`, undefined, "Research summary ready", "research");
+        await queueAutomation("research", "Research queued in n8n", "Research summary ready", "research");
       } catch (researchError) {
         setError(researchError instanceof Error ? researchError.message : "Research failed");
       }
@@ -228,19 +331,15 @@ export function WorkflowDashboard({
     if (!job) return;
     startTransition(async () => {
       try {
-        const briefResponse = await fetch(`/api/jobs/${job.id}/brief`, { method: "POST" });
-        const briefData = await readJson(briefResponse);
-        if (!briefData.job) {
+        const briefJob = await queueAutomation("brief", "Brief queued in n8n", "Brief ready", "article");
+        if (!briefJob) {
           throw new Error("Brief generation failed.");
         }
 
-        const draftResponse = await fetch(`/api/jobs/${job.id}/draft`, { method: "POST" });
-        const draftData = await readJson(draftResponse);
-        if (!draftData.job) {
+        const draftJob = await queueAutomation("draft", "Draft queued in n8n", "Article generated", "article");
+        if (!draftJob) {
           throw new Error("Draft generation failed.");
         }
-
-        replaceJob(draftData.job, "Article generated", "article");
       } catch (draftError) {
         setError(draftError instanceof Error ? draftError.message : "Draft failed");
       }

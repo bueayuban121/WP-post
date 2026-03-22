@@ -187,6 +187,53 @@
   overflow: hidden;
 }
 
+.tableWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(180px, 0.6fr));
+  gap: 12px;
+}
+
+.toolbarField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #c2cedd;
+}
+
+.toolbarField span {
+  color: #8fa0b3;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.toolbarField input,
+.toolbarField select {
+  width: 100%;
+  border: 1px solid rgba(146, 163, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: #f5f7fb;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.tableMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #8fa0b3;
+}
+
+.tableMeta strong {
+  color: #f7fbff;
+}
+
 .tableHead,
 .tableRow {
   display: grid;
@@ -214,6 +261,12 @@
 
 .table small {
   color: #8e98a8;
+}
+
+.emptyInline {
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  color: #9aa3af;
 }
 
 .linkButton,
@@ -309,6 +362,10 @@
 @media (max-width: 1150px) {
   .metrics,
   .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar {
     grid-template-columns: 1fr;
   }
 }
