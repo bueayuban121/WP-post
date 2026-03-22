@@ -1,9 +1,6 @@
-import {
-  generateBrief,
-  generateDraft,
-  generateResearch
-} from "@/lib/workflow-generators";
+import { synthesizeResearchWithOpenAi } from "@/lib/openai";
 import { tavilySearch } from "@/lib/tavily";
+import { generateBrief, generateDraft, generateResearch } from "@/lib/workflow-generators";
 import type { N8nCallbackPayload } from "@/types/n8n";
 import type { ResearchPack, TopicIdea, WorkflowAutomationType, WorkflowJob } from "@/types/workflow";
 
@@ -29,24 +26,18 @@ async function buildResearchPack(job: WorkflowJob) {
 
   try {
     const [thai, global] = await Promise.all([
-      tavilySearch(
-        `${selectedIdea.title} ${seedKeyword} วิธีใช้ ข้อควรระวัง แนวทางไทย`,
-        {
-          country: "thailand",
-          maxResults: 4,
-          includeAnswer: true,
-          includeRawContent: true
-        }
-      ),
-      tavilySearch(
-        `${selectedIdea.title} ${seedKeyword} best practices guide use cases`,
-        {
-          country: "united states",
-          maxResults: 4,
-          includeAnswer: true,
-          includeRawContent: true
-        }
-      )
+      tavilySearch(`${selectedIdea.title} ${seedKeyword} วิธีใช้ ข้อควรระวัง แนวทางไทย`, {
+        country: "thailand",
+        maxResults: 4,
+        includeAnswer: true,
+        includeRawContent: true
+      }),
+      tavilySearch(`${selectedIdea.title} ${seedKeyword} best practices guide use cases`, {
+        country: "united states",
+        maxResults: 4,
+        includeAnswer: true,
+        includeRawContent: true
+      })
     ]);
 
     const thaiSources =
@@ -65,7 +56,9 @@ async function buildResearchPack(job: WorkflowJob) {
         insight: toInsight(result, `Global search result related to ${selectedIdea.title}`)
       })) ?? [];
 
-    const research: ResearchPack = {
+    const summaryHooks = [thai.answer, global.answer].filter(Boolean).join(" ");
+
+    const fallbackResearch: ResearchPack = {
       objective: `รวบรวมข้อมูลจริงจากแหล่งไทยและต่างประเทศเพื่อสรุปหัวข้อ "${selectedIdea.title}" ให้ตอบ search intent อย่างแม่นยำและใช้งานได้จริง`,
       audience: `ผู้อ่านที่กำลังค้นหา ${seedKeyword} และต้องการคำตอบที่อิงข้อมูลจริง เข้าใจง่าย และนำไปใช้หรือเปรียบเทียบก่อนตัดสินใจได้`,
       gaps: [
@@ -76,14 +69,31 @@ async function buildResearchPack(job: WorkflowJob) {
       sources: [...thaiSources, ...globalSources]
     };
 
+    const synthesized = await synthesizeResearchWithOpenAi({
+      seedKeyword,
+      ideaTitle: selectedIdea.title,
+      summaryHooks,
+      research: fallbackResearch
+    }).catch(() => null);
+
+    const research: ResearchPack = synthesized
+      ? {
+          objective: synthesized.objective || fallbackResearch.objective,
+          audience: synthesized.audience || fallbackResearch.audience,
+          gaps: synthesized.gaps.length > 0 ? synthesized.gaps : fallbackResearch.gaps,
+          sources: fallbackResearch.sources
+        }
+      : fallbackResearch;
+
     return {
       research:
         research.sources.length > 0
           ? research
           : generateResearch(seedKeyword, selectedIdea),
       payload: {
-        provider: research.sources.length > 0 ? "tavily" : "app-fallback",
-        summaryHooks: [thai.answer, global.answer].filter(Boolean).join(" "),
+        provider: research.sources.length > 0 ? "tavily-openai" : "app-fallback",
+        summaryHooks,
+        summaryText: synthesized?.summary ?? "",
         error: null
       }
     };
@@ -96,6 +106,7 @@ async function buildResearchPack(job: WorkflowJob) {
     payload: {
       provider: "app-fallback",
       summaryHooks: "",
+      summaryText: "",
       error: searchError
     }
   };

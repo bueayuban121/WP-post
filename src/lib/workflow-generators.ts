@@ -1,4 +1,5 @@
 import { mockWorkflowJob } from "@/data/mock-workflow";
+import { generateKeywordIdeasWithOpenAi } from "@/lib/openai";
 import { tavilySearch } from "@/lib/tavily";
 import type {
   ArticleDraft,
@@ -412,6 +413,43 @@ async function generateIdeasFromTavily(seedKeyword: string): Promise<TopicIdea[]
         }
       )
     ]);
+
+    const thaiTitles = dedupe(
+      (thai.results ?? []).map((result) => normalizeTopicLine(seedKeyword, String(result.title ?? ""))).filter(Boolean)
+    );
+    const globalTitles = dedupe(
+      (global.results ?? []).map((result) => normalizeTopicLine(seedKeyword, String(result.title ?? ""))).filter(Boolean)
+    );
+    const expansionTitles = dedupe(
+      (expansion.results ?? [])
+        .map((result) => normalizeTopicLine(seedKeyword, String(result.title ?? "")))
+        .filter(Boolean)
+    );
+
+    const aiIdeas = await generateKeywordIdeasWithOpenAi({
+      seedKeyword,
+      thaiSummary: String(thai.answer ?? ""),
+      globalSummary: String(global.answer ?? ""),
+      thaiTitles,
+      globalTitles: dedupe([...globalTitles, ...expansionTitles]).slice(0, 10)
+    }).catch(() => []);
+
+    if (aiIdeas.length >= 8) {
+      return aiIdeas.map((idea, index) => ({
+        id: crypto.randomUUID(),
+        title: normalizeTopicLine(seedKeyword, idea.title),
+        angle: trimSentence(idea.angle),
+        searchIntent: idea.searchIntent,
+        difficulty: idea.difficulty,
+        confidence: Math.max(70, Math.min(98, Math.round(idea.confidence || 86) - index)),
+        whyItMatters: trimSentence(idea.whyItMatters),
+        thaiSignal: trimSentence(idea.thaiSignal),
+        globalSignal: trimSentence(idea.globalSignal),
+        relatedKeywords: dedupe(
+          idea.relatedKeywords.length > 0 ? idea.relatedKeywords : buildKeywordCluster(seedKeyword, [" วิธี", " รีวิว"])
+        ).slice(0, 6)
+      }));
+    }
 
     const candidates = dedupe([
       ...parseTopicCandidates(seedKeyword, thai),

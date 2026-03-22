@@ -52,6 +52,14 @@ function buildResearchSummary(seedKeyword: string, idea: TopicIdea | null, job: 
     typeof latestResearchEvent?.payload?.summaryHooks === "string"
       ? latestResearchEvent.payload.summaryHooks
       : "";
+  const summaryText =
+    typeof latestResearchEvent?.payload?.summaryText === "string"
+      ? latestResearchEvent.payload.summaryText
+      : "";
+
+  if (summaryText.trim()) {
+    return summaryText.trim();
+  }
 
   return buildLongResearchSummary({
     seedKeyword,
