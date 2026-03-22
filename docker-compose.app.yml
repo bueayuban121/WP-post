@@ -1,9 +1,21 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: seo_content_pipeline
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - wp_post_postgres_data:/var/lib/postgresql/data
+
   seo-content-app:
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    depends_on:
+      - postgres
     env_file:
       - .env
     labels:
@@ -12,3 +24,6 @@ services:
       - traefik.http.routers.wp-post.entrypoints=websecure
       - traefik.http.routers.wp-post.tls.certresolver=letsencrypt
       - traefik.http.services.wp-post.loadbalancer.server.port=3000
+
+volumes:
+  wp_post_postgres_data:
