@@ -5,6 +5,10 @@ import { listJobs } from "@/lib/job-store";
 
 function getPublishMeta(payload: Record<string, unknown> | undefined) {
   const wordpress = payload?.wordpress as Record<string, unknown> | undefined;
+  const uploadErrors =
+    (Array.isArray(payload?.uploadErrors) ? payload.uploadErrors : undefined) ??
+    (Array.isArray(wordpress?.uploadErrors) ? wordpress.uploadErrors : undefined) ??
+    [];
 
   return {
     link:
@@ -15,7 +19,17 @@ function getPublishMeta(payload: Record<string, unknown> | undefined) {
       (typeof wordpress?.status === "string" ? wordpress.status : undefined),
     id:
       (typeof payload?.id === "number" ? payload.id : undefined) ??
-      (typeof wordpress?.id === "number" ? wordpress.id : undefined)
+      (typeof wordpress?.id === "number" ? wordpress.id : undefined),
+    uploadedMediaCount:
+      (typeof payload?.uploadedMediaCount === "number" ? payload.uploadedMediaCount : undefined) ??
+      (typeof wordpress?.uploadedMediaCount === "number" ? wordpress.uploadedMediaCount : undefined),
+    uploadErrors: uploadErrors.map((item) => {
+      const record = item as Record<string, unknown>;
+      return {
+        placement: typeof record.placement === "string" ? record.placement : "Image",
+        message: typeof record.message === "string" ? record.message : "Upload failed"
+      };
+    })
   };
 }
 
@@ -101,10 +115,16 @@ export default async function PublishedPage() {
                   {typeof meta.id === "number" ? (
                     <span className={styles.muted}>WP #{meta.id}</span>
                   ) : null}
+                  {typeof meta.uploadedMediaCount === "number" ? (
+                    <span className={styles.muted}>Media {meta.uploadedMediaCount}</span>
+                  ) : null}
                 </div>
                 <div>
                   <strong>{publishEvent?.updatedAt?.slice(0, 10) || "-"}</strong>
                   <span className={styles.muted}>{publishEvent?.updatedAt?.slice(11, 19) || ""}</span>
+                  {meta.uploadErrors.length > 0 ? (
+                    <span className={styles.muted}>Upload issues {meta.uploadErrors.length}</span>
+                  ) : null}
                 </div>
                 <div className={styles.actions}>
                   <Link className={styles.badge} href={`/articles?job=${job.id}`}>

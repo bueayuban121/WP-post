@@ -4,6 +4,40 @@ import styles from "@/components/console-pages.module.css";
 import { QueueTableClient } from "@/components/queue-table-client";
 import { listJobs } from "@/lib/job-store";
 
+function buildQueueMessage(payload: Record<string, unknown> | undefined, fallback: string) {
+  const parts: string[] = [fallback];
+  const wordpress = payload?.wordpress as Record<string, unknown> | undefined;
+  const provider =
+    typeof payload?.provider === "string"
+      ? payload.provider
+      : typeof wordpress?.provider === "string"
+        ? wordpress.provider
+        : "";
+  const uploadedMediaCount =
+    typeof payload?.uploadedMediaCount === "number"
+      ? payload.uploadedMediaCount
+      : typeof wordpress?.uploadedMediaCount === "number"
+        ? wordpress.uploadedMediaCount
+        : undefined;
+  const uploadErrors =
+    (Array.isArray(payload?.uploadErrors) ? payload.uploadErrors : undefined) ??
+    (Array.isArray(wordpress?.uploadErrors) ? wordpress.uploadErrors : undefined);
+
+  if (provider) {
+    parts.push(`Provider: ${provider}`);
+  }
+
+  if (typeof uploadedMediaCount === "number") {
+    parts.push(`Media uploaded: ${uploadedMediaCount}`);
+  }
+
+  if (uploadErrors && uploadErrors.length > 0) {
+    parts.push(`Upload issues: ${uploadErrors.length}`);
+  }
+
+  return parts.filter(Boolean).join(" · ");
+}
+
 export default async function QueuePage() {
   const jobs = await listJobs();
   const rows = jobs
@@ -17,7 +51,7 @@ export default async function QueuePage() {
         status: event.status,
         source: event.source,
         updatedAt: event.updatedAt,
-        message: event.message ?? "No detail"
+        message: buildQueueMessage(event.payload, event.message ?? "No detail")
       }))
     )
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
