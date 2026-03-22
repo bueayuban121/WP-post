@@ -512,6 +512,15 @@ export function WorkflowDashboard({
     window.open(`/api/jobs/${job.id}/deliverable?format=${format}`, "_blank", "noopener,noreferrer");
   }
 
+  function downloadResearchReport(format: "doc" | "html") {
+    if (!job) return;
+    window.open(
+      `/api/jobs/${job.id}/research-report?format=${format}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  }
+
   const projectCount = new Set(jobs.map((item) => item.client)).size;
   const systemState = error ? "Issue detected" : statusMessage;
   const compactProjects = jobs.slice(0, 2);
@@ -755,6 +764,8 @@ export function WorkflowDashboard({
                 <div className={styles.exportRow}>
                   <button className={styles.ghostButton} onClick={() => downloadDeliverable("markdown")} type="button">Export MD</button>
                   <button className={styles.ghostButton} onClick={() => downloadDeliverable("json")} type="button">Export JSON</button>
+                  <button className={styles.ghostButton} onClick={() => downloadResearchReport("doc")} type="button">Research DOC</button>
+                  <button className={styles.ghostButton} onClick={() => downloadResearchReport("html")} type="button">Research HTML</button>
                 </div>
               </div>
             </aside>
