@@ -189,7 +189,7 @@ export async function buildRunnerCallback(input: {
       draft: job.draft
     });
     const phayaEnabled = isPhayaConfigured();
-    const resolvedImages = phayaEnabled
+    const imageResults = phayaEnabled
       ? await Promise.all(
           images.map(async (image) => {
             try {
@@ -200,16 +200,33 @@ export async function buildRunnerCallback(input: {
               });
 
               return {
-                ...image,
-                src: generated.src
+                image: {
+                  ...image,
+                  src: generated.src
+                },
+                usedPhaya: true,
+                error: null
               };
-            } catch {
-              return image;
+            } catch (error) {
+              return {
+                image,
+                usedPhaya: false,
+                error: error instanceof Error ? error.message : "Phaya generation failed."
+              };
             }
           })
         )
-      : images;
-    const fullyGenerated = resolvedImages.every((image) => image.src !== "" && image.src !== undefined);
+      : images.map((image) => ({
+          image,
+          usedPhaya: false,
+          error: null
+        }));
+    const resolvedImages = imageResults.map((result) => result.image);
+    const usedPhayaCount = imageResults.filter((result) => result.usedPhaya).length;
+    const imageErrors = imageResults
+      .map((result) => result.error)
+      .filter((error): error is string => Boolean(error));
+    const fullyGenerated = phayaEnabled && usedPhayaCount === images.length;
 
     return {
       eventId,
@@ -220,9 +237,15 @@ export async function buildRunnerCallback(input: {
       message: "Image workflow completed via app runner.",
       stage: job.stage,
       payload: {
-        provider: phayaEnabled ? "phaya" : "app-image-runner",
+        provider: fullyGenerated
+          ? "phaya"
+          : usedPhayaCount > 0
+            ? "phaya-mixed"
+            : "app-image-runner",
         imageStatus: "ready",
-        usedFallback: phayaEnabled && !fullyGenerated
+        usedFallback: !fullyGenerated,
+        errorCount: imageErrors.length,
+        errors: imageErrors.slice(0, 3)
       },
       images: resolvedImages
     };
