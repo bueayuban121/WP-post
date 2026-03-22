@@ -313,6 +313,8 @@ function normalizeTopicLine(seedKeyword: string, value: string) {
     .replace(/^\d+[\).\-\s]+/g, "")
     .replace(/^(หัวข้อ|topic|title)\s*[:\-]\s*/i, "")
     .replace(/^["'“”‘’]+|["'“”‘’]+$/g, "")
+    .replace(/([A-Za-z0-9])([ก-๙])/g, "$1 $2")
+    .replace(/([ก-๙])([A-Za-z0-9])/g, "$1 $2")
     .replace(/\s+/g, " ")
     .trim();
 
