@@ -17,7 +17,7 @@ type PendingAction =
   | "create-article"
   | "save-brief"
   | "save-draft"
-  | "refresh-images"
+  | "generate-images"
   | "approve"
   | "publish";
 const settingsStorageKey = "auto-post-content-settings";
@@ -169,6 +169,8 @@ export function WorkflowDashboard({
   const researchSummary = buildResearchSummary(job?.seedKeyword ?? "", activeIdea, job);
   const hasSelectedIdea = Boolean(activeIdea);
   const hasResearch = Boolean(job?.research.sources.length);
+  const hasDraft = Boolean(job?.draft.sections.length);
+  const imageEvent = job ? getLatestEvent(job, "images") : undefined;
 
   function hydrate(nextJob: WorkflowJob) {
     setBriefTitle(nextJob.brief.title);
@@ -285,7 +287,11 @@ export function WorkflowDashboard({
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
       const nextJob = await fetchJob(jobId);
-      replaceJob(nextJob, `${type} workflow running`, type === "research" ? "research" : "article");
+        replaceJob(
+          nextJob,
+          `${type} workflow running`,
+          type === "research" ? "research" : type === "images" ? "images" : "article"
+        );
       const event = getLatestEvent(nextJob, type);
 
       if (!event) {
@@ -305,7 +311,7 @@ export function WorkflowDashboard({
   }
 
   async function queueAutomation(
-    type: "research" | "brief" | "draft" | "publish",
+    type: "research" | "brief" | "draft" | "images" | "publish",
     queuedMessage: string,
     successMessage: string,
     nextTab?: WorkspaceTab
@@ -464,26 +470,20 @@ export function WorkflowDashboard({
 
   async function runPrimaryAction(type: "approve" | "publish" | "images") {
     if (!job) return;
-    const path =
-      type === "approve"
-        ? `/api/jobs/${job.id}/approve`
-        : type === "publish"
-          ? `/api/jobs/${job.id}/automation/publish`
-          : `/api/jobs/${job.id}/images`;
-
-    const message =
-      type === "approve" ? "Article approved" : type === "publish" ? "Publish queued" : "AI image set refreshed";
-
     startTransition(async () => {
-      setPendingAction(
-        type === "approve" ? "approve" : type === "publish" ? "publish" : "refresh-images"
-      );
+      setPendingAction(type === "approve" ? "approve" : type === "publish" ? "publish" : "generate-images");
       setStatusMessage(
-        type === "approve" ? "Approving article" : type === "publish" ? "Queueing publish" : "Refreshing image set"
+        type === "approve" ? "Approving article" : type === "publish" ? "Queueing publish" : "Queueing image generation"
       );
       setError("");
       try {
-        await postJob(path, undefined, message, type === "images" ? "images" : tab);
+        if (type === "approve") {
+          await postJob(`/api/jobs/${job.id}/approve`, undefined, "Article approved", "article");
+        } else if (type === "images") {
+          await queueAutomation("images", "Image generation queued", "Images ready", "images");
+        } else {
+          await postJob(`/api/jobs/${job.id}/automation/publish`, undefined, "Publish queued", tab);
+        }
       } catch (actionError) {
         setError(actionError instanceof Error ? actionError.message : "Action failed");
       } finally {
@@ -707,14 +707,14 @@ export function WorkflowDashboard({
                   >
                     {pendingAction === "create-article" ? "Creating Article..." : "Create Article"}
                   </button>
-                  <button
-                    className={styles.secondaryButton}
-                    disabled={Boolean(pendingAction)}
-                    onClick={() => void runPrimaryAction("images")}
-                    type="button"
-                  >
-                    {pendingAction === "refresh-images" ? "Refreshing Images..." : "Refresh Images"}
-                  </button>
+                    <button
+                      className={styles.secondaryButton}
+                      disabled={!hasDraft || Boolean(pendingAction)}
+                      onClick={() => void runPrimaryAction("images")}
+                      type="button"
+                    >
+                      {pendingAction === "generate-images" ? "Generating Images..." : "Generate Images"}
+                    </button>
                   <button
                     className={styles.secondaryButton}
                     disabled={Boolean(pendingAction)}
@@ -1006,13 +1006,16 @@ export function WorkflowDashboard({
                       <span className={styles.label}>Visual Layer</span>
                       <h2>AI Article Images</h2>
                     </div>
+                    <span className={styles.statusChipMuted}>
+                      {imageEvent ? `Images ${automationLabels[imageEvent.status]}` : hasDraft ? "Images not generated yet" : "Create the article first"}
+                    </span>
                     <button
                       className={styles.primaryButton}
-                      disabled={Boolean(pendingAction)}
+                      disabled={!hasDraft || Boolean(pendingAction)}
                       onClick={() => void runPrimaryAction("images")}
                       type="button"
                     >
-                      {pendingAction === "refresh-images" ? "Refreshing Images..." : "Refresh Images"}
+                      {pendingAction === "generate-images" ? "Generating Images..." : "Generate Images"}
                     </button>
                   </div>
                   <div className={styles.imageShowcase}>

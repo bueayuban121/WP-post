@@ -3,6 +3,7 @@ import {
   generateDraftWithOpenAi,
   synthesizeResearchWithOpenAi
 } from "@/lib/openai";
+import { generateArticleImages } from "@/lib/article-images";
 import { tavilySearch } from "@/lib/tavily";
 import { generateBrief, generateDraft, generateResearch } from "@/lib/workflow-generators";
 import type { N8nCallbackPayload } from "@/types/n8n";
@@ -176,6 +177,30 @@ export async function buildRunnerCallback(input: {
         provider: aiBrief ? "openai-brief" : "app-runner"
       },
       brief
+    };
+  }
+
+  if (type === "images") {
+    const images = generateArticleImages({
+      seedKeyword: job.seedKeyword,
+      title: job.brief.title,
+      brief: job.brief,
+      draft: job.draft
+    });
+
+    return {
+      eventId,
+      jobId: job.id,
+      type,
+      status: "succeeded",
+      workflowRunId,
+      message: "Image workflow completed via app runner.",
+      stage: job.stage,
+      payload: {
+        provider: "app-image-runner",
+        imageStatus: "ready"
+      },
+      images
     };
   }
 

@@ -2,7 +2,7 @@ import { buildRunnerCallback } from "@/lib/n8n-runner";
 import type { WorkflowAutomationType, WorkflowJob } from "@/types/workflow";
 import { NextResponse } from "next/server";
 
-const supportedTypes = new Set<WorkflowAutomationType>(["research", "brief", "draft"]);
+const supportedTypes = new Set<WorkflowAutomationType>(["research", "brief", "draft", "images"]);
 
 function isAutomationType(value: string): value is WorkflowAutomationType {
   return supportedTypes.has(value as WorkflowAutomationType);

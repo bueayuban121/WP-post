@@ -45,7 +45,7 @@ Recommended Render env vars:
 - `N8N_WEBHOOK_BASE_URL=https://n8n-ncdn.srv1455358.hstgr.cloud/webhook/seo-content`
 - `N8N_WEBHOOK_SECRET`
 - `N8N_CALLBACK_SECRET`
-- `N8N_POLLING_TYPES=publish`
+- `N8N_POLLING_TYPES=publish,images`
 
 Render commands used by this repo:
 
@@ -85,7 +85,7 @@ Recommended VPS env values:
 - `APP_BASE_URL=<your public app domain>`
 - `N8N_WEBHOOK_BASE_URL=https://n8n-ncdn.srv1455358.hstgr.cloud/webhook/seo-content`
 - `N8N_CALLBACK_SECRET=<random secret>`
-- `N8N_POLLING_TYPES=publish`
+- `N8N_POLLING_TYPES=publish,images`
 - `WORDPRESS_BASE_URL=<your WordPress root url>`
 - `WORDPRESS_USERNAME=<your WordPress username>`
 - `WORDPRESS_APP_PASSWORD=<your WordPress application password>`
@@ -123,6 +123,7 @@ Trigger endpoints from the app:
 - `POST /api/jobs/:jobId/automation/research`
 - `POST /api/jobs/:jobId/automation/brief`
 - `POST /api/jobs/:jobId/automation/draft`
+- `POST /api/jobs/:jobId/automation/images`
 - `POST /api/jobs/:jobId/automation/publish`
 
 Each trigger creates a workflow event, then posts to:
@@ -130,9 +131,10 @@ Each trigger creates a workflow event, then posts to:
 - `${N8N_WEBHOOK_BASE_URL}/research`
 - `${N8N_WEBHOOK_BASE_URL}/brief`
 - `${N8N_WEBHOOK_BASE_URL}/draft`
+- `${N8N_WEBHOOK_BASE_URL}/images`
 - `${N8N_WEBHOOK_BASE_URL}/publish`
 
-If a type is listed in `N8N_POLLING_TYPES`, the app will queue it for an n8n poller instead of calling the webhook directly. By default only `publish` is queued.
+If a type is listed in `N8N_POLLING_TYPES`, the app will queue it for an n8n poller instead of calling the webhook directly. By default `publish` and `images` are queued.
 
 Poller claim endpoints:
 
@@ -140,6 +142,7 @@ Poller claim endpoints:
 - `POST /api/n8n/claim/research`
 - `POST /api/n8n/claim/brief`
 - `POST /api/n8n/claim/draft`
+- `POST /api/n8n/claim/images`
 - `POST /api/n8n/claim/publish`
 
 Expected n8n callback target:

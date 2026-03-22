@@ -68,7 +68,7 @@ export type ArticleImageAsset = {
   sectionHeading?: string;
 };
 
-export type WorkflowAutomationType = "research" | "brief" | "draft" | "publish";
+export type WorkflowAutomationType = "research" | "brief" | "draft" | "images" | "publish";
 
 export type WorkflowAutomationStatus = "queued" | "running" | "succeeded" | "failed";
 

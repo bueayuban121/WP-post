@@ -16,7 +16,11 @@ export function getQueuedAutomationTypes() {
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter((value): value is WorkflowAutomationType =>
-      value === "research" || value === "brief" || value === "draft" || value === "publish"
+      value === "research" ||
+      value === "brief" ||
+      value === "draft" ||
+      value === "images" ||
+      value === "publish"
     );
 }
 

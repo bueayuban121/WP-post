@@ -3,7 +3,7 @@ import { updateWorkflowEvent } from "@/lib/workflow-events";
 import type { WorkflowAutomationType } from "@/types/workflow";
 import { NextResponse } from "next/server";
 
-const supportedTypes = new Set<WorkflowAutomationType>(["research", "brief", "draft", "publish"]);
+const supportedTypes = new Set<WorkflowAutomationType>(["research", "brief", "draft", "images", "publish"]);
 
 function isAuthorized(request: Request) {
   const secret = process.env.N8N_WEBHOOK_SECRET;

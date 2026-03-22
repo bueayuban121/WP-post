@@ -34,4 +34,5 @@ export type N8nCallbackPayload = {
   research?: ResearchPack;
   brief?: ContentBrief;
   draft?: ArticleDraft;
+  images?: import("@/types/workflow").ArticleImageAsset[];
 };

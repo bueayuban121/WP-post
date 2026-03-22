@@ -4,7 +4,7 @@ import type { N8nCallbackPayload } from "@/types/n8n";
 import type { WorkflowAutomationStatus, WorkflowAutomationType } from "@/types/workflow";
 import { NextResponse } from "next/server";
 
-const supportedTypes = new Set<WorkflowAutomationType>(["research", "brief", "draft", "publish"]);
+const supportedTypes = new Set<WorkflowAutomationType>(["research", "brief", "draft", "images", "publish"]);
 const supportedStatuses = new Set<WorkflowAutomationStatus>([
   "queued",
   "running",
@@ -80,7 +80,8 @@ export async function POST(request: Request) {
           stage: body.stage,
           research: body.research,
           brief: body.brief,
-          draft: body.draft
+          draft: body.draft,
+          images: body.images
         })
       : job;
 

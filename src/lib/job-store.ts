@@ -645,7 +645,7 @@ export async function regenerateJobImages(jobId: string) {
 
 export async function applyAutomationResult(input: {
   jobId: string;
-  type: "research" | "brief" | "draft" | "publish";
+  type: "research" | "brief" | "draft" | "images" | "publish";
   stage?: AppWorkflowStage;
   research?: ResearchPack;
   brief?: ContentBrief;
@@ -659,6 +659,8 @@ export async function applyAutomationResult(input: {
     input.stage ??
     (input.type === "publish"
       ? "published"
+      : input.type === "images"
+        ? job.stage
       : input.type === "draft"
         ? "drafting"
         : input.type === "brief"

@@ -3,6 +3,7 @@ import {
   generateJobBrief,
   generateJobDraft,
   getJob,
+  regenerateJobImages,
   runResearch
 } from "@/lib/job-store";
 import { shouldQueueAutomation, triggerN8nWorkflow } from "@/lib/n8n";
@@ -10,7 +11,7 @@ import { createWorkflowEvent, updateWorkflowEvent } from "@/lib/workflow-events"
 import type { WorkflowAutomationType } from "@/types/workflow";
 import { NextResponse } from "next/server";
 
-const supportedTypes = new Set<WorkflowAutomationType>(["research", "brief", "draft", "publish"]);
+const supportedTypes = new Set<WorkflowAutomationType>(["research", "brief", "draft", "images", "publish"]);
 
 function isAutomationType(value: string): value is WorkflowAutomationType {
   return supportedTypes.has(value as WorkflowAutomationType);
@@ -27,6 +28,10 @@ async function runLocalFallback(jobId: string, type: WorkflowAutomationType) {
 
   if (type === "draft") {
     return generateJobDraft(jobId);
+  }
+
+  if (type === "images") {
+    return regenerateJobImages(jobId);
   }
 
   return null;
@@ -64,6 +69,13 @@ export async function POST(
   if (type === "draft" && !job.brief.title.trim()) {
     return NextResponse.json(
       { error: "Brief must be ready before the draft step can run." },
+      { status: 400 }
+    );
+  }
+
+  if (type === "images" && !job.draft.sections.length) {
+    return NextResponse.json(
+      { error: "Create the article before generating images." },
       { status: 400 }
     );
   }

@@ -27,6 +27,7 @@ const statusLabels = {
 
 function getResumeTab(type: WorkflowAutomationType) {
   if (type === "research") return "research";
+  if (type === "images") return "images";
   if (type === "publish") return "queue";
   return "article";
 }
@@ -128,6 +129,7 @@ export function QueueTableClient({ rows }: { rows: QueueRow[] }) {
             <option value="research">Research</option>
             <option value="brief">Brief</option>
             <option value="draft">Draft</option>
+            <option value="images">Images</option>
             <option value="publish">Publish</option>
           </select>
         </label>

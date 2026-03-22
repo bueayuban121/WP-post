@@ -1,0 +1,1 @@
+ALTER TYPE "WorkflowEventType" ADD VALUE IF NOT EXISTS 'IMAGES';
