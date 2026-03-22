@@ -25,12 +25,38 @@ function getApiKey() {
 }
 
 function getCreatePath() {
-  return getEnv("PHAYA_TEXT_TO_IMAGE_PATH") || "/text-to-image/create";
+  return getEnv("PHAYA_TEXT_TO_IMAGE_PATH") || "/text-to-image/generate";
 }
 
 function getJobPath(jobId: string) {
-  const template = getEnv("PHAYA_JOB_PATH_TEMPLATE") || "/jobs/{id}";
+  const template = getEnv("PHAYA_JOB_PATH_TEMPLATE") || "/text-to-image/status/{id}";
   return template.replace("{id}", jobId);
+}
+
+function inferAspectRatio(width: number, height: number) {
+  const ratio = width / height;
+
+  if (Math.abs(ratio - 1) < 0.08) {
+    return "1:1";
+  }
+
+  if (Math.abs(ratio - 4 / 3) < 0.08) {
+    return "4:3";
+  }
+
+  if (Math.abs(ratio - 3 / 4) < 0.08) {
+    return "3:4";
+  }
+
+  if (Math.abs(ratio - 16 / 9) < 0.08) {
+    return "16:9";
+  }
+
+  if (Math.abs(ratio - 9 / 16) < 0.08) {
+    return "9:16";
+  }
+
+  return ratio >= 1 ? "16:9" : "3:4";
 }
 
 function joinUrl(base: string, path: string) {
@@ -134,8 +160,7 @@ export async function generateImageWithPhaya(input: GeneratePhayaImageInput): Pr
     },
     body: JSON.stringify({
       prompt: input.prompt,
-      width: input.width ?? 1400,
-      height: input.height ?? 840,
+      aspect_ratio: inferAspectRatio(input.width ?? 1400, input.height ?? 840),
       ...(getEnv("PHAYA_MODEL") ? { model: getEnv("PHAYA_MODEL") } : {})
     })
   });

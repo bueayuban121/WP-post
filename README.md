@@ -48,8 +48,8 @@ Recommended Render env vars:
 - `N8N_POLLING_TYPES=publish,images`
 - `PHAYA_API_KEY`
 - `PHAYA_BASE_URL=https://api.phaya.io/api/v1`
-- `PHAYA_TEXT_TO_IMAGE_PATH=/text-to-image/create`
-- `PHAYA_JOB_PATH_TEMPLATE=/jobs/{id}`
+- `PHAYA_TEXT_TO_IMAGE_PATH=/text-to-image/generate`
+- `PHAYA_JOB_PATH_TEMPLATE=/text-to-image/status/{id}`
 
 Render commands used by this repo:
 
@@ -92,8 +92,8 @@ Recommended VPS env values:
 - `N8N_POLLING_TYPES=publish,images`
 - `PHAYA_API_KEY=<your phaya key>`
 - `PHAYA_BASE_URL=https://api.phaya.io/api/v1`
-- `PHAYA_TEXT_TO_IMAGE_PATH=/text-to-image/create`
-- `PHAYA_JOB_PATH_TEMPLATE=/jobs/{id}`
+- `PHAYA_TEXT_TO_IMAGE_PATH=/text-to-image/generate`
+- `PHAYA_JOB_PATH_TEMPLATE=/text-to-image/status/{id}`
 - `WORDPRESS_BASE_URL=<your WordPress root url>`
 - `WORDPRESS_USERNAME=<your WordPress username>`
 - `WORDPRESS_APP_PASSWORD=<your WordPress application password>`
