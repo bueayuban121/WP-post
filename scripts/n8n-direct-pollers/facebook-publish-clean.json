@@ -1,0 +1,151 @@
+[
+  {
+    "id": "FbPubCleanV1A23",
+    "name": "Facebook Publish Clean V1",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "auto-post-fb-web-publish",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          -320,
+          0
+        ],
+        "id": "webhook-facebook-publish-clean",
+        "name": "Webhook"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "name": "data",
+                "value": "={{ $json.body.text_content || (($json.body.facebook.caption || '') + '\\n\\n' + (($json.body.facebook.hashtags || []).join(' '))).trim() }}",
+                "type": "string"
+              },
+              {
+                "name": "imageAll",
+                "value": "={{ $json.body.images || [($json.body.facebook.selectedImage.src || '')] }}",
+                "type": "array"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -64,
+          0
+        ],
+        "id": "set-facebook-publish-fields",
+        "name": "Edit Fields"
+      },
+      {
+        "parameters": {
+          "httpRequestMethod": "POST",
+          "graphApiVersion": "v23.0",
+          "node": "102838825551922",
+          "edge": "photos",
+          "options": {
+            "queryParameters": {
+              "parameter": [
+                {
+                  "name": "url",
+                  "value": "={{ $json.imageAll[0] }}"
+                },
+                {
+                  "name": "message",
+                  "value": "={{ $json.data }}"
+                }
+              ]
+            }
+          }
+        },
+        "type": "n8n-nodes-base.facebookGraphApi",
+        "typeVersion": 1,
+        "position": [
+          208,
+          0
+        ],
+        "id": "facebook-graph-api-clean",
+        "name": "Facebook Graph API",
+        "credentials": {
+          "facebookGraphApi": {
+            "id": "RhPgQzVVgPD9nIKQ",
+            "name": "Facebook Graph account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { ok: true, postId: $json.post_id || $json.id || null, raw: $json } }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          496,
+          0
+        ],
+        "id": "respond-facebook-publish-clean",
+        "name": "Respond to Webhook"
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Edit Fields": {
+        "main": [
+          [
+            {
+              "node": "Facebook Graph API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Facebook Graph API": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": false
+    },
+    "staticData": null,
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "pinData": {},
+    "versionId": "fb-publish-clean-v1",
+    "triggerCount": 0,
+    "tags": []
+  }
+]
