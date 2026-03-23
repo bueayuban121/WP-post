@@ -42,6 +42,17 @@ const automationLabels: Record<WorkflowAutomationEvent["status"], string> = {
   failed: "Failed"
 };
 
+const tonePresets = [
+  "Calm expert",
+  "Premium editorial",
+  "Friendly educator",
+  "Confident conversion",
+  "Luxury minimal",
+  "Technical authority",
+  "Warm lifestyle",
+  "Bold campaign"
+] as const;
+
 function getProjectName(name: string) {
   return name.trim() || "Untitled Project";
 }
@@ -303,6 +314,21 @@ export function WorkflowDashboard({
       window.localStorage.removeItem(settingsStorageKey);
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(
+      settingsStorageKey,
+      JSON.stringify({
+        tone,
+        restrictedWords: bannedWords,
+        articleLength
+      })
+    );
+  }, [articleLength, bannedWords, tone]);
 
   function replaceJob(nextJob: WorkflowJob, message: string, nextTab?: WorkspaceTab) {
     setJobs((current) =>
@@ -835,7 +861,20 @@ export function WorkflowDashboard({
               <label>
                 Tone
                 <small>โทนหลักของบทความ</small>
-                <input value={tone} onChange={(event) => setTone(event.target.value)} />
+                <select
+                  value={tonePresets.includes(tone as (typeof tonePresets)[number]) ? tone : "__custom__"}
+                  onChange={(event) => setTone(event.target.value === "__custom__" ? "" : event.target.value)}
+                >
+                  {tonePresets.map((preset) => (
+                    <option key={preset} value={preset}>
+                      {preset}
+                    </option>
+                  ))}
+                  <option value="__custom__">Custom tone</option>
+                </select>
+                {!tonePresets.includes(tone as (typeof tonePresets)[number]) ? (
+                  <input placeholder="Define a custom tone for this client" value={tone} onChange={(event) => setTone(event.target.value)} />
+                ) : null}
               </label>
               <label>
                 Restricted words

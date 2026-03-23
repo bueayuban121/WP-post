@@ -241,7 +241,8 @@
   color: #b5c0cf;
 }
 
-.settingsForm input {
+.settingsForm input,
+.settingsForm select {
   width: 100%;
   border: 1px solid rgba(146, 163, 255, 0.12);
   background: rgba(255, 255, 255, 0.03);
