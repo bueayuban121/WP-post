@@ -20,7 +20,8 @@ export function getQueuedAutomationTypes() {
       value === "brief" ||
       value === "draft" ||
       value === "images" ||
-      value === "publish"
+      value === "publish" ||
+      value === "facebook"
     );
 }
 

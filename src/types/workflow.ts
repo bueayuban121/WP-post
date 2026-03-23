@@ -68,7 +68,14 @@ export type ArticleImageAsset = {
   sectionHeading?: string;
 };
 
-export type WorkflowAutomationType = "research" | "brief" | "draft" | "images" | "publish";
+export type FacebookPostDraft = {
+  caption: string;
+  hashtags: string[];
+  selectedImageId: string;
+  status: "draft" | "queued" | "posted";
+};
+
+export type WorkflowAutomationType = "research" | "brief" | "draft" | "images" | "publish" | "facebook";
 
 export type WorkflowAutomationStatus = "queued" | "running" | "succeeded" | "failed";
 
@@ -96,5 +103,6 @@ export type WorkflowJob = {
   brief: ContentBrief;
   draft: ArticleDraft;
   images: ArticleImageAsset[];
+  facebook: FacebookPostDraft;
   automationEvents?: WorkflowAutomationEvent[];
 };

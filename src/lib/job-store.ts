@@ -11,7 +11,8 @@ import type {
   ContentBrief,
   ArticleDraft,
   WorkflowAutomationEvent,
-  ArticleImageAsset
+  ArticleImageAsset,
+  FacebookPostDraft
 } from "@/types/workflow";
 import { WorkflowStage, ResearchRegion, type Prisma } from "@/generated/prisma/client";
 
@@ -26,6 +27,7 @@ const jobInclude = {
     }
   },
   contentBrief: true,
+  facebookPost: true,
   articleDraft: {
     include: {
       sections: {
@@ -141,6 +143,14 @@ function toStoredJob(job: WorkflowJob) {
         sectionHeading: image.sectionHeading,
         sortOrder: index
       }))
+    },
+    facebookPost: {
+      create: {
+        caption: job.facebook.caption,
+        hashtags: job.facebook.hashtags,
+        selectedImageId: job.facebook.selectedImageId || null,
+        status: job.facebook.status
+      }
     }
   };
 }
@@ -210,6 +220,12 @@ function fromStoredJob(job: StoredJob): WorkflowJob {
       prompt: image.prompt,
       sectionHeading: image.sectionHeading ?? undefined
     })),
+    facebook: {
+      caption: job.facebookPost?.caption ?? "",
+      hashtags: job.facebookPost?.hashtags ?? [],
+      selectedImageId: job.facebookPost?.selectedImageId ?? job.articleImages[0]?.id ?? "",
+      status: (job.facebookPost?.status as FacebookPostDraft["status"] | undefined) ?? "draft"
+    },
     automationEvents: job.workflowEvents.map((event) => ({
       id: event.id,
       jobId: event.jobId,
@@ -237,6 +253,7 @@ async function updateStoredWorkflow(
     brief?: ContentBrief;
     draft?: ArticleDraft;
     images?: ArticleImageAsset[];
+    facebook?: FacebookPostDraft;
   }
 ) {
   const prisma = getPrismaClient();
@@ -366,6 +383,26 @@ async function updateStoredWorkflow(
                 sectionHeading: image.sectionHeading,
                 sortOrder: index
               }))
+            }
+          }
+        : {}),
+      ...(payload.facebook
+        ? {
+            facebookPost: {
+              upsert: {
+                create: {
+                  caption: payload.facebook.caption,
+                  hashtags: payload.facebook.hashtags,
+                  selectedImageId: payload.facebook.selectedImageId || null,
+                  status: payload.facebook.status
+                },
+                update: {
+                  caption: payload.facebook.caption,
+                  hashtags: payload.facebook.hashtags,
+                  selectedImageId: payload.facebook.selectedImageId || null,
+                  status: payload.facebook.status
+                }
+              }
             }
           }
         : {})
@@ -520,6 +557,12 @@ export async function selectIdea(jobId: string, ideaId: string) {
       conclusion: ""
     };
     job.images = [];
+    job.facebook = {
+      caption: "",
+      hashtags: [],
+      selectedImageId: "",
+      status: "draft"
+    };
     jobs.set(job.id, job);
     return cloneJob(job);
   }
@@ -618,6 +661,19 @@ export async function saveJobDraft(jobId: string, draft: ArticleDraft) {
   return updateStoredWorkflow(jobId, "review", { draft, images });
 }
 
+export async function saveFacebookPost(jobId: string, facebook: FacebookPostDraft) {
+  const job = await getJob(jobId);
+  if (!job) return null;
+
+  if (!isDatabaseConfigured()) {
+    job.facebook = facebook;
+    jobs.set(job.id, job);
+    return cloneJob(job);
+  }
+
+  return updateStoredWorkflow(jobId, job.stage, { facebook });
+}
+
 export async function approveJob(jobId: string) {
   const job = await getJob(jobId);
   if (!job) return null;
@@ -657,21 +713,38 @@ export async function regenerateJobImages(jobId: string) {
 
   if (!isDatabaseConfigured()) {
     job.images = images;
+    job.facebook = {
+      ...job.facebook,
+      selectedImageId:
+        job.facebook.selectedImageId && images.some((image) => image.id === job.facebook.selectedImageId)
+          ? job.facebook.selectedImageId
+          : images[0]?.id ?? ""
+    };
     jobs.set(job.id, job);
     return cloneJob(job);
   }
 
-  return updateStoredWorkflow(jobId, job.stage, { images });
+  return updateStoredWorkflow(jobId, job.stage, {
+    images,
+    facebook: {
+      ...job.facebook,
+      selectedImageId:
+        job.facebook.selectedImageId && images.some((image) => image.id === job.facebook.selectedImageId)
+          ? job.facebook.selectedImageId
+          : images[0]?.id ?? ""
+    }
+  });
 }
 
 export async function applyAutomationResult(input: {
   jobId: string;
-  type: "research" | "brief" | "draft" | "images" | "publish";
+  type: "research" | "brief" | "draft" | "images" | "publish" | "facebook";
   stage?: AppWorkflowStage;
   research?: ResearchPack;
   brief?: ContentBrief;
   draft?: ArticleDraft;
   images?: ArticleImageAsset[];
+  facebook?: FacebookPostDraft;
 }) {
   const job = await getJob(input.jobId);
   if (!job) return null;
@@ -701,6 +774,9 @@ export async function applyAutomationResult(input: {
     if (input.images) {
       job.images = input.images;
     }
+    if (input.facebook) {
+      job.facebook = input.facebook;
+    }
     job.stage = nextStage;
     jobs.set(job.id, job);
     return {
@@ -713,6 +789,7 @@ export async function applyAutomationResult(input: {
     research: input.research,
     brief: input.brief,
     draft: input.draft,
-    images: input.images
+    images: input.images,
+    facebook: input.facebook
   });
 }

@@ -28,8 +28,17 @@ const statusLabels = {
 function getResumeTab(type: WorkflowAutomationType) {
   if (type === "research") return "research";
   if (type === "images") return "images";
+  if (type === "facebook") return "facebook";
   if (type === "publish") return "queue";
   return "article";
+}
+
+function getOpenHref(row: QueueRow) {
+  if (row.type === "facebook") {
+    return `/facebook?job=${row.jobId}`;
+  }
+
+  return `/articles?job=${row.jobId}`;
 }
 
 export function QueueTableClient({ rows }: { rows: QueueRow[] }) {
@@ -64,9 +73,14 @@ export function QueueTableClient({ rows }: { rows: QueueRow[] }) {
 
     startTransition(async () => {
       try {
-        const response = await fetch(`/api/jobs/${row.jobId}/automation/${row.type}`, {
-          method: "POST"
-        });
+        const response = await fetch(
+          row.type === "facebook"
+            ? `/api/jobs/${row.jobId}/facebook/publish`
+            : `/api/jobs/${row.jobId}/automation/${row.type}`,
+          {
+            method: "POST"
+          }
+        );
 
         const data = (await response.json()) as { error?: string; automation?: { message?: string } };
         if (!response.ok) {
@@ -131,6 +145,7 @@ export function QueueTableClient({ rows }: { rows: QueueRow[] }) {
             <option value="draft">Draft</option>
             <option value="images">Images</option>
             <option value="publish">Publish</option>
+            <option value="facebook">Facebook</option>
           </select>
         </label>
       </div>
@@ -170,10 +185,10 @@ export function QueueTableClient({ rows }: { rows: QueueRow[] }) {
             <div>
               <strong>{new Date(row.updatedAt).toLocaleString("th-TH")}</strong>
               <div className={styles.actions}>
-                <Link className={styles.linkButton} href={`/articles?job=${row.jobId}`}>
+                <Link className={styles.linkButton} href={getOpenHref(row)}>
                   Open
                 </Link>
-                <Link className={styles.linkButton} href={`/?job=${row.jobId}&tab=${getResumeTab(row.type)}`}>
+                <Link className={styles.linkButton} href={row.type === "facebook" ? `/facebook?job=${row.jobId}` : `/?job=${row.jobId}&tab=${getResumeTab(row.type)}`}>
                   Resume
                 </Link>
                 <button

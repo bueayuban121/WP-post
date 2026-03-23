@@ -11,6 +11,7 @@ const navItems = [
   { href: "/keywords", label: "Keywords" },
   { href: "/queue", label: "Queue" },
   { href: "/articles", label: "Articles" },
+  { href: "/facebook", label: "Facebook" },
   { href: "/published", label: "Published" },
   { href: "/settings", label: "Settings" }
 ];

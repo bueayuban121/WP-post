@@ -730,6 +730,12 @@ export async function buildNewJob(seedKeyword: string, client: string): Promise<
       sections: [],
       conclusion: ""
     },
-    images: []
+    images: [],
+    facebook: {
+      caption: "",
+      hashtags: [],
+      selectedImageId: "",
+      status: "draft"
+    }
   };
 }

@@ -29,6 +29,7 @@ enum WorkflowEventType {
   DRAFT
   IMAGES
   PUBLISH
+  FACEBOOK
 }
 
 enum WorkflowEventStatus {
@@ -109,6 +110,7 @@ model KeywordJob {
   contentBrief   ContentBrief?
   articleDraft   ArticleDraft?
   articleImages  ArticleImage[]
+  facebookPost   FacebookPostDraft?
   workflowEvents WorkflowEvent[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -207,6 +209,18 @@ model ArticleImage {
   sortOrder      Int
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
+}
+
+model FacebookPostDraft {
+  id              String      @id @default(cuid())
+  jobId           String      @unique
+  job             KeywordJob  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  caption         String      @default("")
+  hashtags        String[]
+  selectedImageId String?
+  status          String      @default("draft")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 }
 
 model WorkflowEvent {

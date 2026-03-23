@@ -39,6 +39,11 @@ type DraftResponse = {
   conclusion: string;
 };
 
+type FacebookPostResponse = {
+  caption: string;
+  hashtags: string[];
+};
+
 function cleanText(value: string) {
   return value
     .replace(/https?:\/\/\S+/gi, "")
@@ -387,4 +392,70 @@ export async function generateDraftWithOpenAi(input: {
       .filter((section) => section.heading && section.body),
     conclusion: cleanParagraphBlock(parsed.conclusion)
   } satisfies ArticleDraft;
+}
+
+export async function generateFacebookPostWithOpenAi(input: {
+  seedKeyword: string;
+  brief: ContentBrief;
+  draft: ArticleDraft;
+}) {
+  const { seedKeyword, brief, draft } = input;
+
+  const prompt = [
+    `Seed keyword: ${seedKeyword}`,
+    `Article title: ${brief.title}`,
+    `Meta description: ${brief.metaDescription}`,
+    "",
+    "Article intro:",
+    draft.intro || "-",
+    "",
+    "Article sections:",
+    draft.sections
+      .slice(0, 5)
+      .map((section, index) => `${index + 1}. ${section.heading}: ${section.body}`)
+      .join("\n\n"),
+    "",
+    "Conclusion:",
+    draft.conclusion || "-",
+    "",
+    "Return JSON only in this shape:",
+    '{"caption":"","hashtags":[""]}',
+    "",
+    "Rules:",
+    "- Write the Facebook caption mainly in Thai.",
+    "- Make it readable, punchy, and suitable for a real Facebook page post.",
+    "- Summarize the article, do not dump the whole article.",
+    "- Use 2 to 4 short paragraphs.",
+    "- Do not include raw URLs.",
+    "- End with a soft CTA inviting people to read or learn more.",
+    "- Generate 5 to 8 hashtags.",
+    "- Hashtags can mix Thai and English when natural, but should stay relevant and readable."
+  ].join("\n");
+
+  const content = await complete(
+    [
+      {
+        role: "system",
+        content:
+          "You are a Thai social media strategist writing Facebook post copy for premium brand pages. Create concise, readable captions and relevant hashtags. Return JSON only."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    0.55
+  );
+
+  const parsed = parseJson<FacebookPostResponse>(content);
+  return {
+    caption: cleanParagraphBlock(parsed.caption),
+    hashtags: dedupeList(
+      parsed.hashtags.map((tag) => {
+        const cleaned = cleanText(tag).replace(/\s+/g, "");
+        return cleaned.startsWith("#") ? cleaned : `#${cleaned.replace(/^#+/, "")}`;
+      }),
+      8
+    )
+  };
 }

@@ -1,10 +1,10 @@
 import { applyAutomationResult, getJob } from "@/lib/job-store";
 import { createWorkflowEvent, updateWorkflowEvent } from "@/lib/workflow-events";
 import type { N8nCallbackPayload } from "@/types/n8n";
-import type { WorkflowAutomationStatus, WorkflowAutomationType } from "@/types/workflow";
+import type { WorkflowAutomationStatus, WorkflowAutomationType, WorkflowJob } from "@/types/workflow";
 import { NextResponse } from "next/server";
 
-const supportedTypes = new Set<WorkflowAutomationType>(["research", "brief", "draft", "images", "publish"]);
+const supportedTypes = new Set<WorkflowAutomationType>(["research", "brief", "draft", "images", "publish", "facebook"]);
 const supportedStatuses = new Set<WorkflowAutomationStatus>([
   "queued",
   "running",
@@ -81,7 +81,10 @@ export async function POST(request: Request) {
           research: body.research,
           brief: body.brief,
           draft: body.draft,
-          images: body.images
+          images: body.images,
+          facebook: body.payload && typeof body.payload === "object" && "facebook" in body.payload
+            ? (body.payload.facebook as WorkflowJob["facebook"])
+            : undefined
         })
       : job;
 
