@@ -1,4 +1,5 @@
 import { getJobScopeForUser, requireRouteSession } from "@/lib/auth";
+import { buildDownloadFilename } from "@/lib/download-filename";
 import { buildDeliverable } from "@/lib/deliverable";
 import { getJob } from "@/lib/job-store";
 import { NextResponse } from "next/server";
@@ -24,11 +25,12 @@ export async function GET(
   const body = buildDeliverable(job, format);
   const extension = format === "markdown" ? "md" : "json";
   const contentType = format === "markdown" ? "text/markdown; charset=utf-8" : "application/json; charset=utf-8";
+  const filename = buildDownloadFilename(job.brief.slug || job.brief.title, job.id, extension);
 
   return new NextResponse(body, {
     headers: {
       "Content-Type": contentType,
-      "Content-Disposition": `attachment; filename=\"${job.brief.slug || job.id}.${extension}\"`
+      "Content-Disposition": `attachment; filename="${filename}"`
     }
   });
 }
