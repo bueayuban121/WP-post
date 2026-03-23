@@ -572,6 +572,121 @@ export async function selectIdea(jobId: string, ideaId: string) {
   });
 }
 
+export async function updateSelectedIdea(
+  jobId: string,
+  ideaId: string,
+  patch: {
+    title?: string;
+    angle?: string;
+  }
+) {
+  const job = await getJob(jobId);
+  if (!job) return null;
+
+  const selectedIdea = job.ideas.find((idea) => idea.id === ideaId);
+  if (!selectedIdea) return null;
+
+  const nextTitle = patch.title?.trim() || selectedIdea.title;
+  const nextAngle = patch.angle?.trim() || selectedIdea.angle;
+
+  if (!isDatabaseConfigured()) {
+    job.ideas = job.ideas.map((idea) =>
+      idea.id === ideaId
+        ? {
+            ...idea,
+            title: nextTitle,
+            angle: nextAngle
+          }
+        : idea
+    );
+    job.selectedIdeaId = ideaId;
+    job.stage = "selected";
+    job.research = {
+      objective: "",
+      audience: "",
+      gaps: [],
+      sources: []
+    };
+    job.brief = {
+      title: "",
+      slug: "",
+      metaTitle: "",
+      metaDescription: "",
+      audience: "",
+      angle: "",
+      publishStatus: "draft",
+      categoryIds: [],
+      tagIds: [],
+      featuredImageUrl: "",
+      outline: [],
+      faqs: [],
+      internalLinks: []
+    };
+    job.draft = {
+      intro: "",
+      sections: [],
+      conclusion: ""
+    };
+    job.images = [];
+    job.facebook = {
+      caption: "",
+      hashtags: [],
+      selectedImageId: "",
+      status: "draft"
+    };
+    jobs.set(job.id, job);
+    return cloneJob(job);
+  }
+
+  const prisma = getPrismaClient();
+  if (!prisma) return null;
+
+  await prisma.topicIdea.update({
+    where: { id: ideaId },
+    data: {
+      title: nextTitle,
+      angle: nextAngle
+    }
+  });
+
+  return updateStoredWorkflow(jobId, "selected", {
+    selectedIdeaId: ideaId,
+    research: {
+      objective: "",
+      audience: "",
+      gaps: [],
+      sources: []
+    },
+    brief: {
+      title: "",
+      slug: "",
+      metaTitle: "",
+      metaDescription: "",
+      audience: "",
+      angle: "",
+      publishStatus: "draft",
+      categoryIds: [],
+      tagIds: [],
+      featuredImageUrl: "",
+      outline: [],
+      faqs: [],
+      internalLinks: []
+    },
+    draft: {
+      intro: "",
+      sections: [],
+      conclusion: ""
+    },
+    images: [],
+    facebook: {
+      caption: "",
+      hashtags: [],
+      selectedImageId: "",
+      status: "draft"
+    }
+  });
+}
+
 export async function runResearch(jobId: string) {
   const job = await getJob(jobId);
   if (!job) return null;

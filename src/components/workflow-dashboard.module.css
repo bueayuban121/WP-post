@@ -508,7 +508,9 @@
 .focusMeta,
 .quickStats,
 .sectionLead,
-.researchIntro {
+.researchIntro,
+.selectedIdeaHead,
+.selectedIdeaFields {
   display: flex;
 }
 
@@ -599,6 +601,31 @@
   margin-top: 8px;
   color: #f2f6fc;
   line-height: 1.5;
+}
+
+.selectedIdeaEditor {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, rgba(12, 16, 26, 0.92), rgba(8, 10, 14, 0.88));
+}
+
+.selectedIdeaHead {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.selectedIdeaHead h3 {
+  margin: 6px 0 0;
+  font-size: 1.04rem;
+}
+
+.selectedIdeaFields {
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .keywordCard {

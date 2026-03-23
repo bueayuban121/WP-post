@@ -1,5 +1,5 @@
 import { getJobScopeForUser, requireRouteSession } from "@/lib/auth";
-import { getJob, selectIdea } from "@/lib/job-store";
+import { getJob, selectIdea, updateSelectedIdea } from "@/lib/job-store";
 import { NextResponse } from "next/server";
 
 export async function POST(
@@ -12,7 +12,7 @@ export async function POST(
   }
 
   const { jobId } = await context.params;
-  const body = (await request.json()) as { ideaId?: string };
+  const body = (await request.json()) as { ideaId?: string; title?: string; angle?: string };
   const ideaId = body.ideaId?.trim();
 
   if (!ideaId) {
@@ -24,7 +24,13 @@ export async function POST(
     return NextResponse.json({ error: "Job or idea not found." }, { status: 404 });
   }
 
-  const job = await selectIdea(jobId, ideaId);
+  const job =
+    body.title?.trim() || body.angle?.trim()
+      ? await updateSelectedIdea(jobId, ideaId, {
+          title: body.title,
+          angle: body.angle
+        })
+      : await selectIdea(jobId, ideaId);
   if (!job) {
     return NextResponse.json({ error: "Job or idea not found." }, { status: 404 });
   }

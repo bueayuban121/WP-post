@@ -14,6 +14,7 @@ type PendingAction =
   | ""
   | "create-project"
   | "select-keyword"
+  | "save-keyword"
   | "run-research"
   | "create-article"
   | "save-brief"
@@ -200,6 +201,8 @@ export function WorkflowDashboard({
   const [briefFeaturedImageUrl, setBriefFeaturedImageUrl] = useState("");
   const [draftIntro, setDraftIntro] = useState("");
   const [draftConclusion, setDraftConclusion] = useState("");
+  const [selectedIdeaTitle, setSelectedIdeaTitle] = useState("");
+  const [selectedIdeaAngle, setSelectedIdeaAngle] = useState("");
 
   const job = jobs.find((item) => item.id === activeJobId) ?? jobs[0] ?? null;
   const activeIdea = job?.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? null;
@@ -235,6 +238,9 @@ export function WorkflowDashboard({
     setBriefFeaturedImageUrl(nextJob.brief.featuredImageUrl);
     setDraftIntro(nextJob.draft.intro);
     setDraftConclusion(nextJob.draft.conclusion);
+    const nextIdea = nextJob.ideas.find((idea) => idea.id === nextJob.selectedIdeaId);
+    setSelectedIdeaTitle(nextIdea?.title ?? "");
+    setSelectedIdeaAngle(nextIdea?.angle ?? "");
   }
 
   const loadJobs = useCallback(async () => {
@@ -430,6 +436,32 @@ export function WorkflowDashboard({
         );
       } catch (selectError) {
         setError(selectError instanceof Error ? selectError.message : "Select failed");
+      } finally {
+        setPendingAction("");
+      }
+    });
+  }
+
+  async function saveSelectedKeyword() {
+    if (!job || !activeIdea) return;
+
+    startTransition(async () => {
+      setPendingAction("save-keyword");
+      setStatusMessage("Saving selected keyword");
+      setError("");
+      try {
+        await postJob(
+          `/api/jobs/${job.id}/ideas/select`,
+          {
+            ideaId: activeIdea.id,
+            title: selectedIdeaTitle,
+            angle: selectedIdeaAngle
+          },
+          "Selected keyword updated",
+          "expand"
+        );
+      } catch (saveError) {
+        setError(saveError instanceof Error ? saveError.message : "Save failed");
       } finally {
         setPendingAction("");
       }
@@ -1028,6 +1060,36 @@ export function WorkflowDashboard({
                       </div>
                     </div>
                   </div>
+                  {activeIdea ? (
+                    <section className={styles.selectedIdeaEditor}>
+                      <div className={styles.selectedIdeaHead}>
+                        <div>
+                          <span className={styles.label}>Selected Keyword</span>
+                          <h3>Refine before research</h3>
+                        </div>
+                        <button
+                          className={styles.secondaryButton}
+                          disabled={Boolean(pendingAction)}
+                          onClick={() => void saveSelectedKeyword()}
+                          type="button"
+                        >
+                          {pendingAction === "save-keyword" ? "Saving..." : "Save keyword"}
+                        </button>
+                      </div>
+                      <div className={styles.selectedIdeaFields}>
+                        <label className={styles.editorField}>
+                          <span>Keyword title</span>
+                          <small>แก้ wording ของหัวข้อก่อนนำไปรีเสิร์ช</small>
+                          <input value={selectedIdeaTitle} onChange={(event) => setSelectedIdeaTitle(event.target.value)} />
+                        </label>
+                        <label className={styles.editorField}>
+                          <span>Angle</span>
+                          <small>ระบุมุมหรือประเด็นที่อยากให้ research เน้น</small>
+                          <textarea rows={3} value={selectedIdeaAngle} onChange={(event) => setSelectedIdeaAngle(event.target.value)} />
+                        </label>
+                      </div>
+                    </section>
+                  ) : null}
                   <div className={styles.keywordGrid}>
                     {job.ideas.map((idea) => (
                       <article
