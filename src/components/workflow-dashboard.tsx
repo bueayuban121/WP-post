@@ -44,6 +44,39 @@ function getProjectName(name: string) {
   return name.trim() || "Untitled Project";
 }
 
+async function downloadFile(url: string, fallbackName: string) {
+  const response = await fetch(url, {
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    let message = "Download failed.";
+
+    try {
+      const data = (await response.json()) as { error?: string };
+      if (data.error) {
+        message = data.error;
+      }
+    } catch {
+      // Ignore JSON parsing errors and keep the generic message.
+    }
+
+    throw new Error(message);
+  }
+
+  const blob = await response.blob();
+  const objectUrl = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const match = disposition.match(/filename="?([^"]+)"?/i);
+  anchor.href = objectUrl;
+  anchor.download = match?.[1] ?? fallbackName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(objectUrl);
+}
+
 function splitParagraphs(value: string) {
   return value
     .split(/\n{2,}/)
@@ -513,18 +546,34 @@ export function WorkflowDashboard({
     });
   }
 
-  function downloadDeliverable(format: "markdown" | "json") {
+  async function downloadDeliverable(format: "markdown" | "json") {
     if (!job) return;
-    window.open(`/api/jobs/${job.id}/deliverable?format=${format}`, "_blank", "noopener,noreferrer");
+
+    try {
+      setStatusMessage(`Preparing ${format.toUpperCase()} export...`);
+      setError("");
+      const fallbackName = `${job.brief.slug || job.id}.${format === "markdown" ? "md" : "json"}`;
+      await downloadFile(`/api/jobs/${job.id}/deliverable?format=${format}`, fallbackName);
+      setStatusMessage(`${format.toUpperCase()} export ready`);
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : "Export failed.");
+      setStatusMessage("Export failed");
+    }
   }
 
-  function downloadResearchReport(format: "doc" | "html") {
+  async function downloadResearchReport(format: "doc" | "html") {
     if (!job) return;
-    window.open(
-      `/api/jobs/${job.id}/research-report?format=${format}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
+
+    try {
+      setStatusMessage(`Preparing research ${format.toUpperCase()}...`);
+      setError("");
+      const fallbackName = `${job.brief.slug || job.id}-research-report.${format}`;
+      await downloadFile(`/api/jobs/${job.id}/research-report?format=${format}`, fallbackName);
+      setStatusMessage(`Research ${format.toUpperCase()} ready`);
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : "Research export failed.");
+      setStatusMessage("Research export failed");
+    }
   }
 
   const projectCount = new Set(jobs.map((item) => item.client)).size;
