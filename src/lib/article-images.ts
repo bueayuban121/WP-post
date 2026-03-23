@@ -23,24 +23,21 @@ function trimSentence(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function buildShortEnglishText(title: string, seedKeyword: string, placement: string) {
-  const source = `${title} ${seedKeyword}`
-    .replace(/[^A-Za-z0-9\s-]/g, " ")
+function buildShortThaiText(title: string, seedKeyword: string, placement: string, sectionHeading?: string) {
+  const source = trimSentence(sectionHeading || title || seedKeyword)
+    .replace(/[“”"'`]/g, "")
+    .replace(/[!?.,:;()[\]{}]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-  const words = source
-    .split(" ")
-    .map((word) => word.trim())
-    .filter((word) => word.length >= 3 && /[A-Za-z]/.test(word))
-    .slice(0, 3)
-    .map((word) => word.toUpperCase());
+  const compact = source.replace(/\s+/g, "");
 
-  if (words.length > 0) {
-    return words.join(" ");
+  if (compact.length >= 6) {
+    return compact.slice(0, 20);
   }
 
-  return placement === "Hero" ? "EDITORIAL FEATURE" : "STUDIO DETAIL";
+  const fallbackBase = trimSentence(`${seedKeyword} ${placement === "Hero" ? "น่ารู้" : "สำคัญ"}`).replace(/\s+/g, "");
+  return fallbackBase.slice(0, 20);
 }
 
 function buildPrompt(input: {
@@ -52,18 +49,26 @@ function buildPrompt(input: {
   sectionHeading?: string;
 }) {
   const subject = input.sectionHeading ? `${input.title}, ${input.sectionHeading}` : input.title;
-  const displayText = buildShortEnglishText(input.title, input.seedKeyword, input.placement);
+  const displayText = buildShortThaiText(
+    input.title,
+    input.seedKeyword,
+    input.placement,
+    input.sectionHeading
+  );
 
   return trimSentence(
     [
-      "Editorial blog hero image, premium realistic photography, detailed subject, natural lighting, clean composition.",
+      "Editorial blog image, premium realistic photography, high-end commercial composition, clean professional layout.",
       `Main topic: ${subject}.`,
       `Seed keyword: ${input.seedKeyword}.`,
       `Audience: ${input.audience}.`,
       `Story angle: ${input.angle}.`,
       `Placement in article: ${input.placement}.`,
-      `If text appears in the scene, use only one short readable English phrase: "${displayText}".`,
-      "Use large clean sans-serif letters only, no Thai text, no gibberish, no extra typography, no watermark, no UI, no collage."
+      `Add one short Thai headline in the image: "${displayText}".`,
+      "The Thai text must be large, bold, clean, sharp, readable, and naturally placed like a premium editorial ad.",
+      "Use only one short Thai phrase, around 3 to 8 words, with strong contrast and generous negative space around the text.",
+      "Make the typography look normal and intentional, not distorted, not misspelled, not repeated, not gibberish.",
+      "No extra text blocks, no random letters, no broken typography, no watermark, no UI, no collage."
     ].join(" ")
   );
 }
