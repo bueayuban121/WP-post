@@ -144,7 +144,7 @@ Each trigger creates a workflow event, then posts to:
 - `${N8N_WEBHOOK_BASE_URL}/draft`
 - `${N8N_WEBHOOK_BASE_URL}/images`
 - `${N8N_WEBHOOK_BASE_URL}/publish`
-- `${N8N_FACEBOOK_WEBHOOK_URL}`
+- `${N8N_FACEBOOK_PUBLISH_WEBHOOK_URL}` or `${N8N_FACEBOOK_WEBHOOK_URL}`
 
 If a type is listed in `N8N_POLLING_TYPES`, the app will queue it for an n8n poller instead of calling the webhook directly. By default `publish` and `images` are queued.
 
@@ -192,7 +192,8 @@ Recommended callback body:
 ```
 
 If `N8N_WEBHOOK_BASE_URL` is missing, the app stays in local mode and records a failed automation event instead of calling an external webhook.
-If `N8N_FACEBOOK_WEBHOOK_URL` is missing, the Facebook compose page can still generate and save captions, but queueing to the Facebook workflow will fail fast with a clear message.
+If `N8N_FACEBOOK_PUBLISH_WEBHOOK_URL` is set, the app will also send compatibility fields (`text_content`, `images`, `platform`) so older n8n Facebook publish workflows can be reused without changing the app UI.
+If both `N8N_FACEBOOK_PUBLISH_WEBHOOK_URL` and `N8N_FACEBOOK_WEBHOOK_URL` are missing, the Facebook compose page can still generate and save captions, but queueing to the Facebook workflow will fail fast with a clear message.
 If `APP_BASE_URL` is missing or only points to a non-public local URL, the app also stays in local mode because n8n would have nowhere valid to send the callback.
 
 Reference files:

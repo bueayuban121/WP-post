@@ -4,7 +4,9 @@ import { createWorkflowEvent, updateWorkflowEvent } from "@/lib/workflow-events"
 import { NextResponse } from "next/server";
 
 function getFacebookWebhookUrl() {
-  const value = process.env.N8N_FACEBOOK_WEBHOOK_URL?.trim();
+  const value =
+    process.env.N8N_FACEBOOK_PUBLISH_WEBHOOK_URL?.trim() ||
+    process.env.N8N_FACEBOOK_WEBHOOK_URL?.trim();
   return value ? value.replace(/\/$/, "") : "";
 }
 
@@ -78,7 +80,10 @@ export async function POST(
         caption: job.facebook.caption,
         hashtags: job.facebook.hashtags,
         selectedImage
-      }
+      },
+      text_content: `${job.facebook.caption}\n\n${job.facebook.hashtags.join(" ")}`.trim(),
+      images: [selectedImage.src],
+      platform: "facebook"
     })
   });
 
