@@ -23,21 +23,27 @@ function trimSentence(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function buildShortThaiText(title: string, seedKeyword: string, placement: string, sectionHeading?: string) {
-  const source = trimSentence(sectionHeading || title || seedKeyword)
+function cleanThaiSource(value: string) {
+  return trimSentence(value)
     .replace(/[“”"'`]/g, "")
     .replace(/[!?.,:;()[\]{}]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
 
-  const compact = source.replace(/\s+/g, "");
+function deriveTextDirection(input: {
+  title: string;
+  seedKeyword: string;
+  placement: string;
+  sectionHeading?: string;
+}) {
+  const source = cleanThaiSource(input.sectionHeading || input.title || input.seedKeyword);
 
-  if (compact.length >= 6) {
-    return compact.slice(0, 20);
+  if (source) {
+    return source.slice(0, 42);
   }
 
-  const fallbackBase = trimSentence(`${seedKeyword} ${placement === "Hero" ? "น่ารู้" : "สำคัญ"}`).replace(/\s+/g, "");
-  return fallbackBase.slice(0, 20);
+  return input.placement === "Hero" ? cleanThaiSource(input.seedKeyword) : "ประเด็นสำคัญ";
 }
 
 function buildPrompt(input: {
@@ -49,12 +55,12 @@ function buildPrompt(input: {
   sectionHeading?: string;
 }) {
   const subject = input.sectionHeading ? `${input.title}, ${input.sectionHeading}` : input.title;
-  const displayText = buildShortThaiText(
-    input.title,
-    input.seedKeyword,
-    input.placement,
-    input.sectionHeading
-  );
+  const textDirection = deriveTextDirection({
+    title: input.title,
+    seedKeyword: input.seedKeyword,
+    placement: input.placement,
+    sectionHeading: input.sectionHeading
+  });
 
   return trimSentence(
     [
@@ -64,10 +70,13 @@ function buildPrompt(input: {
       `Audience: ${input.audience}.`,
       `Story angle: ${input.angle}.`,
       `Placement in article: ${input.placement}.`,
-      `Add one short Thai headline in the image: "${displayText}".`,
-      "The Thai text must be large, bold, clean, sharp, readable, and naturally placed like a premium editorial ad.",
-      "Use only one short Thai phrase, around 3 to 8 words, with strong contrast and generous negative space around the text.",
-      "Make the typography look normal and intentional, not distorted, not misspelled, not repeated, not gibberish.",
+      `The image should include one short Thai headline that matches the meaning of this specific article section.`,
+      `Use this as the text direction only: ${textDirection}.`,
+      "Let the AI design the exact Thai wording naturally so each image can have different text that fits its own visual concept.",
+      "The text should feel like a premium editorial headline, key takeaway, benefit statement, or hook.",
+      "Keep the Thai text short, around 3 to 8 words, readable, bold, clean, sharp, and naturally integrated into the design.",
+      "Use strong contrast and enough negative space around the text.",
+      "Typography must look normal and intentional, not distorted, not repeated, not gibberish, not misspelled.",
       "No extra text blocks, no random letters, no broken typography, no watermark, no UI, no collage."
     ].join(" ")
   );
@@ -107,7 +116,13 @@ function toAlt(title: string, placement: string, sectionHeading?: string) {
   return `${title} - ${placement}`;
 }
 
-function buildAsset(input: BuildImageInput, placement: string, sortKey: string, sectionHeading?: string, kind: "featured" | "inline" = "inline"): ArticleImageAsset {
+function buildAsset(
+  input: BuildImageInput,
+  placement: string,
+  sortKey: string,
+  sectionHeading?: string,
+  kind: "featured" | "inline" = "inline"
+): ArticleImageAsset {
   const prompt = buildPrompt({
     seedKeyword: input.seedKeyword,
     title: input.title,
