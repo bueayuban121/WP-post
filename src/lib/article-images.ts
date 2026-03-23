@@ -23,6 +23,26 @@ function trimSentence(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function buildShortEnglishText(title: string, seedKeyword: string, placement: string) {
+  const source = `${title} ${seedKeyword}`
+    .replace(/[^A-Za-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const words = source
+    .split(" ")
+    .map((word) => word.trim())
+    .filter((word) => word.length >= 3 && /[A-Za-z]/.test(word))
+    .slice(0, 3)
+    .map((word) => word.toUpperCase());
+
+  if (words.length > 0) {
+    return words.join(" ");
+  }
+
+  return placement === "Hero" ? "EDITORIAL FEATURE" : "STUDIO DETAIL";
+}
+
 function buildPrompt(input: {
   seedKeyword: string;
   title: string;
@@ -32,6 +52,7 @@ function buildPrompt(input: {
   sectionHeading?: string;
 }) {
   const subject = input.sectionHeading ? `${input.title}, ${input.sectionHeading}` : input.title;
+  const displayText = buildShortEnglishText(input.title, input.seedKeyword, input.placement);
 
   return trimSentence(
     [
@@ -41,7 +62,8 @@ function buildPrompt(input: {
       `Audience: ${input.audience}.`,
       `Story angle: ${input.angle}.`,
       `Placement in article: ${input.placement}.`,
-      "No text, no watermark, no logo, no UI, no collage."
+      `If text appears in the scene, use only one short readable English phrase: "${displayText}".`,
+      "Use large clean sans-serif letters only, no Thai text, no gibberish, no extra typography, no watermark, no UI, no collage."
     ].join(" ")
   );
 }
