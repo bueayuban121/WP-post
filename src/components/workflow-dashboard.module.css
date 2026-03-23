@@ -560,9 +560,10 @@
 
 .researchLayout {
   display: grid;
-  grid-template-columns: 1.35fr 0.65fr;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.4fr);
   gap: 18px;
   margin-top: 18px;
+  align-items: start;
 }
 
 .researchMain,
@@ -577,6 +578,7 @@
   border-radius: 24px;
   border: 1px solid rgba(122, 143, 255, 0.12);
   background: linear-gradient(180deg, rgba(10, 12, 19, 0.96), rgba(7, 9, 12, 0.92));
+  min-width: 0;
 }
 
 .researchMain h3 {
@@ -587,24 +589,29 @@
 .researchMain p {
   max-height: 980px;
   overflow: auto;
-  padding-right: 10px;
+  padding-right: 12px;
   font-size: 0.97rem;
 }
 
 .researchSide {
   gap: 14px;
+  max-width: 340px;
+  width: 100%;
+  justify-self: end;
 }
 
 .sourcePanel {
   gap: 12px;
-  padding: 18px;
+  padding: 16px;
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.025);
+  max-height: 380px;
+  overflow: auto;
 }
 
 .sourceItem {
-  padding-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -617,8 +624,14 @@
 .sourceItem small {
   display: block;
   color: #9aa3af;
-  margin-top: 6px;
-  line-height: 1.7;
+  margin-top: 4px;
+  line-height: 1.55;
+}
+
+.sourceItem strong {
+  display: block;
+  line-height: 1.45;
+  font-size: 0.92rem;
 }
 
 .articlePreview {
