@@ -249,6 +249,12 @@
   color: #f5f7fb;
   border-radius: 14px;
   padding: 12px 14px;
+  color-scheme: dark;
+}
+
+.settingsForm select option {
+  background: #0a0d14;
+  color: #f5f7fb;
 }
 
 .systemGrid,
