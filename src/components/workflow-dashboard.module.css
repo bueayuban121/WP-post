@@ -447,6 +447,9 @@
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  width: 100%;
+  text-align: left;
+  color: inherit;
 }
 
 .stepRow span {
@@ -461,6 +464,20 @@
 
 .stepRow small {
   color: #9aa3af;
+}
+
+.stepRowActive {
+  border-color: rgba(0, 225, 255, 0.26);
+  background: linear-gradient(135deg, rgba(0, 225, 255, 0.1), rgba(124, 107, 255, 0.08));
+  box-shadow: 0 0 0 1px rgba(0, 225, 255, 0.08), 0 18px 32px rgba(0, 0, 0, 0.18);
+}
+
+.stepRowComplete {
+  border-color: rgba(95, 207, 152, 0.14);
+}
+
+.stepRowLocked {
+  opacity: 0.68;
 }
 
 .navTab {
@@ -486,6 +503,65 @@
   animation: revealUp 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.focusPanel,
+.focusActions,
+.focusMeta,
+.quickStats,
+.sectionLead,
+.researchIntro {
+  display: flex;
+}
+
+.focusPanel {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 22px;
+  background:
+    linear-gradient(135deg, rgba(0, 217, 255, 0.08), rgba(124, 107, 255, 0.06) 40%, rgba(255, 255, 255, 0.02) 100%),
+    rgba(7, 9, 12, 0.98);
+}
+
+.focusCopy {
+  flex: 1 1 auto;
+}
+
+.focusCopy h2 {
+  margin: 6px 0 8px;
+  font-size: 1.32rem;
+}
+
+.focusText {
+  margin: 0;
+  max-width: 760px;
+  color: #a8b4c4;
+  line-height: 1.75;
+}
+
+.focusActions {
+  flex: 0 0 250px;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.focusMeta {
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.focusPill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cfe3ff;
+  font-size: 0.82rem;
+}
+
 .sectionText {
   color: #a8b4c4;
   line-height: 1.8;
@@ -497,6 +573,32 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-top: 18px;
+}
+
+.sectionLead {
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.quickStats {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quickStats > div {
+  flex: 1 1 180px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.quickStats strong {
+  display: block;
+  margin-top: 8px;
+  color: #f2f6fc;
+  line-height: 1.5;
 }
 
 .keywordCard {
@@ -584,6 +686,12 @@
 .researchMain h3 {
   margin: 0 0 12px;
   font-size: 1.24rem;
+}
+
+.researchIntro {
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
 }
 
 .researchMain p {
@@ -1293,6 +1401,7 @@
   .dashboardGrid,
   .overviewGrid,
   .workflowFrame,
+  .focusPanel,
   .workspace,
   .createForm,
   .articleWorkspace,
@@ -1335,6 +1444,7 @@
 
   .topbar,
   .topNav,
+  .focusPanel,
   .sectionHead,
   .briefStrip,
   .articleMeta,
@@ -1349,12 +1459,14 @@
   }
 
   .navLinks,
-  .heroActions {
+  .heroActions,
+  .focusActions {
     width: 100%;
   }
 
   .navLinks button,
   .heroActions button,
+  .focusActions button,
   .queueRow,
   .queueHead,
   .researchActions button {

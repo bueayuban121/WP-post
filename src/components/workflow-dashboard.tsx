@@ -9,6 +9,7 @@ import styles from "./workflow-dashboard.module.css";
 
 type WorkspaceTab = "expand" | "research" | "queue" | "article" | "images";
 type LoadState = "loading" | "ready" | "empty" | "error";
+type WorkflowStepState = "complete" | "active" | "locked";
 type PendingAction =
   | ""
   | "create-project"
@@ -584,6 +585,113 @@ export function WorkflowDashboard({
   );
   const queueCount = queueEvents.filter((event) => event.status === "queued" || event.status === "running").length;
   const liveEvent = queueEvents.find((event) => event.status === "queued" || event.status === "running") ?? null;
+  const hasImages = articleImages.length > 0;
+  const workflowSteps: Array<{
+    id: WorkspaceTab;
+    index: string;
+    title: string;
+    detail: string;
+    state: WorkflowStepState;
+  }> = [
+    {
+      id: "expand",
+      index: "01",
+      title: "Expand keywords",
+      detail: `${job.ideas.length} AI opportunities`,
+      state: "complete"
+    },
+    {
+      id: "research",
+      index: "02",
+      title: "Research summary",
+      detail: hasResearch ? `${job.research.sources.length} sources collected` : hasSelectedIdea ? "Ready to run research" : "Select one keyword first",
+      state: hasResearch ? "complete" : hasSelectedIdea ? "active" : "locked"
+    },
+    {
+      id: "article",
+      index: "03",
+      title: "Article studio",
+      detail: hasDraft ? `${job.draft.sections.length} sections ready` : hasResearch ? "Ready to create article" : "Research required first",
+      state: hasDraft ? "complete" : hasResearch ? "active" : "locked"
+    },
+    {
+      id: "images",
+      index: "04",
+      title: "Images & publish",
+      detail: hasImages ? `${articleImages.length} visuals ready` : hasDraft ? "Ready to generate images" : "Article required first",
+      state: job.stage === "published" || hasImages ? "complete" : hasDraft ? "active" : "locked"
+    }
+  ];
+  const activeWorkflowStep = workflowSteps.find((step) => step.state === "active") ?? workflowSteps[workflowSteps.length - 1];
+  const primaryActionConfig = (() => {
+    if (!hasSelectedIdea) {
+      return {
+        title: "Choose one keyword opportunity",
+        detail: "Start by selecting a single topic before the system moves into research.",
+        cta: "Review keyword options",
+        disabled: false,
+        onClick: () => setTab("expand")
+      };
+    }
+
+    if (!hasResearch) {
+      return {
+        title: "Run research on the selected keyword",
+        detail: "Collect Thai and global sources first, then synthesize them into a readable summary.",
+        cta: pendingAction === "run-research" ? "Running Research..." : "Run Research",
+        disabled: Boolean(pendingAction),
+        onClick: () => void runResearch()
+      };
+    }
+
+    if (!hasDraft) {
+      return {
+        title: "Generate the first article draft",
+        detail: "Use the research summary, SEO brief, and outline to create the main article.",
+        cta: pendingAction === "create-article" ? "Creating Article..." : "Create Article",
+        disabled: Boolean(pendingAction),
+        onClick: () => void createArticle()
+      };
+    }
+
+    if (!hasImages) {
+      return {
+        title: "Create visual assets for the article",
+        detail: "Generate a featured image and inline visuals that fit each section of the article.",
+        cta: pendingAction === "generate-images" ? "Generating Images..." : "Generate Images",
+        disabled: Boolean(pendingAction),
+        onClick: () => void runPrimaryAction("images")
+      };
+    }
+
+    if (job.stage !== "approved" && job.stage !== "published") {
+      return {
+        title: "Approve the article before publishing",
+        detail: "Lock the draft as client-ready, then send it to the publish queue.",
+        cta: pendingAction === "approve" ? "Approving..." : "Approve Draft",
+        disabled: Boolean(pendingAction),
+        onClick: () => void runPrimaryAction("approve")
+      };
+    }
+
+    if (job.stage !== "published") {
+      return {
+        title: "Send the article to publish",
+        detail: "Push the approved article into WordPress and the connected automation flow.",
+        cta: pendingAction === "publish" ? "Queueing Publish..." : "Queue Publish",
+        disabled: Boolean(pendingAction),
+        onClick: () => void runPrimaryAction("publish")
+      };
+    }
+
+    return {
+      title: "Article already published",
+      detail: "Open the queue or published views if you want to review the latest delivery details.",
+      cta: "Review Publish Logs",
+      disabled: false,
+      onClick: () => setTab("queue")
+    };
+  })();
 
   return (
     <main className={styles.page}>
@@ -738,10 +846,29 @@ export function WorkflowDashboard({
                   <span className={styles.keywordChip}>{job.seedKeyword}</span>
                 </div>
                 <div className={styles.stepStack}>
-                  <div className={styles.stepRow}><span>01</span><strong>Seed keyword</strong><small>{job.seedKeyword}</small></div>
-                  <div className={styles.stepRow}><span>02</span><strong>Expand keywords</strong><small>{job.ideas.length} AI opportunities</small></div>
-                  <div className={styles.stepRow}><span>03</span><strong>Research summary</strong><small>{hasResearch ? `${job.research.sources.length} sources collected` : "Waiting for research"}</small></div>
-                  <div className={styles.stepRow}><span>04</span><strong>Article workflow</strong><small>{hasResearch ? stageLabels[job.stage] : "Research required first"}</small></div>
+                  <div className={`${styles.stepRow} ${styles.stepRowComplete}`}>
+                    <span>00</span>
+                    <strong>Seed keyword</strong>
+                    <small>{job.seedKeyword}</small>
+                  </div>
+                  {workflowSteps.map((step) => (
+                    <button
+                      key={step.id}
+                      className={`${styles.stepRow} ${
+                        step.state === "complete"
+                          ? styles.stepRowComplete
+                          : step.state === "active"
+                            ? styles.stepRowActive
+                            : styles.stepRowLocked
+                      }`}
+                      onClick={() => setTab(step.id)}
+                      type="button"
+                    >
+                      <span>{step.index}</span>
+                      <strong>{step.title}</strong>
+                      <small>{step.detail}</small>
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -826,6 +953,36 @@ export function WorkflowDashboard({
             </aside>
 
             <section className={styles.content}>
+              <section className={`${styles.panel} ${styles.focusPanel}`}>
+                <div className={styles.focusCopy}>
+                  <span className={styles.label}>Next Step</span>
+                  <h2>{primaryActionConfig.title}</h2>
+                  <p className={styles.focusText}>{primaryActionConfig.detail}</p>
+                  <div className={styles.focusMeta}>
+                    <span className={styles.focusPill}>Current stage: {stageLabels[job.stage]}</span>
+                    <span className={styles.focusPill}>Selected topic: {activeIdea?.title ?? "Waiting for selection"}</span>
+                    <span className={styles.focusPill}>Primary workspace: {activeWorkflowStep.title}</span>
+                  </div>
+                </div>
+                <div className={styles.focusActions}>
+                  <button
+                    className={styles.primaryButton}
+                    disabled={primaryActionConfig.disabled}
+                    onClick={primaryActionConfig.onClick}
+                    type="button"
+                  >
+                    {primaryActionConfig.cta}
+                  </button>
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={() => setTab(activeWorkflowStep.id)}
+                    type="button"
+                  >
+                    Open {activeWorkflowStep.title}
+                  </button>
+                </div>
+              </section>
+
               {tab === "expand" ? (
                 <section className={`${styles.panel} ${styles.motionScene}`}>
                   <div className={styles.sectionHead}>
@@ -838,6 +995,22 @@ export function WorkflowDashboard({
                   <p className={styles.sectionText}>
                     ระบบขยาย seed keyword เป็น keyword opportunities สำหรับเลือกไปรีเสิร์ชต่อ เลือกคำที่ตรงกับสิ่งที่ลูกค้าต้องการที่สุดก่อน แล้วค่อยกด Run Research
                   </p>
+                  <div className={styles.sectionLead}>
+                    <div className={styles.quickStats}>
+                      <div>
+                        <span className={styles.label}>Seed</span>
+                        <strong>{job.seedKeyword}</strong>
+                      </div>
+                      <div>
+                        <span className={styles.label}>Selected</span>
+                        <strong>{activeIdea?.title ?? "Not selected"}</strong>
+                      </div>
+                      <div>
+                        <span className={styles.label}>Intent mix</span>
+                        <strong>{job.ideas.map((idea) => idea.searchIntent).filter((value, index, array) => array.indexOf(value) === index).join(" · ")}</strong>
+                      </div>
+                    </div>
+                  </div>
                   <div className={styles.keywordGrid}>
                     {job.ideas.map((idea) => (
                       <article
@@ -896,6 +1069,11 @@ export function WorkflowDashboard({
                   <div className={styles.researchLayout}>
                     <article className={styles.researchMain}>
                       <h3>{activeIdea?.title ?? "Select a keyword first"}</h3>
+                      <div className={styles.researchIntro}>
+                        <span className={styles.focusPill}>Sources: {job.research.sources.length}</span>
+                        <span className={styles.focusPill}>Gaps: {job.research.gaps.length}</span>
+                        <span className={styles.focusPill}>Audience: {job.research.audience || "Waiting for synthesis"}</span>
+                      </div>
                       <p className={styles.sectionText}>{researchSummary || "ยังไม่มีข้อมูลรีเสิร์ชในงานนี้"}</p>
                     </article>
                     <aside className={styles.researchSide}>
