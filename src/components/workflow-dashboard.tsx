@@ -586,44 +586,61 @@ export function WorkflowDashboard({
   const queueCount = queueEvents.filter((event) => event.status === "queued" || event.status === "running").length;
   const liveEvent = queueEvents.find((event) => event.status === "queued" || event.status === "running") ?? null;
   const hasImages = articleImages.length > 0;
+  const safeJob = job;
   const workflowSteps: Array<{
     id: WorkspaceTab;
     index: string;
     title: string;
     detail: string;
     state: WorkflowStepState;
-  }> = [
-    {
-      id: "expand",
-      index: "01",
-      title: "Expand keywords",
-      detail: `${job.ideas.length} AI opportunities`,
-      state: "complete"
-    },
-    {
-      id: "research",
-      index: "02",
-      title: "Research summary",
-      detail: hasResearch ? `${job.research.sources.length} sources collected` : hasSelectedIdea ? "Ready to run research" : "Select one keyword first",
-      state: hasResearch ? "complete" : hasSelectedIdea ? "active" : "locked"
-    },
-    {
-      id: "article",
-      index: "03",
-      title: "Article studio",
-      detail: hasDraft ? `${job.draft.sections.length} sections ready` : hasResearch ? "Ready to create article" : "Research required first",
-      state: hasDraft ? "complete" : hasResearch ? "active" : "locked"
-    },
-    {
-      id: "images",
-      index: "04",
-      title: "Images & publish",
-      detail: hasImages ? `${articleImages.length} visuals ready` : hasDraft ? "Ready to generate images" : "Article required first",
-      state: job.stage === "published" || hasImages ? "complete" : hasDraft ? "active" : "locked"
-    }
-  ];
+  }> = safeJob
+    ? [
+        {
+          id: "expand",
+          index: "01",
+          title: "Expand keywords",
+          detail: `${safeJob.ideas.length} AI opportunities`,
+          state: "complete"
+        },
+        {
+          id: "research",
+          index: "02",
+          title: "Research summary",
+          detail: hasResearch
+            ? `${safeJob.research.sources.length} sources collected`
+            : hasSelectedIdea
+              ? "Ready to run research"
+              : "Select one keyword first",
+          state: hasResearch ? "complete" : hasSelectedIdea ? "active" : "locked"
+        },
+        {
+          id: "article",
+          index: "03",
+          title: "Article studio",
+          detail: hasDraft ? `${safeJob.draft.sections.length} sections ready` : hasResearch ? "Ready to create article" : "Research required first",
+          state: hasDraft ? "complete" : hasResearch ? "active" : "locked"
+        },
+        {
+          id: "images",
+          index: "04",
+          title: "Images & publish",
+          detail: hasImages ? `${articleImages.length} visuals ready` : hasDraft ? "Ready to generate images" : "Article required first",
+          state: safeJob.stage === "published" || hasImages ? "complete" : hasDraft ? "active" : "locked"
+        }
+      ]
+    : [];
   const activeWorkflowStep = workflowSteps.find((step) => step.state === "active") ?? workflowSteps[workflowSteps.length - 1];
   const primaryActionConfig = (() => {
+    if (!safeJob) {
+      return {
+        title: "Create your first project",
+        detail: "Start with one project and a seed keyword, then the workflow will guide the rest.",
+        cta: "Create Project",
+        disabled: false,
+        onClick: () => document.getElementById("projects-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
+      };
+    }
+
     if (!hasSelectedIdea) {
       return {
         title: "Choose one keyword opportunity",
@@ -686,10 +703,10 @@ export function WorkflowDashboard({
 
     return {
       title: "Article already published",
-      detail: "Open the queue or published views if you want to review the latest delivery details.",
-      cta: "Review Publish Logs",
-      disabled: false,
-      onClick: () => setTab("queue")
+        detail: "Open the queue or published views if you want to review the latest delivery details.",
+        cta: "Review Publish Logs",
+        disabled: false,
+        onClick: () => setTab("queue")
     };
   })();
 
