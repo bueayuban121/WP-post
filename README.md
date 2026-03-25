@@ -205,6 +205,7 @@ OpenClaw should not call the session-protected webapp routes directly. Use the t
 - `GET /api/openclaw/jobs?client=<name>&limit=20`
 - `POST /api/openclaw/jobs`
 - `GET /api/openclaw/jobs/:jobId`
+- `GET /api/openclaw/jobs/:jobId/research-report?format=doc|html`
 - `POST /api/openclaw/jobs/:jobId/ideas/select`
 - `POST /api/openclaw/jobs/:jobId/automation/research`
 - `POST /api/openclaw/jobs/:jobId/automation/brief`
