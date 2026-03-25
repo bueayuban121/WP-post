@@ -42,6 +42,7 @@ Recommended Render env vars:
 - `DATABASE_URL`
 - `DIRECT_URL`
 - `APP_BASE_URL`
+- `OPENCLAW_BRIDGE_TOKEN`
 - `N8N_WEBHOOK_BASE_URL=https://n8n-ncdn.srv1455358.hstgr.cloud/webhook/seo-content`
 - `N8N_WEBHOOK_SECRET`
 - `N8N_CALLBACK_SECRET`
@@ -87,6 +88,7 @@ Recommended VPS env values:
 - `DATABASE_URL=<Neon pooled URL>`
 - `DIRECT_URL=<Neon direct URL>`
 - `APP_BASE_URL=<your public app domain>`
+- `OPENCLAW_BRIDGE_TOKEN=<random shared token for OpenClaw>`
 - `N8N_WEBHOOK_BASE_URL=https://n8n-ncdn.srv1455358.hstgr.cloud/webhook/seo-content`
 - `N8N_CALLBACK_SECRET=<random secret>`
 - `N8N_POLLING_TYPES=publish,images`
@@ -195,6 +197,32 @@ If `N8N_WEBHOOK_BASE_URL` is missing, the app stays in local mode and records a 
 If `N8N_FACEBOOK_PUBLISH_WEBHOOK_URL` is set, the app will also send compatibility fields (`text_content`, `images`, `platform`) so older n8n Facebook publish workflows can be reused without changing the app UI.
 If both `N8N_FACEBOOK_PUBLISH_WEBHOOK_URL` and `N8N_FACEBOOK_WEBHOOK_URL` are missing, the Facebook compose page can still generate and save captions, but queueing to the Facebook workflow will fail fast with a clear message.
 If `APP_BASE_URL` is missing or only points to a non-public local URL, the app also stays in local mode because n8n would have nowhere valid to send the callback.
+
+## OpenClaw bridge contract
+
+OpenClaw should not call the session-protected webapp routes directly. Use the token-protected bridge namespace instead:
+
+- `GET /api/openclaw/jobs?client=<name>&limit=20`
+- `POST /api/openclaw/jobs`
+- `GET /api/openclaw/jobs/:jobId`
+- `POST /api/openclaw/jobs/:jobId/ideas/select`
+- `POST /api/openclaw/jobs/:jobId/automation/research`
+- `POST /api/openclaw/jobs/:jobId/automation/brief`
+- `POST /api/openclaw/jobs/:jobId/automation/draft`
+- `POST /api/openclaw/jobs/:jobId/automation/images`
+- `POST /api/openclaw/jobs/:jobId/automation/publish`
+
+Authentication:
+
+- `Authorization: Bearer <OPENCLAW_BRIDGE_TOKEN>`
+  or
+- `x-openclaw-token: <OPENCLAW_BRIDGE_TOKEN>`
+
+This namespace reuses the same `wp-post` engine and job pipeline as the webapp, but keeps OpenClaw integration concerns separated from the human UI session routes.
+
+Reference:
+
+- [docs/openclaw-bridge.md](C:\Users\bueay\Documents\New%20project\docs\openclaw-bridge.md)
 
 Reference files:
 
