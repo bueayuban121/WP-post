@@ -67,13 +67,27 @@ model User {
 }
 
 model Client {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  projects    Project[]
-  keywordJobs KeywordJob[]
-  users       User[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                 String       @id @default(cuid())
+  name               String       @unique
+  articlePrompt      String       @default("")
+  expertisePrompt    String       @default("")
+  brandVoicePrompt   String       @default("")
+  wordpressUrl       String       @default("")
+  wordpressUsername  String       @default("")
+  wordpressAppPassword String     @default("")
+  wordpressPublishStatus String   @default("draft")
+  projects           Project[]
+  keywordJobs        KeywordJob[]
+  users              User[]
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model SystemConfig {
+  id                  String   @id @default("global")
+  articlePrompt       String   @default("")
+  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now())
 }
 
 model AuthSession {

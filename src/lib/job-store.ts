@@ -1,5 +1,9 @@
 import { mockWorkflowJob } from "@/data/mock-workflow";
 import { generateArticleImages } from "@/lib/article-images";
+import { normalizeGenerationSettings } from "@/lib/generation-settings";
+import { generateBriefWithOpenAi, generateDraftWithOpenAi, polishDraftWithOpenAi } from "@/lib/openai";
+import { generateImageWithPhaya, isPhayaConfigured } from "@/lib/phaya";
+import { getPromptConfig } from "@/lib/prompt-config";
 import { buildNewJob, generateBrief, generateDraft, generateResearch } from "@/lib/workflow-generators";
 import { getPrismaClient, isDatabaseConfigured } from "@/lib/prisma";
 import { listWorkflowEvents } from "@/lib/workflow-events";
@@ -12,11 +16,16 @@ import type {
   ArticleDraft,
   WorkflowAutomationEvent,
   ArticleImageAsset,
-  FacebookPostDraft
+  FacebookPostDraft,
+  WorkflowGenerationSettings
 } from "@/types/workflow";
 import { WorkflowStage, ResearchRegion, type Prisma } from "@/generated/prisma/client";
 
 const jobs = new Map<string, WorkflowJob>([[mockWorkflowJob.id, mockWorkflowJob]]);
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 const jobInclude = {
   client: true,
@@ -520,6 +529,16 @@ export async function createJob(input: { client: string; seedKeyword: string; cl
   };
 }
 
+function getLatestResearchSummary(job: WorkflowJob) {
+  const latestResearchEvent = [...(job.automationEvents ?? [])]
+    .filter((event) => event.type === "research")
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
+
+  return typeof latestResearchEvent?.payload?.summaryText === "string"
+    ? latestResearchEvent.payload.summaryText
+    : "";
+}
+
 export async function selectIdea(jobId: string, ideaId: string) {
   const job = await getJob(jobId);
   if (!job) return null;
@@ -703,11 +722,41 @@ export async function runResearch(jobId: string) {
   return updateStoredWorkflow(jobId, "researching", { research });
 }
 
-export async function generateJobBrief(jobId: string) {
+export async function generateJobBrief(jobId: string, options?: Partial<WorkflowGenerationSettings> | null) {
   const job = await getJob(jobId);
   if (!job) return null;
   const selectedIdea = job.ideas.find((idea) => idea.id === job.selectedIdeaId) as TopicIdea;
-  const brief = generateBrief(job.seedKeyword, selectedIdea, job.research);
+  const settings = normalizeGenerationSettings(options);
+  const prisma = getPrismaClient();
+  const clientRows =
+    prisma && job.client
+      ? ((await prisma.$queryRawUnsafe(
+          `SELECT "id" FROM "Client" WHERE "name" = $1 LIMIT 1`,
+          job.client
+        )) as Array<{ id: string }>)
+      : [];
+  const promptConfig = await getPromptConfig(clientRows[0]?.id ?? null);
+  const aiBrief = await generateBriefWithOpenAi({
+    seedKeyword: job.seedKeyword,
+    selectedIdea,
+    research: job.research,
+    researchSummary: getLatestResearchSummary(job),
+    sectionCount: settings.sectionCount,
+    promptConfig,
+    editorialPatternName: settings.editorialPattern
+  }).catch(() => null);
+  const brief = aiBrief
+    ? {
+        ...job.brief,
+        ...aiBrief,
+        publishStatus: job.brief.publishStatus || "draft",
+        categoryIds: job.brief.categoryIds,
+        tagIds: job.brief.tagIds,
+        featuredImageUrl: job.brief.featuredImageUrl
+      }
+    : generateBrief(job.seedKeyword, selectedIdea, job.research, {
+        sectionCount: settings.sectionCount
+      });
 
   if (!isDatabaseConfigured()) {
     job.brief = brief;
@@ -733,15 +782,52 @@ export async function saveJobBrief(jobId: string, brief: ContentBrief) {
   return updateStoredWorkflow(jobId, "brief_ready", { brief });
 }
 
-export async function generateJobDraft(jobId: string) {
+export async function generateJobDraft(jobId: string, options?: Partial<WorkflowGenerationSettings> | null) {
   const job = await getJob(jobId);
   if (!job) return null;
-  const draft = generateDraft(job.seedKeyword, job.brief, job.research);
+  const settings = normalizeGenerationSettings(options);
+  const prisma = getPrismaClient();
+  const clientRows =
+    prisma && job.client
+      ? ((await prisma.$queryRawUnsafe(
+          `SELECT "id" FROM "Client" WHERE "name" = $1 LIMIT 1`,
+          job.client
+        )) as Array<{ id: string }>)
+      : [];
+  const promptConfig = await getPromptConfig(clientRows[0]?.id ?? null);
+  const aiDraft = await generateDraftWithOpenAi({
+    seedKeyword: job.seedKeyword,
+    brief: {
+      ...job.brief,
+      outline: job.brief.outline.slice(0, settings.sectionCount)
+    },
+    research: job.research,
+    researchSummary: getLatestResearchSummary(job),
+    sectionCount: settings.sectionCount,
+    wordsPerSection: settings.wordsPerSection,
+    promptConfig,
+    editorialPatternName: settings.editorialPattern
+  }).catch(() => null);
+  const polishedDraft = aiDraft
+    ? await polishDraftWithOpenAi({
+        seedKeyword: job.seedKeyword,
+        brief: {
+          ...job.brief,
+          outline: job.brief.outline.slice(0, settings.sectionCount)
+        },
+        draft: aiDraft,
+        promptConfig
+      }).catch(() => aiDraft)
+    : null;
+  const draft = polishedDraft ?? aiDraft ?? generateDraft(job.seedKeyword, job.brief, job.research, {
+    sectionCount: settings.sectionCount
+  });
   const images = generateArticleImages({
     seedKeyword: job.seedKeyword,
     title: job.brief.title,
     brief: job.brief,
-    draft
+    draft,
+    imageCount: settings.imageCount
   });
 
   if (!isDatabaseConfigured()) {
@@ -755,15 +841,24 @@ export async function generateJobDraft(jobId: string) {
   return updateStoredWorkflow(jobId, "drafting", { draft, images });
 }
 
-export async function saveJobDraft(jobId: string, draft: ArticleDraft) {
+export async function saveJobDraft(
+  jobId: string,
+  draft: ArticleDraft,
+  options?: Partial<WorkflowGenerationSettings> | null
+) {
   const job = await getJob(jobId);
   if (!job) return null;
-  const images = generateArticleImages({
-    seedKeyword: job.seedKeyword,
-    title: job.brief.title,
-    brief: job.brief,
-    draft
-  });
+  const settings = normalizeGenerationSettings(options);
+  const images =
+    job.images.length > 0
+      ? job.images
+      : generateArticleImages({
+          seedKeyword: job.seedKeyword,
+          title: job.brief.title,
+          brief: job.brief,
+          draft,
+          imageCount: settings.imageCount
+        });
 
   if (!isDatabaseConfigured()) {
     job.draft = draft;
@@ -774,6 +869,44 @@ export async function saveJobDraft(jobId: string, draft: ArticleDraft) {
   }
 
   return updateStoredWorkflow(jobId, "review", { draft, images });
+}
+
+export async function saveJobImages(jobId: string, images: ArticleImageAsset[]) {
+  const job = await getJob(jobId);
+  if (!job) return null;
+
+  const sanitizedImages = images.map((image, index) => ({
+    ...image,
+    id: image.id || `${jobId}-image-${index + 1}`,
+    src: image.src.trim(),
+    alt: image.alt.trim(),
+    caption: image.caption.trim(),
+    placement: image.placement.trim(),
+    prompt: image.prompt.trim()
+  }));
+
+  const nextSelectedImageId =
+    job.facebook.selectedImageId && sanitizedImages.some((image) => image.id === job.facebook.selectedImageId)
+      ? job.facebook.selectedImageId
+      : sanitizedImages.find((image) => image.src)?.id ?? sanitizedImages[0]?.id ?? "";
+
+  if (!isDatabaseConfigured()) {
+    job.images = sanitizedImages;
+    job.facebook = {
+      ...job.facebook,
+      selectedImageId: nextSelectedImageId
+    };
+    jobs.set(job.id, job);
+    return cloneJob(job);
+  }
+
+  return updateStoredWorkflow(jobId, job.stage, {
+    images: sanitizedImages,
+    facebook: {
+      ...job.facebook,
+      selectedImageId: nextSelectedImageId
+    }
+  });
 }
 
 export async function saveFacebookPost(jobId: string, facebook: FacebookPostDraft) {
@@ -815,16 +948,45 @@ export async function publishJob(jobId: string) {
   return updateStoredWorkflow(jobId, "published", {});
 }
 
-export async function regenerateJobImages(jobId: string) {
+export async function regenerateJobImages(jobId: string, options?: Partial<WorkflowGenerationSettings> | null) {
   const job = await getJob(jobId);
   if (!job) return null;
+  const settings = normalizeGenerationSettings(options);
 
-  const images = generateArticleImages({
+  const promptImages = generateArticleImages({
     seedKeyword: job.seedKeyword,
     title: job.brief.title,
     brief: job.brief,
-    draft: job.draft
+    draft: job.draft,
+    imageCount: settings.imageCount
   });
+  const images: ArticleImageAsset[] = [];
+  const phayaEnabled = isPhayaConfigured();
+
+  for (const [index, image] of promptImages.entries()) {
+    if (phayaEnabled) {
+      try {
+        const generated = await generateImageWithPhaya({
+          prompt: image.prompt,
+          width: image.kind === "featured" ? 1600 : 1400,
+          height: image.kind === "featured" ? 900 : 840
+        });
+
+        images.push({
+          ...image,
+          src: generated.src
+        });
+      } catch {
+        images.push(image);
+      }
+    } else {
+      images.push(image);
+    }
+
+    if (index < promptImages.length - 1) {
+      await wait(1200);
+    }
+  }
 
   if (!isDatabaseConfigured()) {
     job.images = images;
@@ -847,6 +1009,78 @@ export async function regenerateJobImages(jobId: string) {
         job.facebook.selectedImageId && images.some((image) => image.id === job.facebook.selectedImageId)
           ? job.facebook.selectedImageId
           : images[0]?.id ?? ""
+    }
+  });
+}
+
+export async function regenerateJobImageAt(
+  jobId: string,
+  imageIndex: number,
+  options?: Partial<WorkflowGenerationSettings> | null
+) {
+  const job = await getJob(jobId);
+  if (!job) return null;
+
+  const currentImageCount = Math.max(1, job.images.length || 1);
+  const settings = normalizeGenerationSettings({
+    ...options,
+    imageCount: options?.imageCount ?? currentImageCount
+  });
+  const promptImages = generateArticleImages({
+    seedKeyword: job.seedKeyword,
+    title: job.brief.title,
+    brief: job.brief,
+    draft: job.draft,
+    imageCount: settings.imageCount
+  });
+
+  if (imageIndex < 0 || imageIndex >= promptImages.length) {
+    throw new Error("Image slot not found.");
+  }
+
+  const nextImages =
+    job.images.length === promptImages.length
+      ? [...job.images]
+      : promptImages.map((image, index) => job.images[index] ?? image);
+
+  const targetImage = promptImages[imageIndex];
+
+  if (isPhayaConfigured()) {
+    const generated = await generateImageWithPhaya({
+      prompt: targetImage.prompt,
+      width: targetImage.kind === "featured" ? 1600 : 1400,
+      height: targetImage.kind === "featured" ? 900 : 840
+    });
+
+    nextImages[imageIndex] = {
+      ...targetImage,
+      src: generated.src
+    };
+  } else {
+    nextImages[imageIndex] = targetImage;
+  }
+
+  if (!isDatabaseConfigured()) {
+    job.images = nextImages;
+    job.facebook = {
+      ...job.facebook,
+      selectedImageId:
+        job.facebook.selectedImageId && nextImages.some((image) => image.id === job.facebook.selectedImageId)
+          ? job.facebook.selectedImageId
+          : nextImages[0]?.id ?? ""
+    };
+    jobs.set(job.id, job);
+    return cloneJob(job);
+  }
+
+  return updateStoredWorkflow(jobId, job.stage, {
+    images: nextImages,
+    facebook: {
+      ...job.facebook,
+      selectedImageId:
+        job.facebook.selectedImageId && nextImages.some((image) => image.id === job.facebook.selectedImageId)
+          ? job.facebook.selectedImageId
+          : nextImages[0]?.id ?? ""
     }
   });
 }

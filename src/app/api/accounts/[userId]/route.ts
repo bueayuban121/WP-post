@@ -16,6 +16,13 @@ export async function PATCH(
     contractStart?: string | null;
     contractEnd?: string | null;
     password?: string;
+    clientArticlePrompt?: string;
+    clientExpertisePrompt?: string;
+    clientBrandVoicePrompt?: string;
+    clientWordpressUrl?: string;
+    clientWordpressUsername?: string;
+    clientWordpressAppPassword?: string;
+    clientWordpressPublishStatus?: "draft" | "publish";
   };
 
   try {

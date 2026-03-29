@@ -26,6 +26,10 @@ export function getQueuedAutomationTypes() {
 }
 
 export function shouldQueueAutomation(type: WorkflowAutomationType) {
+  if (type === "images") {
+    return false;
+  }
+
   return getQueuedAutomationTypes().includes(type);
 }
 

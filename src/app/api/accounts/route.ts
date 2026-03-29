@@ -21,6 +21,13 @@ export async function POST(request: Request) {
     name?: string;
     password?: string;
     clientName?: string;
+    articlePrompt?: string;
+    expertisePrompt?: string;
+    brandVoicePrompt?: string;
+    wordpressUrl?: string;
+    wordpressUsername?: string;
+    wordpressAppPassword?: string;
+    wordpressPublishStatus?: "draft" | "publish";
     contractStart?: string;
     contractEnd?: string;
     status?: "active" | "expired" | "suspended";
@@ -32,6 +39,13 @@ export async function POST(request: Request) {
       name: body.name ?? "",
       password: body.password ?? "",
       clientName: body.clientName ?? "",
+      articlePrompt: body.articlePrompt,
+      expertisePrompt: body.expertisePrompt,
+      brandVoicePrompt: body.brandVoicePrompt,
+      wordpressUrl: body.wordpressUrl,
+      wordpressUsername: body.wordpressUsername,
+      wordpressAppPassword: body.wordpressAppPassword,
+      wordpressPublishStatus: body.wordpressPublishStatus,
       contractStart: body.contractStart,
       contractEnd: body.contractEnd,
       status: body.status

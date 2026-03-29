@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { getPrismaClient } from "@/lib/prisma";
 import { AccountStatus, UserRole, type User } from "@/generated/prisma/client";
 
@@ -17,13 +17,20 @@ export type AppUserSession = {
   clientName: string | null;
   contractStart: string | null;
   contractEnd: string | null;
+  clientArticlePrompt: string | null;
+  clientExpertisePrompt: string | null;
+  clientBrandVoicePrompt: string | null;
+  clientWordpressUrl: string | null;
+  clientWordpressUsername: string | null;
+  clientWordpressAppPassword: string | null;
+  clientWordpressPublishStatus: string | null;
 };
 
 type StoredUser = User & {
-  client: {
+  client: ({
     id: string;
     name: string;
-  } | null;
+  } & Record<string, unknown>) | null;
 };
 
 function normalizeRole(role: UserRole) {
@@ -89,6 +96,20 @@ function isUserExpired(user: StoredUser) {
 }
 
 function toAppSession(user: StoredUser): AppUserSession {
+  const client = user.client as
+    | ({
+        id: string;
+        name: string;
+        articlePrompt?: string;
+        expertisePrompt?: string;
+        brandVoicePrompt?: string;
+        wordpressUrl?: string;
+        wordpressUsername?: string;
+        wordpressAppPassword?: string;
+        wordpressPublishStatus?: string;
+      } & Record<string, unknown>)
+    | null;
+
   return {
     id: user.id,
     email: user.email,
@@ -96,9 +117,17 @@ function toAppSession(user: StoredUser): AppUserSession {
     role: normalizeRole(user.role),
     status: isUserExpired(user) ? "expired" : normalizeStatus(user.status),
     clientId: user.clientId ?? null,
-    clientName: user.client?.name ?? null,
+    clientName: client?.name ?? null,
     contractStart: user.contractStart?.toISOString() ?? null,
-    contractEnd: user.contractEnd?.toISOString() ?? null
+    contractEnd: user.contractEnd?.toISOString() ?? null,
+    clientArticlePrompt: typeof client?.articlePrompt === "string" ? client.articlePrompt : null,
+    clientExpertisePrompt: typeof client?.expertisePrompt === "string" ? client.expertisePrompt : null,
+    clientBrandVoicePrompt: typeof client?.brandVoicePrompt === "string" ? client.brandVoicePrompt : null,
+    clientWordpressUrl: typeof client?.wordpressUrl === "string" ? client.wordpressUrl : null,
+    clientWordpressUsername: typeof client?.wordpressUsername === "string" ? client.wordpressUsername : null,
+    clientWordpressAppPassword: typeof client?.wordpressAppPassword === "string" ? client.wordpressAppPassword : null,
+    clientWordpressPublishStatus:
+      typeof client?.wordpressPublishStatus === "string" ? client.wordpressPublishStatus : null
   };
 }
 
@@ -337,6 +366,13 @@ export async function createClientUser(input: {
   name: string;
   password: string;
   clientName: string;
+  articlePrompt?: string;
+  expertisePrompt?: string;
+  brandVoicePrompt?: string;
+  wordpressUrl?: string;
+  wordpressUsername?: string;
+  wordpressAppPassword?: string;
+  wordpressPublishStatus?: "draft" | "publish";
   contractStart?: string;
   contractEnd?: string;
   status?: "active" | "expired" | "suspended";
@@ -361,6 +397,62 @@ export async function createClientUser(input: {
         ? AccountStatus.EXPIRED
         : AccountStatus.ACTIVE;
 
+  const articlePrompt = input.articlePrompt?.trim() ?? "";
+  const expertisePrompt = input.expertisePrompt?.trim() ?? "";
+  const brandVoicePrompt = input.brandVoicePrompt?.trim() ?? "";
+  const wordpressUrl = input.wordpressUrl?.trim() ?? "";
+  const wordpressUsername = input.wordpressUsername?.trim() ?? "";
+  const wordpressAppPassword = input.wordpressAppPassword?.trim() ?? "";
+  const wordpressPublishStatus = input.wordpressPublishStatus === "publish" ? "publish" : "draft";
+
+  const clientRecordId = randomUUID();
+
+  await prisma.$executeRawUnsafe(
+    `
+      INSERT INTO "Client" ("id", "name", "articlePrompt", "expertisePrompt", "brandVoicePrompt", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      ON CONFLICT ("name")
+      DO UPDATE SET
+        "articlePrompt" = EXCLUDED."articlePrompt",
+        "expertisePrompt" = EXCLUDED."expertisePrompt",
+        "brandVoicePrompt" = EXCLUDED."brandVoicePrompt",
+        "updatedAt" = NOW()
+    `,
+    clientRecordId,
+    clientName,
+    articlePrompt,
+    expertisePrompt,
+    brandVoicePrompt
+  );
+
+  await prisma.$executeRawUnsafe(
+    `
+      UPDATE "Client"
+      SET
+        "wordpressUrl" = $2,
+        "wordpressUsername" = $3,
+        "wordpressAppPassword" = $4,
+        "wordpressPublishStatus" = $5,
+        "updatedAt" = NOW()
+      WHERE "name" = $1
+    `,
+    clientName,
+    wordpressUrl,
+    wordpressUsername,
+    wordpressAppPassword,
+    wordpressPublishStatus
+  );
+
+  const client = (await prisma.$queryRawUnsafe(
+    `SELECT "id" FROM "Client" WHERE "name" = $1 LIMIT 1`,
+    clientName
+  )) as Array<{ id: string }>;
+
+  const clientId = client[0]?.id;
+  if (!clientId) {
+    throw new Error("Unable to create or find the client profile.");
+  }
+
   const created = await prisma.user.create({
     data: {
       email,
@@ -370,12 +462,7 @@ export async function createClientUser(input: {
       status,
       contractStart: input.contractStart ? new Date(input.contractStart) : null,
       contractEnd: input.contractEnd ? new Date(input.contractEnd) : null,
-      client: {
-        connectOrCreate: {
-          where: { name: clientName },
-          create: { name: clientName }
-        }
-      }
+      clientId
     },
     include: {
       client: true
@@ -392,11 +479,64 @@ export async function updateManagedUser(
     contractStart?: string | null;
     contractEnd?: string | null;
     password?: string;
-  }
+    clientArticlePrompt?: string;
+    clientExpertisePrompt?: string;
+      clientBrandVoicePrompt?: string;
+      clientWordpressUrl?: string;
+      clientWordpressUsername?: string;
+      clientWordpressAppPassword?: string;
+      clientWordpressPublishStatus?: "draft" | "publish";
+    }
 ) {
   const prisma = getPrismaClient();
   if (!prisma) {
     throw new Error("Database is required for authentication.");
+  }
+
+  const existing = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      client: true
+    }
+  });
+
+  if (!existing) {
+    throw new Error("User not found.");
+  }
+
+  if (
+    existing.clientId &&
+    (input.clientArticlePrompt !== undefined ||
+      input.clientExpertisePrompt !== undefined ||
+      input.clientBrandVoicePrompt !== undefined ||
+      input.clientWordpressUrl !== undefined ||
+      input.clientWordpressUsername !== undefined ||
+      input.clientWordpressAppPassword !== undefined ||
+      input.clientWordpressPublishStatus !== undefined)
+  ) {
+    await prisma.$executeRawUnsafe(
+      `
+        UPDATE "Client"
+        SET
+          "articlePrompt" = COALESCE($2, "articlePrompt"),
+          "expertisePrompt" = COALESCE($3, "expertisePrompt"),
+          "brandVoicePrompt" = COALESCE($4, "brandVoicePrompt"),
+          "wordpressUrl" = COALESCE($5, "wordpressUrl"),
+          "wordpressUsername" = COALESCE($6, "wordpressUsername"),
+          "wordpressAppPassword" = COALESCE($7, "wordpressAppPassword"),
+          "wordpressPublishStatus" = COALESCE($8, "wordpressPublishStatus"),
+          "updatedAt" = NOW()
+        WHERE "id" = $1
+      `,
+      existing.clientId,
+      input.clientArticlePrompt !== undefined ? input.clientArticlePrompt.trim() : null,
+      input.clientExpertisePrompt !== undefined ? input.clientExpertisePrompt.trim() : null,
+      input.clientBrandVoicePrompt !== undefined ? input.clientBrandVoicePrompt.trim() : null,
+      input.clientWordpressUrl !== undefined ? input.clientWordpressUrl.trim() : null,
+      input.clientWordpressUsername !== undefined ? input.clientWordpressUsername.trim() : null,
+      input.clientWordpressAppPassword !== undefined ? input.clientWordpressAppPassword.trim() : null,
+      input.clientWordpressPublishStatus !== undefined ? input.clientWordpressPublishStatus : null
+    );
   }
 
   const updated = await prisma.user.update({

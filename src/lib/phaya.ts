@@ -17,7 +17,7 @@ function getEnv(name: string) {
 }
 
 function getBaseUrl() {
-  return getEnv("PHAYA_BASE_URL") || DEFAULT_BASE_URL;
+  return getEnv("PHAYA_BASE_URL") || getEnv("PHAYA_BASE") || DEFAULT_BASE_URL;
 }
 
 function getApiKey() {
@@ -33,11 +33,11 @@ function getResolution() {
 }
 
 function getCreatePath() {
-  return getEnv("PHAYA_TEXT_TO_IMAGE_PATH") || "/text-to-image/generate";
+  return "/nano-banana/create";
 }
 
 function getJobPath(jobId: string) {
-  const template = getEnv("PHAYA_JOB_PATH_TEMPLATE") || "/text-to-image/status/{id}";
+  const template = "/nano-banana/status/{id}";
   return template.replace("{id}", jobId);
 }
 
@@ -169,6 +169,8 @@ export async function generateImageWithPhaya(input: GeneratePhayaImageInput): Pr
     body: JSON.stringify({
       prompt: input.prompt,
       aspect_ratio: inferAspectRatio(input.width ?? 1400, input.height ?? 840),
+      google_search: false,
+      output_format: "jpg",
       model: getModel(),
       ...(getResolution() ? { resolution: getResolution() } : {})
     })

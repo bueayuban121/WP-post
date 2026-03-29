@@ -2,7 +2,15 @@
 
 import Image from "next/image";
 import { type FormEvent, useCallback, useEffect, useState, useTransition } from "react";
-import type { ArticleDraft, ContentBrief, TopicIdea, WorkflowAutomationEvent, WorkflowJob } from "@/types/workflow";
+import type {
+  ArticleImageAsset,
+  ArticleDraft,
+  ContentBrief,
+  TopicIdea,
+  WorkflowAutomationEvent,
+  WorkflowGenerationSettings,
+  WorkflowJob
+} from "@/types/workflow";
 import { ConsoleNav } from "@/components/console-nav";
 import { buildLongResearchSummary } from "@/lib/research-copy";
 import styles from "./workflow-dashboard.module.css";
@@ -19,10 +27,19 @@ type PendingAction =
   | "create-article"
   | "save-brief"
   | "save-draft"
+  | "save-images"
   | "generate-images"
+  | "regenerate-image"
+  | "regenerate-pattern"
   | "approve"
   | "publish";
 const settingsStorageKey = "auto-post-content-settings";
+
+type EditorialPatternPreview = {
+  name: string;
+  label: string;
+  description: string;
+};
 
 const stageLabels = {
   idea_pool: "Keyword Expansion",
@@ -52,6 +69,63 @@ const tonePresets = [
   "Warm lifestyle",
   "Bold campaign"
 ] as const;
+
+const editorialPatternPreviews: EditorialPatternPreview[] = [
+  {
+    name: "problem-solution",
+    label: "Problem-Solution",
+    description: "เปิดจากปัญหาหรือความสับสนของคนอ่าน แล้วค่อยพาไปสู่คำอธิบายและแนวทางแก้"
+  },
+  {
+    name: "buyer-guide",
+    label: "Buyer Guide",
+    description: "เน้นช่วยคนอ่านประเมินตัวเลือก เปรียบเทียบ และตัดสินใจได้ง่ายขึ้น"
+  },
+  {
+    name: "expert-explainer",
+    label: "Expert Explainer",
+    description: "อธิบายเรื่องยากให้เข้าใจง่ายขึ้นแบบผู้เชี่ยวชาญที่เล่าเป็น"
+  },
+  {
+    name: "myth-vs-reality",
+    label: "Myth vs Reality",
+    description: "หยิบความเข้าใจผิดหรือสิ่งที่คนมักคิดผิดมาอธิบายให้ชัดขึ้น"
+  },
+  {
+    name: "decision-checklist",
+    label: "Decision Checklist",
+    description: "จัดเนื้อหาให้คนอ่านค่อย ๆ เช็กปัจจัยสำคัญก่อนตัดสินใจ"
+  }
+];
+
+const editorialPatternOrder = editorialPatternPreviews.map((pattern) => pattern.name);
+
+function hashText(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash;
+}
+
+function pickEditorialPatternPreview(parts: string[]) {
+  const key = parts.join(" | ").trim();
+  const patternIndex = hashText(key) % editorialPatternPreviews.length;
+  return editorialPatternPreviews[patternIndex];
+}
+
+function resolveEditorialPatternPreview(parts: string[], overrideName?: string) {
+  if (overrideName) {
+    const matched = editorialPatternPreviews.find((pattern) => pattern.name === overrideName.trim());
+    if (matched) {
+      return matched;
+    }
+  }
+
+  return pickEditorialPatternPreview(parts);
+}
 
 function getProjectName(name: string) {
   return name.trim() || "Untitled Project";
@@ -197,7 +271,8 @@ export function WorkflowDashboard({
   const [seedKeyword, setSeedKeyword] = useState("ปลาทอง");
   const [tone, setTone] = useState("Calm expert");
   const [bannedWords, setBannedWords] = useState("ดีที่สุด, การันตี, รักษาหาย");
-  const [articleLength, setArticleLength] = useState("1800");
+  const [articleLength, setArticleLength] = useState("500-700");
+  const [imageCount, setImageCount] = useState("3");
   const [tab, setTab] = useState<WorkspaceTab>(initialTab);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [statusMessage, setStatusMessage] = useState("Loading workspace");
@@ -212,12 +287,27 @@ export function WorkflowDashboard({
   const [briefFeaturedImageUrl, setBriefFeaturedImageUrl] = useState("");
   const [draftIntro, setDraftIntro] = useState("");
   const [draftConclusion, setDraftConclusion] = useState("");
+  const [draftSections, setDraftSections] = useState<ArticleDraft["sections"]>([]);
+  const [editableImages, setEditableImages] = useState<ArticleImageAsset[]>([]);
   const [selectedIdeaTitle, setSelectedIdeaTitle] = useState("");
   const [selectedIdeaAngle, setSelectedIdeaAngle] = useState("");
+  const [editorialPatternOverride, setEditorialPatternOverride] = useState("");
 
   const job = jobs.find((item) => item.id === activeJobId) ?? jobs[0] ?? null;
   const activeIdea = job?.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? null;
-  const articleImages = job?.images ?? [];
+  const articleImages = editableImages.length > 0 ? editableImages : job?.images ?? [];
+  const articleSections = draftSections.length > 0 ? draftSections : job?.draft.sections ?? [];
+  const editorialPattern = job
+    ? resolveEditorialPatternPreview(
+        [
+          job.seedKeyword,
+          job.brief.title || activeIdea?.title || "",
+          job.brief.angle || activeIdea?.angle || "",
+          job.brief.audience || job.research.audience || ""
+        ],
+        editorialPatternOverride
+      )
+    : null;
   const featuredImageSrc =
     briefFeaturedImageUrl.trim() || articleImages[0]?.src || "/article-images/goldfish-water-1.svg";
   const researchSummary = buildResearchSummary(job?.seedKeyword ?? "", activeIdea, job);
@@ -236,8 +326,6 @@ export function WorkflowDashboard({
     : hasDraft
       ? "Images not generated yet"
       : "Create the article first";
-  const imageStatusDetail =
-    typeof imageEvent?.payload?.provider === "string" ? imageEvent.payload.provider : "";
   const imageErrorCount =
     typeof imageEvent?.payload?.errorCount === "number" ? imageEvent.payload.errorCount : 0;
 
@@ -249,9 +337,12 @@ export function WorkflowDashboard({
     setBriefFeaturedImageUrl(nextJob.brief.featuredImageUrl);
     setDraftIntro(nextJob.draft.intro);
     setDraftConclusion(nextJob.draft.conclusion);
+    setDraftSections(nextJob.draft.sections);
+    setEditableImages(nextJob.images);
     const nextIdea = nextJob.ideas.find((idea) => idea.id === nextJob.selectedIdeaId);
     setSelectedIdeaTitle(nextIdea?.title ?? "");
     setSelectedIdeaAngle(nextIdea?.angle ?? "");
+    setEditorialPatternOverride("");
   }
 
   const loadJobs = useCallback(async () => {
@@ -297,6 +388,7 @@ export function WorkflowDashboard({
         tone: string;
         restrictedWords: string;
         articleLength: string;
+        imageCount: string;
       }>;
 
       if (typeof parsed.tone === "string") {
@@ -309,6 +401,10 @@ export function WorkflowDashboard({
 
       if (typeof parsed.articleLength === "string") {
         setArticleLength(parsed.articleLength);
+      }
+
+      if (typeof parsed.imageCount === "string") {
+        setImageCount(parsed.imageCount);
       }
     } catch {
       window.localStorage.removeItem(settingsStorageKey);
@@ -325,10 +421,29 @@ export function WorkflowDashboard({
       JSON.stringify({
         tone,
         restrictedWords: bannedWords,
-        articleLength
+        articleLength,
+        imageCount
       })
     );
-  }, [articleLength, bannedWords, tone]);
+  }, [articleLength, bannedWords, imageCount, tone]);
+
+  useEffect(() => {
+    if (job) {
+      hydrate(job);
+    }
+  }, [job]);
+
+  function getGenerationSettings(): WorkflowGenerationSettings {
+    const parsedImageCount = Number.parseInt(imageCount, 10);
+    const safeImageCount = Number.isFinite(parsedImageCount) ? parsedImageCount : 3;
+
+    return {
+      imageCount: safeImageCount,
+      sectionCount: Math.max(1, Math.min(safeImageCount - 1, 3)),
+      wordsPerSection: articleLength.trim() || "500-700",
+      editorialPattern: editorialPatternOverride || undefined
+    };
+  }
 
   function replaceJob(nextJob: WorkflowJob, message: string, nextTab?: WorkspaceTab) {
     setJobs((current) =>
@@ -517,17 +632,40 @@ export function WorkflowDashboard({
       setStatusMessage("Generating article");
       setError("");
       try {
-        const briefJob = await queueAutomation("brief", "Brief queued in n8n", "Brief ready", "article");
-        if (!briefJob) {
-          throw new Error("Brief generation failed.");
-        }
-
-        const draftJob = await queueAutomation("draft", "Draft queued in n8n", "Article generated", "article");
-        if (!draftJob) {
-          throw new Error("Draft generation failed.");
-        }
+        const generationSettings = getGenerationSettings();
+        await postJob(`/api/jobs/${job.id}/brief`, { generationSettings }, "Brief ready", "article");
+        await postJob(`/api/jobs/${job.id}/draft`, { generationSettings }, "Article generated", "article");
       } catch (draftError) {
         setError(draftError instanceof Error ? draftError.message : "Draft failed");
+      } finally {
+        setPendingAction("");
+      }
+    });
+  }
+
+  async function regenerateArticleWithAnotherPattern() {
+    if (!job || !editorialPattern) return;
+
+    const currentIndex = editorialPatternOrder.indexOf(editorialPattern.name);
+    const nextPatternName =
+      editorialPatternOrder[(currentIndex + 1 + editorialPatternOrder.length) % editorialPatternOrder.length];
+    const nextPattern = editorialPatternPreviews.find((pattern) => pattern.name === nextPatternName);
+
+    setEditorialPatternOverride(nextPatternName);
+
+    startTransition(async () => {
+      setPendingAction("regenerate-pattern");
+      setStatusMessage(`Regenerating article with ${nextPattern?.label ?? nextPatternName}`);
+      setError("");
+      try {
+        const generationSettings = {
+          ...getGenerationSettings(),
+          editorialPattern: nextPatternName
+        };
+        await postJob(`/api/jobs/${job.id}/brief`, { generationSettings }, "Brief regenerated", "article");
+        await postJob(`/api/jobs/${job.id}/draft`, { generationSettings }, "Article regenerated with a new pattern", "article");
+      } catch (draftError) {
+        setError(draftError instanceof Error ? draftError.message : "Article regeneration failed");
       } finally {
         setPendingAction("");
       }
@@ -564,7 +702,8 @@ export function WorkflowDashboard({
     const draft: ArticleDraft = {
       ...job.draft,
       intro: draftIntro,
-      conclusion: draftConclusion
+      conclusion: draftConclusion,
+      sections: draftSections
     };
 
     startTransition(async () => {
@@ -572,11 +711,182 @@ export function WorkflowDashboard({
       setStatusMessage("Saving draft");
       setError("");
       try {
-        await postJob(`/api/jobs/${job.id}/draft`, draft, "Draft saved", "article");
+        await postJob(
+          `/api/jobs/${job.id}/draft`,
+          {
+            ...draft,
+            generationSettings: getGenerationSettings()
+          },
+          "Draft saved",
+          "article"
+        );
       } catch (saveError) {
         setError(saveError instanceof Error ? saveError.message : "Save failed");
       } finally {
         setPendingAction("");
+      }
+    });
+  }
+
+  function updateDraftSection(index: number, field: "heading" | "body", value: string) {
+    setDraftSections((current) =>
+      current.map((section, sectionIndex) =>
+        sectionIndex === index
+          ? {
+              ...section,
+              [field]: value
+            }
+          : section
+      )
+    );
+  }
+
+  function updateImageAsset(index: number, field: keyof ArticleImageAsset, value: string) {
+    setEditableImages((current) =>
+      current.map((image, imageIndex) =>
+        imageIndex === index
+          ? {
+              ...image,
+              [field]: value
+            }
+          : image
+      )
+    );
+  }
+
+  function removeImageAsset(index: number) {
+    setEditableImages((current) =>
+      current.map((image, imageIndex) =>
+        imageIndex === index
+          ? {
+              ...image,
+              src: "",
+              alt: image.alt || "Image removed from layout"
+            }
+          : image
+      )
+    );
+  }
+
+  function restoreImageAsset(index: number) {
+    const original = job?.images[index];
+    if (!original) return;
+
+    setEditableImages((current) =>
+      current.map((image, imageIndex) => (imageIndex === index ? original : image))
+    );
+  }
+
+  async function replaceImageFromFile(index: number, file: File) {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+      reader.onerror = () => reject(new Error("Image file could not be loaded."));
+      reader.readAsDataURL(file);
+    });
+
+    setEditableImages((current) =>
+      current.map((image, imageIndex) =>
+        imageIndex === index
+          ? {
+              ...image,
+              src: dataUrl
+            }
+          : image
+      )
+    );
+  }
+
+  async function saveImages() {
+    if (!job) return;
+
+    startTransition(async () => {
+      setPendingAction("save-images");
+      setStatusMessage("Saving image edits");
+      setError("");
+      try {
+        await postJob(
+          `/api/jobs/${job.id}/images`,
+          {
+            images: editableImages
+          },
+          "Image edits saved",
+          "images"
+        );
+      } catch (saveError) {
+        setError(saveError instanceof Error ? saveError.message : "Save failed");
+      } finally {
+        setPendingAction("");
+      }
+    });
+  }
+
+  async function refreshActiveJob() {
+    if (!job) {
+      await loadJobs();
+      return;
+    }
+
+    startTransition(async () => {
+      setStatusMessage("Refreshing image status");
+      setError("");
+
+      try {
+        const response = await fetch(`/api/jobs/${job.id}`, { cache: "no-store" });
+        const data = await readJson(response);
+        if (!data.job) {
+          throw new Error("Job payload missing.");
+        }
+        replaceJob(data.job, "Image status refreshed", "images");
+      } catch (refreshError) {
+        setError(refreshError instanceof Error ? refreshError.message : "Refresh failed");
+      }
+    });
+  }
+
+  async function regenerateSingleImage(index: number) {
+    if (!job) return;
+
+    startTransition(async () => {
+      setPendingAction("regenerate-image");
+      setStatusMessage(`Generating image ${index + 1}`);
+      setError("");
+
+      try {
+        await postJob(
+          `/api/jobs/${job.id}/images`,
+          {
+            generationSettings: getGenerationSettings(),
+            imageIndex: index
+          },
+          `Image ${index + 1} ready`,
+          "images"
+        );
+      } catch (regenerateError) {
+        setError(regenerateError instanceof Error ? regenerateError.message : "Image generation failed");
+      } finally {
+        setPendingAction("");
+      }
+    });
+  }
+
+  async function downloadImageAsset(image: ArticleImageAsset, index: number) {
+    if (!image.src.trim() || !job) return;
+
+    startTransition(async () => {
+      setStatusMessage(`Preparing image ${index + 1} download`);
+      setError("");
+
+      try {
+        const anchor = document.createElement("a");
+        anchor.href = `/api/jobs/${job.id}/images/${index}/download`;
+        anchor.download = "";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        setStatusMessage(`Image ${index + 1} downloaded`);
+      } catch (downloadError) {
+        setError(downloadError instanceof Error ? downloadError.message : "Image download failed");
       }
     });
   }
@@ -593,8 +903,23 @@ export function WorkflowDashboard({
         if (type === "approve") {
           await postJob(`/api/jobs/${job.id}/approve`, undefined, "Article approved", "article");
         } else if (type === "images") {
-          await queueAutomation("images", "Image generation queued", "Images ready", "images");
+          await postJob(
+            `/api/jobs/${job.id}/images`,
+            { generationSettings: getGenerationSettings() },
+            "Images ready",
+            "images"
+          );
         } else {
+          if (editableImages.length > 0) {
+            await postJob(
+              `/api/jobs/${job.id}/images`,
+              {
+                images: editableImages
+              },
+              "Image edits saved",
+              "images"
+            );
+          }
           await postJob(`/api/jobs/${job.id}/automation/publish`, undefined, "Publish queued", tab);
         }
       } catch (actionError) {
@@ -886,6 +1211,16 @@ export function WorkflowDashboard({
                 <small>จำนวนคำเป้าหมายของบทความ</small>
                 <input value={articleLength} onChange={(event) => setArticleLength(event.target.value)} />
               </label>
+              <label>
+                Image count
+                <small>จำนวนรูปทั้งหมดในบทความ รวม featured image ด้วย</small>
+                <select value={imageCount} onChange={(event) => setImageCount(event.target.value)}>
+                  <option value="1">1 image</option>
+                  <option value="2">2 images</option>
+                  <option value="3">3 images</option>
+                  <option value="4">4 images</option>
+                </select>
+              </label>
             </div>
           </section>
         </section>
@@ -975,69 +1310,6 @@ export function WorkflowDashboard({
                   <button className={`${styles.navTab} ${tab === "images" ? styles.navTabActive : ""}`} onClick={() => setTab("images")} type="button">Article Images</button>
                 </div>
               </div>
-
-              <div className={styles.panel}>
-                <div className={styles.sectionHead}>
-                  <div>
-                    <span className={styles.label}>Queue</span>
-                    <h2>Primary Actions</h2>
-                  </div>
-                  <span className={styles.statusChipMuted}>{queueCount} active</span>
-                </div>
-                <div className={styles.actionGrid}>
-                  <button
-                    className={styles.secondaryButton}
-                    disabled={!hasSelectedIdea || Boolean(pendingAction)}
-                    onClick={() => void runResearch()}
-                    type="button"
-                  >
-                    {pendingAction === "run-research" ? "Running Research..." : "Run Research"}
-                  </button>
-                  <button
-                    className={styles.secondaryButton}
-                    disabled={!hasResearch || Boolean(pendingAction)}
-                    onClick={() => void createArticle()}
-                    type="button"
-                  >
-                    {pendingAction === "create-article" ? "Creating Article..." : "Create Article"}
-                  </button>
-                    <button
-                      className={styles.secondaryButton}
-                      disabled={!hasDraft || Boolean(pendingAction)}
-                      onClick={() => void runPrimaryAction("images")}
-                      type="button"
-                    >
-                      {pendingAction === "generate-images" ? "Generating Images..." : "Generate Images"}
-                    </button>
-                  <button
-                    className={styles.secondaryButton}
-                    disabled={Boolean(pendingAction)}
-                    onClick={() => void runPrimaryAction("approve")}
-                    type="button"
-                  >
-                    {pendingAction === "approve" ? "Approving..." : "Approve"}
-                  </button>
-                  <button
-                    className={styles.primaryButton}
-                    disabled={Boolean(pendingAction)}
-                    onClick={() => void runPrimaryAction("publish")}
-                    type="button"
-                  >
-                    {pendingAction === "publish" ? "Queueing Publish..." : "Queue Publish"}
-                  </button>
-                </div>
-                <div className={styles.statusRow}>
-                  <span className={styles.statusChipMuted}>
-                    {pendingAction ? statusMessage : liveEvent ? `${liveEvent.type} ${automationLabels[liveEvent.status]}` : statusMessage}
-                  </span>
-                </div>
-                <div className={styles.exportRow}>
-                  <button className={styles.ghostButton} onClick={() => downloadDeliverable("markdown")} type="button">Export MD</button>
-                  <button className={styles.ghostButton} onClick={() => downloadDeliverable("json")} type="button">Export JSON</button>
-                  <button className={styles.ghostButton} onClick={() => downloadResearchReport("doc")} type="button">Research DOC</button>
-                  <button className={styles.ghostButton} onClick={() => downloadResearchReport("html")} type="button">Research HTML</button>
-                </div>
-              </div>
             </aside>
 
             <section className={styles.content}>
@@ -1050,6 +1322,9 @@ export function WorkflowDashboard({
                     <span className={styles.focusPill}>Current stage: {stageLabels[job.stage]}</span>
                     <span className={styles.focusPill}>Selected topic: {activeIdea?.title ?? "Waiting for selection"}</span>
                     <span className={styles.focusPill}>Primary workspace: {activeWorkflowStep.title}</span>
+                    {editorialPattern ? (
+                      <span className={styles.focusPill}>Editorial pattern: {editorialPattern.label}</span>
+                    ) : null}
                   </div>
                 </div>
                 <div className={styles.focusActions}>
@@ -1184,6 +1459,14 @@ export function WorkflowDashboard({
                       </button>
                     </div>
                   </div>
+                  <div className={styles.exportRow}>
+                    <button className={styles.ghostButton} onClick={() => downloadResearchReport("doc")} type="button">
+                      Research DOC
+                    </button>
+                    <button className={styles.ghostButton} onClick={() => downloadResearchReport("html")} type="button">
+                      Research HTML
+                    </button>
+                  </div>
                   <div className={styles.researchLayout}>
                     <article className={styles.researchMain}>
                       <h3>{activeIdea?.title ?? "Select a keyword first"}</h3>
@@ -1260,6 +1543,14 @@ export function WorkflowDashboard({
                       </article>
                     ))}
                   </div>
+                  <div className={styles.exportRow}>
+                    <button className={styles.ghostButton} onClick={() => downloadDeliverable("markdown")} type="button">
+                      Export MD
+                    </button>
+                    <button className={styles.ghostButton} onClick={() => downloadDeliverable("json")} type="button">
+                      Export JSON
+                    </button>
+                  </div>
                 </section>
               ) : null}
 
@@ -1270,6 +1561,7 @@ export function WorkflowDashboard({
                       <div>
                         <span className={styles.label}>Step 4</span>
                         <h2>Article Studio</h2>
+                        {editorialPattern ? <p>{editorialPattern.description}</p> : null}
                       </div>
                       <button
                         className={styles.primaryButton}
@@ -1316,6 +1608,34 @@ export function WorkflowDashboard({
                         <small>สรุปท้ายบทความ</small>
                         <textarea rows={5} value={draftConclusion} onChange={(event) => setDraftConclusion(event.target.value)} />
                       </label>
+                      <div className={styles.editorGroup}>
+                        <div className={styles.editorGroupHead}>
+                          <strong>Article Sections</strong>
+                          <small>แก้ไขหัวข้อและเนื้อหาแต่ละส่วนได้ก่อน publish</small>
+                        </div>
+                        {draftSections.map((section, index) => (
+                          <div className={styles.editorSection} key={`section-editor-${index + 1}`}>
+                            <div className={styles.editorSectionHead}>
+                              <strong>Section {index + 1}</strong>
+                            </div>
+                            <label className={styles.editorField}>
+                              <span>Heading</span>
+                              <input
+                                value={section.heading}
+                                onChange={(event) => updateDraftSection(index, "heading", event.target.value)}
+                              />
+                            </label>
+                            <label className={styles.editorField}>
+                              <span>Body</span>
+                              <textarea
+                                rows={10}
+                                value={section.body}
+                                onChange={(event) => updateDraftSection(index, "body", event.target.value)}
+                              />
+                            </label>
+                          </div>
+                        ))}
+                      </div>
                       <button
                         className={styles.secondaryButton}
                         disabled={Boolean(pendingAction)}
@@ -1323,6 +1643,16 @@ export function WorkflowDashboard({
                         type="button"
                       >
                         {pendingAction === "save-draft" ? "Saving Draft..." : "Save Draft"}
+                      </button>
+                      <button
+                        className={styles.secondaryButton}
+                        disabled={Boolean(pendingAction) || !hasResearch}
+                        onClick={() => void regenerateArticleWithAnotherPattern()}
+                        type="button"
+                      >
+                        {pendingAction === "regenerate-pattern"
+                          ? "Regenerating Pattern..."
+                          : "Regenerate With Another Pattern"}
                       </button>
                     </div>
                   </section>
@@ -1334,7 +1664,8 @@ export function WorkflowDashboard({
                     <div className={styles.articleMeta}>
                       <span>Keyword: {job.seedKeyword}</span>
                       <span>Status: {stageLabels[job.stage]}</span>
-                      <span>Length target: {articleLength} words</span>
+                      <span>Words before image: {articleLength}</span>
+                      <span>Image count: {imageCount}</span>
                     </div>
                     <div className={styles.articleBody}>
                       <h2 className={styles.previewTitle}>{briefTitle || activeIdea?.title || "Untitled article"}</h2>
@@ -1344,15 +1675,15 @@ export function WorkflowDashboard({
                           {paragraph}
                         </p>
                       ))}
-                      {job.draft.sections.map((section, index) => {
+                      {articleSections.map((section, index) => {
                         const image = articleImages[index + 1];
                         return (
-                          <section key={section.heading} className={styles.articleSection}>
+                          <section key={`${section.heading}-${index}`} className={styles.articleSection}>
                             <h3>{section.heading}</h3>
                             {splitParagraphs(section.body).map((paragraph) => (
                               <p key={`${section.heading}-${paragraph.slice(0, 36)}`}>{paragraph}</p>
                             ))}
-                            {image ? (
+                            {image?.src.trim() ? (
                               <figure className={styles.inlineFigure}>
                                 <div className={styles.inlineImage}>
                                   <Image alt={image.alt} height={760} src={image.src} unoptimized width={1320} />
@@ -1385,7 +1716,6 @@ export function WorkflowDashboard({
                     </div>
                     <span className={styles.statusChipMuted}>
                       {imageStatusLabel}
-                      {imageStatusDetail ? ` · ${imageStatusDetail}` : ""}
                       {imageErrorCount > 0 ? ` · ${imageErrorCount} issues` : ""}
                     </span>
                     <button
@@ -1396,17 +1726,102 @@ export function WorkflowDashboard({
                     >
                       {pendingAction === "generate-images" ? "Generating Images..." : "Generate Images"}
                     </button>
+                    <button
+                      className={styles.secondaryButton}
+                      disabled={!hasDraft || Boolean(pendingAction)}
+                      onClick={() => void saveImages()}
+                      type="button"
+                    >
+                      {pendingAction === "save-images" ? "Saving Images..." : "Save Image Edits"}
+                    </button>
+                    <button
+                      className={styles.ghostButton}
+                      disabled={Boolean(pendingAction)}
+                      onClick={() => void refreshActiveJob()}
+                      type="button"
+                    >
+                      Refresh
+                    </button>
                   </div>
                   <div className={styles.imageShowcase}>
-                    {articleImages.map((image) => (
+                    {articleImages.map((image, index) => (
                       <article key={image.id} className={styles.imageCard}>
                         <div className={styles.imageThumbLarge}>
+                          {image.src.trim() ? (
                             <Image alt={image.alt} height={840} src={image.src} unoptimized width={1400} />
+                          ) : (
+                            <div className={styles.imageEmpty}>Image removed from this slot</div>
+                          )}
                         </div>
-                        <strong>{image.caption}</strong>
-                        <p>{image.alt}</p>
-                        <span>{image.placement}</span>
-                        <code>{image.prompt}</code>
+                        <div className={styles.imageEditorFields}>
+                          <label className={styles.editorField}>
+                            <span>Caption / text under image</span>
+                            <input
+                              value={image.caption}
+                              onChange={(event) => updateImageAsset(index, "caption", event.target.value)}
+                            />
+                          </label>
+                          <label className={styles.editorField}>
+                            <span>Alt text</span>
+                            <textarea
+                              rows={3}
+                              value={image.alt}
+                              onChange={(event) => updateImageAsset(index, "alt", event.target.value)}
+                            />
+                          </label>
+                          <label className={styles.editorField}>
+                            <span>Placement note</span>
+                            <input
+                              value={image.placement}
+                              onChange={(event) => updateImageAsset(index, "placement", event.target.value)}
+                            />
+                          </label>
+                          <label className={styles.editorField}>
+                            <span>Image source URL</span>
+                            <input
+                              value={image.src}
+                              onChange={(event) => updateImageAsset(index, "src", event.target.value)}
+                            />
+                          </label>
+                          <label className={styles.uploadField}>
+                            <span>Replace image file</span>
+                            <input
+                              accept="image/*"
+                              type="file"
+                              onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                if (file) {
+                                  void replaceImageFromFile(index, file);
+                                }
+                              }}
+                            />
+                          </label>
+                          <div className={styles.imageEditorActions}>
+                            <button
+                              className={styles.ghostButton}
+                              disabled={!image.src.trim() || Boolean(pendingAction)}
+                              onClick={() => void downloadImageAsset(image, index)}
+                              type="button"
+                            >
+                              Download image
+                            </button>
+                            <button className={styles.ghostButton} onClick={() => removeImageAsset(index)} type="button">
+                              Remove image
+                            </button>
+                            <button className={styles.secondaryButton} onClick={() => restoreImageAsset(index)} type="button">
+                              Restore saved image
+                            </button>
+                            <button
+                              className={styles.primaryButton}
+                              disabled={Boolean(pendingAction)}
+                              onClick={() => void regenerateSingleImage(index)}
+                              type="button"
+                            >
+                              {pendingAction === "regenerate-image" ? "Generating..." : "Generate this image again"}
+                            </button>
+                          </div>
+                          <code>{image.prompt}</code>
+                        </div>
                       </article>
                     ))}
                   </div>

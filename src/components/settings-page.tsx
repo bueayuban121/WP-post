@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./console-pages.module.css";
 import type { AppUserSession } from "@/lib/auth";
 
@@ -10,16 +10,73 @@ type SavedSettings = {
   tone: string;
   restrictedWords: string;
   articleLength: string;
+};
+
+type ManagedAccountDraft = {
+  status: "active" | "expired" | "suspended";
+  contractEnd: string;
+  clientArticlePrompt: string;
+  clientExpertisePrompt: string;
+  clientBrandVoicePrompt: string;
+  clientWordpressUrl: string;
+  clientWordpressUsername: string;
+  clientWordpressAppPassword: string;
+  clientWordpressPublishStatus: "draft" | "publish";
+};
+
+type NewAccountState = {
+  email: string;
+  name: string;
+  password: string;
+  clientName: string;
+  articlePrompt: string;
+  expertisePrompt: string;
+  brandVoicePrompt: string;
   wordpressUrl: string;
-  publishStatus: "draft" | "publish";
+  wordpressUsername: string;
+  wordpressAppPassword: string;
+  wordpressPublishStatus: "draft" | "publish";
+  contractStart: string;
+  contractEnd: string;
+  status: "active" | "expired" | "suspended";
 };
 
 const defaultSettings: SavedSettings = {
   tone: "Calm expert",
   restrictedWords: "ดีที่สุด, การันตี, รักษาหาย",
-  articleLength: "1800",
+  articleLength: "1800"
+};
+
+function createAccountDraft(user: AppUserSession): ManagedAccountDraft {
+  return {
+    status: user.status,
+    contractEnd: user.contractEnd ? user.contractEnd.slice(0, 10) : "",
+    clientArticlePrompt: user.clientArticlePrompt ?? "",
+    clientExpertisePrompt: user.clientExpertisePrompt ?? "",
+    clientBrandVoicePrompt: user.clientBrandVoicePrompt ?? "",
+    clientWordpressUrl: user.clientWordpressUrl ?? "",
+    clientWordpressUsername: user.clientWordpressUsername ?? "",
+    clientWordpressAppPassword: user.clientWordpressAppPassword ?? "",
+    clientWordpressPublishStatus:
+      user.clientWordpressPublishStatus === "publish" ? "publish" : "draft"
+  };
+}
+
+const emptyNewAccount: NewAccountState = {
+  email: "",
+  name: "",
+  password: "",
+  clientName: "",
+  articlePrompt: "",
+  expertisePrompt: "",
+  brandVoicePrompt: "",
   wordpressUrl: "",
-  publishStatus: "draft"
+  wordpressUsername: "",
+  wordpressAppPassword: "",
+  wordpressPublishStatus: "draft",
+  contractStart: "",
+  contractEnd: "",
+  status: "active"
 };
 
 export function SettingsPage({
@@ -51,27 +108,12 @@ export function SettingsPage({
   const [accounts, setAccounts] = useState(managedUsers);
   const [accountStatus, setAccountStatus] = useState("");
   const [accountPending, setAccountPending] = useState(false);
-  const [accountDrafts, setAccountDrafts] = useState<Record<string, { status: "active" | "expired" | "suspended"; contractEnd: string }>>(
-    () =>
-      Object.fromEntries(
-        managedUsers.map((user) => [
-          user.id,
-          {
-            status: user.status,
-            contractEnd: user.contractEnd ? user.contractEnd.slice(0, 10) : ""
-          }
-        ])
-      )
+  const [systemArticlePrompt, setSystemArticlePrompt] = useState("");
+  const [promptSaved, setPromptSaved] = useState("");
+  const [accountDrafts, setAccountDrafts] = useState<Record<string, ManagedAccountDraft>>(() =>
+    Object.fromEntries(managedUsers.map((user) => [user.id, createAccountDraft(user)]))
   );
-  const [newAccount, setNewAccount] = useState({
-    email: "",
-    name: "",
-    password: "",
-    clientName: "",
-    contractStart: "",
-    contractEnd: "",
-    status: "active" as "active" | "expired" | "suspended"
-  });
+  const [newAccount, setNewAccount] = useState<NewAccountState>(emptyNewAccount);
 
   function update<K extends keyof SavedSettings>(key: K, value: SavedSettings[K]) {
     setSaved(false);
@@ -81,6 +123,50 @@ export function SettingsPage({
   function saveSettings() {
     window.localStorage.setItem(storageKey, JSON.stringify(settings));
     setSaved(true);
+  }
+
+  useEffect(() => {
+    if (currentUser.role !== "admin") {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/settings/prompts", { cache: "no-store" });
+        const data = (await response.json()) as { error?: string; systemArticlePrompt?: string };
+        if (response.ok) {
+          setSystemArticlePrompt(data.systemArticlePrompt ?? "");
+        }
+      } catch {
+        // Keep the field editable locally when the request fails.
+      }
+    })();
+  }, [currentUser.role]);
+
+  async function saveSystemPrompt() {
+    setAccountPending(true);
+    setPromptSaved("");
+
+    try {
+      const response = await fetch("/api/settings/prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemArticlePrompt
+        })
+      });
+      const data = (await response.json()) as { error?: string; systemArticlePrompt?: string };
+      if (!response.ok) {
+        throw new Error(data.error ?? "Unable to save system prompt.");
+      }
+
+      setSystemArticlePrompt(data.systemArticlePrompt ?? "");
+      setPromptSaved("System article prompt saved.");
+    } catch (error) {
+      setPromptSaved(error instanceof Error ? error.message : "Unable to save system prompt.");
+    } finally {
+      setAccountPending(false);
+    }
   }
 
   async function createAccount() {
@@ -102,20 +188,9 @@ export function SettingsPage({
       setAccounts((current) => [data.user!, ...current]);
       setAccountDrafts((current) => ({
         ...current,
-        [data.user!.id]: {
-          status: data.user!.status,
-          contractEnd: data.user!.contractEnd ? data.user!.contractEnd.slice(0, 10) : ""
-        }
+        [data.user!.id]: createAccountDraft(data.user!)
       }));
-      setNewAccount({
-        email: "",
-        name: "",
-        password: "",
-        clientName: "",
-        contractStart: "",
-        contractEnd: "",
-        status: "active"
-      });
+      setNewAccount({ ...emptyNewAccount });
       setAccountStatus("Client account created.");
     } catch (error) {
       setAccountStatus(error instanceof Error ? error.message : "Unable to create account.");
@@ -124,7 +199,21 @@ export function SettingsPage({
     }
   }
 
-  async function updateAccount(userId: string, payload: { status?: "active" | "expired" | "suspended"; contractEnd?: string; password?: string; }) {
+  async function updateAccount(
+    userId: string,
+    payload: {
+      status?: "active" | "expired" | "suspended";
+      contractEnd?: string;
+      password?: string;
+      clientArticlePrompt?: string;
+      clientExpertisePrompt?: string;
+      clientBrandVoicePrompt?: string;
+      clientWordpressUrl?: string;
+      clientWordpressUsername?: string;
+      clientWordpressAppPassword?: string;
+      clientWordpressPublishStatus?: "draft" | "publish";
+    }
+  ) {
     setAccountPending(true);
     setAccountStatus("");
 
@@ -142,10 +231,7 @@ export function SettingsPage({
       setAccounts((current) => current.map((item) => (item.id === data.user!.id ? data.user! : item)));
       setAccountDrafts((current) => ({
         ...current,
-        [data.user!.id]: {
-          status: data.user!.status,
-          contractEnd: data.user!.contractEnd ? data.user!.contractEnd.slice(0, 10) : ""
-        }
+        [data.user!.id]: createAccountDraft(data.user!)
       }));
       setAccountStatus("Account updated.");
     } catch (error) {
@@ -155,11 +241,32 @@ export function SettingsPage({
     }
   }
 
-  function updateAccountDraft(userId: string, field: "status" | "contractEnd", value: string) {
+  function updateAccountDraft<K extends keyof ManagedAccountDraft>(
+    userId: string,
+    field: K,
+    value: ManagedAccountDraft[K]
+  ) {
     setAccountDrafts((current) => ({
       ...current,
       [userId]: {
-        ...(current[userId] ?? { status: "active", contractEnd: "" }),
+        ...(current[userId] ?? createAccountDraft({
+          id: userId,
+          email: "",
+          name: "",
+          role: "client",
+          status: "active",
+          clientId: null,
+          clientName: null,
+          contractStart: null,
+          contractEnd: null,
+          clientArticlePrompt: null,
+          clientExpertisePrompt: null,
+          clientBrandVoicePrompt: null,
+          clientWordpressUrl: null,
+          clientWordpressUsername: null,
+          clientWordpressAppPassword: null,
+          clientWordpressPublishStatus: null
+        })),
         [field]: value
       }
     }));
@@ -180,7 +287,7 @@ export function SettingsPage({
         <div className={styles.form}>
           <label>
             Tone
-            <small>โทนหลักของบทความ เช่น calm expert, premium, direct</small>
+            <small>โทนหลักของบทความ เช่น calm expert, premium editorial หรือ direct conversion</small>
             <input value={settings.tone} onChange={(event) => update("tone", event.target.value)} />
           </label>
 
@@ -209,57 +316,45 @@ export function SettingsPage({
         </div>
       </section>
 
-      <section className={styles.panel}>
-        <div className={styles.panelHead}>
-          <div>
-            <span className={styles.eyebrow}>Publishing</span>
-            <h2>WordPress defaults</h2>
-            <p>ใช้เป็นค่าอ้างอิงก่อนส่งงานขึ้น WordPress ผ่าน n8n poller</p>
+      {currentUser.role === "admin" ? (
+        <section className={styles.panel}>
+          <div className={styles.panelHead}>
+            <div>
+              <span className={styles.eyebrow}>AI Writing Control</span>
+              <h2>System article prompt</h2>
+              <p>เห็นและแก้ได้เฉพาะ admin หรือ owner ใช้เป็นกฎกลางก่อนนำ prompt เฉพาะบริษัทมาซ้อนเพิ่ม</p>
+            </div>
+            <span className={styles.badge}>Admin only</span>
           </div>
-          <span className={styles.badge}>Local preset</span>
-        </div>
 
-        <div className={styles.form}>
-          <label>
-            WordPress URL
-            <small>โดเมนปลายทางของเว็บไซต์ เช่น https://example.com</small>
-            <input value={settings.wordpressUrl} onChange={(event) => update("wordpressUrl", event.target.value)} />
-          </label>
-
-          <label>
-            Publish status
-            <small>กำหนดค่าเริ่มต้นของสถานะโพสต์ก่อนส่งงานออก</small>
-            <select
-              value={settings.publishStatus}
-              onChange={(event) => update("publishStatus", event.target.value as SavedSettings["publishStatus"])}
-            >
-              <option value="draft">draft</option>
-              <option value="publish">publish</option>
-            </select>
-          </label>
-        </div>
-
-        <div className={styles.helperList}>
-          <div className={styles.settingCard}>
-            <strong>What this page controls</strong>
-            <p className={styles.muted}>
-              หน้านี้เก็บค่าตั้งต้นของเครื่องที่ใช้งานอยู่ เพื่อให้ทีมเริ่มงานได้เร็วขึ้นก่อนเชื่อมค่าเหล่านี้เข้าฐานข้อมูลส่วนกลาง
-            </p>
+          <div className={styles.form}>
+            <label>
+              Global article prompt
+              <small>กำหนดกฎกลางของระบบ เช่น วิธีเขียน ความเป็นธรรมชาติ ความเข้ม SEO และข้อห้ามหลัก</small>
+              <textarea
+                rows={8}
+                value={systemArticlePrompt}
+                onChange={(event) => setSystemArticlePrompt(event.target.value)}
+              />
+            </label>
           </div>
-          <div className={styles.settingCard}>
-            <strong>Next recommended step</strong>
-            <p className={styles.muted}>ถ้าต้องการให้ค่าเหล่านี้มีผลกับทุกคนในทีม รอบถัดไปควรย้ายไปเก็บใน database และ project-level settings</p>
+
+          <div className={styles.actions}>
+            <button className={styles.primaryButton} disabled={accountPending} onClick={() => void saveSystemPrompt()} type="button">
+              {accountPending ? "Saving prompt..." : "Save system prompt"}
+            </button>
+            {promptSaved ? <span className={styles.success}>{promptSaved}</span> : null}
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       {currentUser.role === "admin" ? (
         <section className={styles.panel}>
           <div className={styles.panelHead}>
             <div>
               <span className={styles.eyebrow}>Access Control</span>
-              <h2>Client login and contract expiry</h2>
-              <p>Create client accounts, set contract dates, and suspend access when needed.</p>
+              <h2>Client accounts and company WordPress settings</h2>
+              <p>สร้างลูกค้าใหม่ พร้อมเก็บ prompt เฉพาะธุรกิจและข้อมูล WordPress ของแต่ละบริษัทไว้ใต้ account นั้นเลย</p>
             </div>
             <span className={styles.badge}>Admin only</span>
           </div>
@@ -267,49 +362,133 @@ export function SettingsPage({
           <div className={styles.form}>
             <label>
               Client name
-              <small>Name used to scope projects and jobs for this account.</small>
+              <small>ชื่อบริษัทหรือแบรนด์ที่ใช้ scope งาน โปรเจกต์ และ publish ปลายทาง</small>
               <input
                 value={newAccount.clientName}
                 onChange={(event) => setNewAccount((current) => ({ ...current, clientName: event.target.value }))}
               />
             </label>
+
             <label>
               Contact name
-              <small>Optional display name shown in the access list.</small>
+              <small>ชื่อผู้ใช้งานหรือชื่อผู้ประสานงานฝั่งลูกค้า</small>
               <input
                 value={newAccount.name}
                 onChange={(event) => setNewAccount((current) => ({ ...current, name: event.target.value }))}
               />
             </label>
+
             <label>
               Login email
-              <small>Email used to enter the program.</small>
+              <small>Email ที่ลูกค้าใช้เข้าสู่ระบบ</small>
               <input
                 value={newAccount.email}
                 onChange={(event) => setNewAccount((current) => ({ ...current, email: event.target.value }))}
               />
             </label>
+
             <label>
               Password
-              <small>Temporary password for the client account.</small>
+              <small>รหัสผ่านชั่วคราวสำหรับ account ใหม่นี้</small>
               <input
                 type="password"
                 value={newAccount.password}
                 onChange={(event) => setNewAccount((current) => ({ ...current, password: event.target.value }))}
               />
             </label>
+
+            <label>
+              WordPress URL
+              <small>โดเมนปลายทางของลูกค้ารายนี้ เช่น https://example.com</small>
+              <input
+                value={newAccount.wordpressUrl}
+                onChange={(event) => setNewAccount((current) => ({ ...current, wordpressUrl: event.target.value }))}
+              />
+            </label>
+
+            <label>
+              WordPress username
+              <small>ชื่อผู้ใช้ WordPress สำหรับ publish ของลูกค้ารายนี้</small>
+              <input
+                value={newAccount.wordpressUsername}
+                onChange={(event) =>
+                  setNewAccount((current) => ({ ...current, wordpressUsername: event.target.value }))
+                }
+              />
+            </label>
+
+            <label>
+              WordPress app password
+              <small>App password ของ WordPress สำหรับ publish ของลูกค้ารายนี้</small>
+              <input
+                type="password"
+                value={newAccount.wordpressAppPassword}
+                onChange={(event) =>
+                  setNewAccount((current) => ({ ...current, wordpressAppPassword: event.target.value }))
+                }
+              />
+            </label>
+
+            <label>
+              Default publish status
+              <small>สถานะเริ่มต้นเมื่อส่งโพสต์ขึ้น WordPress ของลูกค้ารายนี้</small>
+              <select
+                value={newAccount.wordpressPublishStatus}
+                onChange={(event) =>
+                  setNewAccount((current) => ({
+                    ...current,
+                    wordpressPublishStatus: event.target.value as "draft" | "publish"
+                  }))
+                }
+              >
+                <option value="draft">draft</option>
+                <option value="publish">publish</option>
+              </select>
+            </label>
+
+            <label>
+              Company article prompt
+              <small>Prompt เฉพาะบริษัทสำหรับสไตล์การเขียนบทความของลูกค้ารายนี้</small>
+              <textarea
+                rows={5}
+                value={newAccount.articlePrompt}
+                onChange={(event) => setNewAccount((current) => ({ ...current, articlePrompt: event.target.value }))}
+              />
+            </label>
+
+            <label>
+              Company expertise prompt
+              <small>กำหนด domain knowledge หรือความเชี่ยวชาญเฉพาะธุรกิจของบริษัทนี้</small>
+              <textarea
+                rows={4}
+                value={newAccount.expertisePrompt}
+                onChange={(event) => setNewAccount((current) => ({ ...current, expertisePrompt: event.target.value }))}
+              />
+            </label>
+
+            <label>
+              Brand voice prompt
+              <small>กำหนดโทนแบรนด์ น้ำเสียง และลักษณะการสื่อสารของบริษัทนี้</small>
+              <textarea
+                rows={4}
+                value={newAccount.brandVoicePrompt}
+                onChange={(event) => setNewAccount((current) => ({ ...current, brandVoicePrompt: event.target.value }))}
+              />
+            </label>
+
             <label>
               Contract start
-              <small>Optional start date for the agreement.</small>
+              <small>วันเริ่มต้นสัญญา ถ้าไม่กรอกจะถือว่าเริ่มใช้ได้ทันที</small>
               <input
                 type="date"
                 value={newAccount.contractStart}
                 onChange={(event) => setNewAccount((current) => ({ ...current, contractStart: event.target.value }))}
               />
             </label>
+
             <label>
               Contract end
-              <small>After this date the client account is treated as expired.</small>
+              <small>หลังวันดังกล่าว account จะถูกมองว่า expired</small>
               <input
                 type="date"
                 value={newAccount.contractEnd}
@@ -345,13 +524,16 @@ export function SettingsPage({
                         Access status
                         <select
                           value={accountDrafts[account.id]?.status ?? account.status}
-                          onChange={(event) => updateAccountDraft(account.id, "status", event.target.value)}
+                          onChange={(event) =>
+                            updateAccountDraft(account.id, "status", event.target.value as ManagedAccountDraft["status"])
+                          }
                         >
                           <option value="active">active</option>
                           <option value="expired">expired</option>
                           <option value="suspended">suspended</option>
                         </select>
                       </label>
+
                       <label>
                         Contract end
                         <input
@@ -360,7 +542,83 @@ export function SettingsPage({
                           onChange={(event) => updateAccountDraft(account.id, "contractEnd", event.target.value)}
                         />
                       </label>
+
+                      <label>
+                        WordPress URL
+                        <input
+                          value={accountDrafts[account.id]?.clientWordpressUrl ?? ""}
+                          onChange={(event) => updateAccountDraft(account.id, "clientWordpressUrl", event.target.value)}
+                        />
+                      </label>
+
+                      <label>
+                        WordPress username
+                        <input
+                          value={accountDrafts[account.id]?.clientWordpressUsername ?? ""}
+                          onChange={(event) =>
+                            updateAccountDraft(account.id, "clientWordpressUsername", event.target.value)
+                          }
+                        />
+                      </label>
+
+                      <label>
+                        WordPress app password
+                        <input
+                          type="password"
+                          value={accountDrafts[account.id]?.clientWordpressAppPassword ?? ""}
+                          onChange={(event) =>
+                            updateAccountDraft(account.id, "clientWordpressAppPassword", event.target.value)
+                          }
+                        />
+                      </label>
+
+                      <label>
+                        Default publish status
+                        <select
+                          value={accountDrafts[account.id]?.clientWordpressPublishStatus ?? "draft"}
+                          onChange={(event) =>
+                            updateAccountDraft(
+                              account.id,
+                              "clientWordpressPublishStatus",
+                              event.target.value as "draft" | "publish"
+                            )
+                          }
+                        >
+                          <option value="draft">draft</option>
+                          <option value="publish">publish</option>
+                        </select>
+                      </label>
+
+                      <label>
+                        Company article prompt
+                        <textarea
+                          rows={5}
+                          value={accountDrafts[account.id]?.clientArticlePrompt ?? ""}
+                          onChange={(event) => updateAccountDraft(account.id, "clientArticlePrompt", event.target.value)}
+                        />
+                      </label>
+
+                      <label>
+                        Company expertise prompt
+                        <textarea
+                          rows={4}
+                          value={accountDrafts[account.id]?.clientExpertisePrompt ?? ""}
+                          onChange={(event) =>
+                            updateAccountDraft(account.id, "clientExpertisePrompt", event.target.value)
+                          }
+                        />
+                      </label>
+
+                      <label>
+                        Brand voice prompt
+                        <textarea
+                          rows={4}
+                          value={accountDrafts[account.id]?.clientBrandVoicePrompt ?? ""}
+                          onChange={(event) => updateAccountDraft(account.id, "clientBrandVoicePrompt", event.target.value)}
+                        />
+                      </label>
                     </div>
+
                     <div className={styles.actions}>
                       <button
                         className={styles.linkButton}
@@ -368,12 +626,20 @@ export function SettingsPage({
                         onClick={() =>
                           void updateAccount(account.id, {
                             status: accountDrafts[account.id]?.status ?? account.status,
-                            contractEnd: accountDrafts[account.id]?.contractEnd ?? ""
+                            contractEnd: accountDrafts[account.id]?.contractEnd ?? "",
+                            clientArticlePrompt: accountDrafts[account.id]?.clientArticlePrompt ?? "",
+                            clientExpertisePrompt: accountDrafts[account.id]?.clientExpertisePrompt ?? "",
+                            clientBrandVoicePrompt: accountDrafts[account.id]?.clientBrandVoicePrompt ?? "",
+                            clientWordpressUrl: accountDrafts[account.id]?.clientWordpressUrl ?? "",
+                            clientWordpressUsername: accountDrafts[account.id]?.clientWordpressUsername ?? "",
+                            clientWordpressAppPassword: accountDrafts[account.id]?.clientWordpressAppPassword ?? "",
+                            clientWordpressPublishStatus:
+                              accountDrafts[account.id]?.clientWordpressPublishStatus ?? "draft"
                           })
                         }
                         type="button"
                       >
-                        Save access
+                        Save account settings
                       </button>
                     </div>
                   </>

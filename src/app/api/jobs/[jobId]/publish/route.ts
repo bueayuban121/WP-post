@@ -20,12 +20,18 @@ export async function POST(
   }
 
   let publishResult:
-    | {
+      | {
         id: number;
         link?: string;
         status?: string;
         featuredMediaId?: number;
         uploadedMediaCount: number;
+        seoMeta: {
+          attempted: boolean;
+          synced: boolean;
+          target?: string;
+          warnings: string[];
+        };
         uploadErrors: Array<{
           assetId: string;
           placement: string;

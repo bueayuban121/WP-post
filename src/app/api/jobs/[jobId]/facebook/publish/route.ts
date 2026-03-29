@@ -81,7 +81,10 @@ export async function POST(
         hashtags: job.facebook.hashtags,
         selectedImage
       },
-      text_content: `${job.facebook.caption}\n\n${job.facebook.hashtags.join(" ")}`.trim(),
+      text_content: [job.facebook.caption, job.brief.slug ? `${process.env.WORDPRESS_BASE_URL?.replace(/\/$/, "")}/${job.brief.slug}/` : "", job.facebook.hashtags.join(" ")]
+        .filter(Boolean)
+        .join("\n\n")
+        .trim(),
       images: [selectedImage.src],
       platform: "facebook"
     })

@@ -1,3 +1,4 @@
+import { getPrismaClient } from "@/lib/prisma";
 import type { ArticleImageAsset, WorkflowJob } from "@/types/workflow";
 
 type WordPressPublishResult = {
@@ -6,6 +7,12 @@ type WordPressPublishResult = {
   status?: string;
   featuredMediaId?: number;
   uploadedMediaCount: number;
+  seoMeta: {
+    attempted: boolean;
+    synced: boolean;
+    target?: string;
+    warnings: string[];
+  };
   uploadErrors: Array<{
     assetId: string;
     placement: string;
@@ -28,6 +35,13 @@ function getEnv(name: string) {
   const value = process.env[name]?.trim();
   return value ? value : undefined;
 }
+
+type ResolvedWordPressConfig = {
+  baseUrl: string;
+  username: string;
+  appPassword: string;
+  publishStatus: "draft" | "publish";
+};
 
 function getBaseUrl() {
   return getEnv("APP_BASE_URL")?.replace(/\/$/, "");
@@ -90,8 +104,87 @@ function inferMimeType(contentType?: string | null, extension?: string) {
   }
 }
 
+function parseDataUrl(source: string) {
+  const match = source.match(/^data:([^;,]+)?(;base64)?,([\s\S]+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  const mimeType = (match[1] || "image/png").toLowerCase();
+  const isBase64 = Boolean(match[2]);
+  const payload = match[3] || "";
+  const bytes = isBase64
+    ? Buffer.from(payload, "base64")
+    : Buffer.from(decodeURIComponent(payload), "utf8");
+
+  return {
+    bytes,
+    contentType: mimeType,
+    extension: inferExtension(mimeType, `inline.${mimeType.split("/")[1] || "png"}`)
+  };
+}
+
 function getAuthHeader(username: string, appPassword: string) {
   return `Basic ${Buffer.from(`${username}:${appPassword}`).toString("base64")}`;
+}
+
+async function getWordPressConfigForJob(job: WorkflowJob): Promise<ResolvedWordPressConfig> {
+  const prisma = getPrismaClient();
+  const clientName = job.client.trim();
+
+  let clientConfig:
+    | {
+        wordpressUrl: string | null;
+        wordpressUsername: string | null;
+        wordpressAppPassword: string | null;
+        wordpressPublishStatus: string | null;
+      }
+    | undefined;
+
+  if (prisma && clientName) {
+    const rows = (await prisma.$queryRawUnsafe(
+      `
+        SELECT
+          "wordpressUrl",
+          "wordpressUsername",
+          "wordpressAppPassword",
+          "wordpressPublishStatus"
+        FROM "Client"
+        WHERE "name" = $1
+        LIMIT 1
+      `,
+      clientName
+    )) as Array<{
+      wordpressUrl: string | null;
+      wordpressUsername: string | null;
+      wordpressAppPassword: string | null;
+      wordpressPublishStatus: string | null;
+    }>;
+
+    clientConfig = rows[0];
+  }
+
+  const baseUrl = (clientConfig?.wordpressUrl?.trim() || getEnv("WORDPRESS_BASE_URL") || "").replace(/\/$/, "");
+  const username = clientConfig?.wordpressUsername?.trim() || getEnv("WORDPRESS_USERNAME") || "";
+  const appPassword =
+    clientConfig?.wordpressAppPassword?.trim().replaceAll(" ", "") ||
+    getEnv("WORDPRESS_APP_PASSWORD")?.replaceAll(" ", "") ||
+    "";
+  const publishStatus =
+    job.brief.publishStatus ||
+    (clientConfig?.wordpressPublishStatus?.trim() === "publish" ? "publish" : undefined) ||
+    (getEnv("WORDPRESS_POST_STATUS") === "publish" ? "publish" : "draft");
+
+  if (!baseUrl || !username || !appPassword) {
+    throw new Error("WordPress credentials are not configured.");
+  }
+
+  return {
+    baseUrl,
+    username,
+    appPassword,
+    publishStatus
+  };
 }
 
 async function parseJsonResponse(response: Response) {
@@ -105,6 +198,11 @@ async function parseJsonResponse(response: Response) {
 }
 
 async function fetchImageAsset(source: string) {
+  const inlineData = parseDataUrl(source);
+  if (inlineData) {
+    return inlineData;
+  }
+
   const response = await fetch(toAbsoluteUrl(source));
   if (!response.ok) {
     throw new Error(`Image download failed with ${response.status}.`);
@@ -260,6 +358,10 @@ async function uploadJobImages(input: {
   const failed: FailedWordPressImage[] = [];
 
   for (const [index, asset] of input.job.images.entries()) {
+    if (!asset.src.trim()) {
+      continue;
+    }
+
     try {
       uploaded.push(
         await withRetries(
@@ -291,6 +393,85 @@ async function uploadJobImages(input: {
   };
 }
 
+async function syncSeoMeta(input: {
+  baseUrl: string;
+  authHeader: string;
+  postId: number;
+  job: WorkflowJob;
+}) {
+  const metaTitle = input.job.brief.metaTitle.trim();
+  const metaDescription = input.job.brief.metaDescription.trim();
+
+  if (!metaTitle && !metaDescription) {
+    return {
+      attempted: false,
+      synced: false,
+      warnings: []
+    };
+  }
+
+  const candidates = [
+    {
+      target: "yoast",
+      meta: {
+        _yoast_wpseo_title: metaTitle,
+        _yoast_wpseo_metadesc: metaDescription
+      }
+    },
+    {
+      target: "rank_math",
+      meta: {
+        rank_math_title: metaTitle,
+        rank_math_description: metaDescription
+      }
+    },
+    {
+      target: "aioseo",
+      meta: {
+        _aioseo_title: metaTitle,
+        _aioseo_description: metaDescription
+      }
+    }
+  ];
+
+  const warnings: string[] = [];
+
+  for (const candidate of candidates) {
+    const response = await fetch(`${input.baseUrl}/wp-json/wp/v2/posts/${input.postId}`, {
+      method: "POST",
+      headers: {
+        Authorization: input.authHeader,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        meta: candidate.meta
+      })
+    });
+
+    if (response.ok) {
+      return {
+        attempted: true,
+        synced: true,
+        target: candidate.target,
+        warnings
+      };
+    }
+
+    const payload = await parseJsonResponse(response);
+    warnings.push(
+      typeof payload?.message === "string"
+        ? `${candidate.target}: ${payload.message}`
+        : `${candidate.target}: meta sync failed with ${response.status}`
+    );
+  }
+
+  return {
+    attempted: true,
+    synced: false,
+    warnings
+  };
+}
+
 export function isWordPressConfigured() {
   return Boolean(
     getEnv("WORDPRESS_BASE_URL") && getEnv("WORDPRESS_USERNAME") && getEnv("WORDPRESS_APP_PASSWORD")
@@ -298,13 +479,8 @@ export function isWordPressConfigured() {
 }
 
 export async function publishToWordPress(job: WorkflowJob): Promise<WordPressPublishResult> {
-  const baseUrl = getEnv("WORDPRESS_BASE_URL")?.replace(/\/$/, "");
-  const username = getEnv("WORDPRESS_USERNAME");
-  const appPassword = getEnv("WORDPRESS_APP_PASSWORD")?.replaceAll(" ", "");
-
-  if (!baseUrl || !username || !appPassword) {
-    throw new Error("WordPress credentials are not configured.");
-  }
+  const config = await getWordPressConfigForJob(job);
+  const { baseUrl, username, appPassword, publishStatus } = config;
 
   const authHeader = getAuthHeader(username, appPassword);
 
@@ -341,7 +517,7 @@ export async function publishToWordPress(job: WorkflowJob): Promise<WordPressPub
       slug: job.brief.slug,
       excerpt: job.brief.metaDescription,
       content: buildWordPressContent(job, uploadedImages),
-      status: job.brief.publishStatus || getEnv("WORDPRESS_POST_STATUS") || "draft",
+      status: publishStatus,
       categories: categoryIds,
       tags: tagIds,
       ...(featuredMediaId ? { featured_media: featuredMediaId } : {})
@@ -356,12 +532,27 @@ export async function publishToWordPress(job: WorkflowJob): Promise<WordPressPub
     );
   }
 
+  const postId = typeof payload?.id === "number" ? payload.id : 0;
+  const seoMeta = postId
+    ? await syncSeoMeta({
+        baseUrl,
+        authHeader,
+        postId,
+        job
+      })
+    : {
+        attempted: false,
+        synced: false,
+        warnings: ["WordPress publish returned no post ID for SEO meta sync."]
+      };
+
   return {
-    id: typeof payload?.id === "number" ? payload.id : 0,
+    id: postId,
     link: typeof payload?.link === "string" ? payload.link : undefined,
     status: typeof payload?.status === "string" ? payload.status : undefined,
     featuredMediaId,
     uploadedMediaCount: uploadedImages.length,
+    seoMeta,
     uploadErrors: uploadResult.failed.map((item) => ({
       assetId: item.asset.id,
       placement: item.asset.placement,

@@ -254,12 +254,12 @@ export async function buildRunnerCallback(input: {
       workflowRunId,
       message: "Image workflow completed via app runner.",
       stage: job.stage,
-      payload: {
-        provider: fullyGenerated
-          ? "phaya"
-          : usedPhayaCount > 0
-            ? "phaya-mixed"
-            : "app-image-runner",
+        payload: {
+          provider: fullyGenerated
+            ? "phaya-nano-banana"
+            : usedPhayaCount > 0
+              ? "phaya-nano-banana-mixed"
+              : "app-image-runner",
         imageStatus: "ready",
         usedFallback: !fullyGenerated,
         errorCount: imageErrors.length,

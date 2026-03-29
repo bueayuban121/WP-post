@@ -1,3 +1,4 @@
+import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import type { ArticleDraft, ArticleImageAsset, ContentBrief } from "@/types/workflow";
 
 type BuildImageInput = {
@@ -5,6 +6,7 @@ type BuildImageInput = {
   title: string;
   brief: Pick<ContentBrief, "angle" | "audience">;
   draft: Pick<ArticleDraft, "sections">;
+  imageCount?: number;
 };
 
 const IMAGE_BASE_URL = "https://image.pollinations.ai/prompt";
@@ -23,29 +25,6 @@ function trimSentence(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function cleanThaiSource(value: string) {
-  return trimSentence(value)
-    .replace(/[“”"'`]/g, "")
-    .replace(/[!?.,:;()[\]{}]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function deriveTextDirection(input: {
-  title: string;
-  seedKeyword: string;
-  placement: string;
-  sectionHeading?: string;
-}) {
-  const source = cleanThaiSource(input.sectionHeading || input.title || input.seedKeyword);
-
-  if (source) {
-    return source.slice(0, 42);
-  }
-
-  return input.placement === "Hero" ? cleanThaiSource(input.seedKeyword) : "ประเด็นสำคัญ";
-}
-
 function buildPrompt(input: {
   seedKeyword: string;
   title: string;
@@ -55,12 +34,6 @@ function buildPrompt(input: {
   sectionHeading?: string;
 }) {
   const subject = input.sectionHeading ? `${input.title}, ${input.sectionHeading}` : input.title;
-  const textDirection = deriveTextDirection({
-    title: input.title,
-    seedKeyword: input.seedKeyword,
-    placement: input.placement,
-    sectionHeading: input.sectionHeading
-  });
 
   return trimSentence(
     [
@@ -70,14 +43,8 @@ function buildPrompt(input: {
       `Audience: ${input.audience}.`,
       `Story angle: ${input.angle}.`,
       `Placement in article: ${input.placement}.`,
-      `The image should include one short Thai headline that matches the meaning of this specific article section.`,
-      `Use this as the text direction only: ${textDirection}.`,
-      "Let the AI design the exact Thai wording naturally so each image can have different text that fits its own visual concept.",
-      "The text should feel like a premium editorial headline, key takeaway, benefit statement, or hook.",
-      "Keep the Thai text short, around 3 to 8 words, readable, bold, clean, sharp, and naturally integrated into the design.",
-      "Use strong contrast and enough negative space around the text.",
-      "Typography must look normal and intentional, not distorted, not repeated, not gibberish, not misspelled.",
-      "No extra text blocks, no random letters, no broken typography, no watermark, no UI, no collage."
+      "Do not include any text, letters, typography, captions, signage text, subtitles, headline overlays, watermark, UI, collage, or label design in this image.",
+      "The final image must be purely visual with no readable words or characters anywhere in the frame."
     ].join(" ")
   );
 }
@@ -96,24 +63,24 @@ function buildImageUrl(prompt: string, seed: number, width: number, height: numb
   return `${IMAGE_BASE_URL}/${encodeURIComponent(prompt)}?${params.toString()}`;
 }
 
-function toCaption(placement: string, sectionHeading?: string) {
+function toCaption(title: string, seedKeyword: string, placement: string, sectionHeading?: string) {
   if (sectionHeading) {
-    return `${sectionHeading} image`;
+    return `ภาพประกอบหัวข้อ ${sectionHeading} ในบทความ ${seedKeyword}`;
   }
 
   return placement === "Hero"
-    ? "Featured article image"
+    ? `ภาพเปิดบทความ ${title}`
     : placement === "Conclusion"
-      ? "Closing article image"
-      : `${placement} image`;
+      ? `ภาพสรุปประเด็นสำคัญของ ${seedKeyword}`
+      : `ภาพประกอบบทความ ${seedKeyword}`;
 }
 
 function toAlt(title: string, placement: string, sectionHeading?: string) {
   if (sectionHeading) {
-    return `${title} - ${sectionHeading}`;
+    return `ภาพประกอบ ${sectionHeading} จากบทความ ${title}`;
   }
 
-  return `${title} - ${placement}`;
+  return placement === "Hero" ? `ภาพหลักของบทความ ${title}` : `ภาพประกอบบทความ ${title}`;
 }
 
 function buildAsset(
@@ -138,7 +105,7 @@ function buildAsset(
     kind,
     src: buildImageUrl(prompt, seed, kind === "featured" ? 1600 : 1400, kind === "featured" ? 900 : 840),
     alt: toAlt(input.title, placement, sectionHeading),
-    caption: toCaption(placement, sectionHeading),
+    caption: toCaption(input.title, input.seedKeyword, placement, sectionHeading),
     placement,
     prompt,
     ...(sectionHeading ? { sectionHeading } : {})
@@ -146,7 +113,11 @@ function buildAsset(
 }
 
 export function generateArticleImages(input: BuildImageInput): ArticleImageAsset[] {
-  const sections = input.draft.sections.slice(0, 5);
+  const settings = normalizeGenerationSettings({
+    imageCount: input.imageCount
+  });
+  const inlineCount = Math.max(0, settings.imageCount - 1);
+  const sections = input.draft.sections.slice(0, inlineCount);
 
   return [
     buildAsset(input, "Hero", "hero", undefined, "featured"),

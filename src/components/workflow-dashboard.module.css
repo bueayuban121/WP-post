@@ -1172,6 +1172,27 @@
   margin-top: 16px;
 }
 
+.editorGroup,
+.imageEditorFields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.editorGroup {
+  margin-top: 4px;
+}
+
+.editorGroupHead {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editorGroupHead small {
+  color: #8e98a8;
+}
+
 .editorSection {
   padding: 14px;
   border-radius: 18px;
@@ -1214,6 +1235,23 @@
   border-radius: 14px;
   padding: 12px 14px;
   resize: vertical;
+}
+
+.uploadField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #a6afbb;
+  font-size: 0.9rem;
+}
+
+.uploadField input[type="file"] {
+  width: 100%;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: #d9e0ea;
+  border-radius: 14px;
+  padding: 12px 14px;
 }
 
 .articleLayout {
@@ -1327,6 +1365,22 @@
 .imageCard strong {
   display: block;
   margin-bottom: 8px;
+}
+
+.imageEditorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.imageEmpty {
+  display: grid;
+  place-items: center;
+  min-height: 240px;
+  padding: 24px;
+  color: #8e98a8;
+  font-size: 0.92rem;
+  text-align: center;
 }
 
 .featuredImageMeta span,

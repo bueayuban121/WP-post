@@ -68,6 +68,13 @@ export type ArticleImageAsset = {
   sectionHeading?: string;
 };
 
+export type WorkflowGenerationSettings = {
+  imageCount: number;
+  sectionCount: number;
+  wordsPerSection: string;
+  editorialPattern?: string;
+};
+
 export type FacebookPostDraft = {
   caption: string;
   hashtags: string[];

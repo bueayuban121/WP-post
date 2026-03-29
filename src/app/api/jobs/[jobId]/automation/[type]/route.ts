@@ -9,8 +9,9 @@ import {
 } from "@/lib/job-store";
 import { getJobScopeForUser, requireRouteSession } from "@/lib/auth";
 import { shouldQueueAutomation, triggerN8nWorkflow } from "@/lib/n8n";
+import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import { createWorkflowEvent, updateWorkflowEvent } from "@/lib/workflow-events";
-import type { WorkflowAutomationType } from "@/types/workflow";
+import type { WorkflowAutomationType, WorkflowGenerationSettings } from "@/types/workflow";
 import { isWordPressConfigured, publishToWordPress } from "@/lib/wordpress";
 import { NextResponse } from "next/server";
 
@@ -20,7 +21,11 @@ function isAutomationType(value: string): value is WorkflowAutomationType {
   return supportedTypes.has(value as WorkflowAutomationType);
 }
 
-async function runLocalFallback(jobId: string, type: WorkflowAutomationType) {
+async function runLocalFallback(
+  jobId: string,
+  type: WorkflowAutomationType,
+  generationSettings?: Partial<WorkflowGenerationSettings> | null
+) {
   if (type === "research") {
     return runResearch(jobId);
   }
@@ -34,16 +39,20 @@ async function runLocalFallback(jobId: string, type: WorkflowAutomationType) {
   }
 
   if (type === "images") {
-    return regenerateJobImages(jobId);
+    return regenerateJobImages(jobId, normalizeGenerationSettings(generationSettings));
   }
 
   return null;
 }
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ jobId: string; type: string }> }
 ) {
+  const body = (await request.json().catch(() => null)) as
+    | { generationSettings?: Partial<WorkflowGenerationSettings> }
+    | null;
+
   const session = await requireRouteSession();
   if (!session.ok) {
     return NextResponse.json({ error: session.error }, { status: session.status });
@@ -179,7 +188,7 @@ export async function POST(
   let updatedJob = await getJob(jobId, getJobScopeForUser(session.user));
 
   if (!result.accepted) {
-    updatedJob = await runLocalFallback(jobId, type);
+    updatedJob = await runLocalFallback(jobId, type, body?.generationSettings);
 
     if (updatedJob) {
       updatedEvent = await updateWorkflowEvent(event.id, {

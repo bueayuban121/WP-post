@@ -153,6 +153,7 @@ export function FacebookPage({ initialJobId = "" }: { initialJobId?: string }) {
     activeJob?.images.find((image) => image.id === selectedImageId) ??
     activeJob?.images[0] ??
     null;
+  const articleLinkPath = activeJob?.brief.slug ? `/${activeJob.brief.slug}/` : "";
 
   return (
     <section className={styles.grid}>
@@ -199,6 +200,12 @@ export function FacebookPage({ initialJobId = "" }: { initialJobId?: string }) {
               Hashtags
               <small>คั่นด้วยเว้นวรรค เช่น #CoffeeShop #Bangkok</small>
               <textarea rows={3} value={hashtags} onChange={(event) => setHashtags(event.target.value)} />
+            </label>
+
+            <label>
+              Article link
+              <small>ระบบจะแนบ live article link จาก WordPress ตอน Queue Facebook Post โดยอ้างอิงจาก slug นี้</small>
+              <input readOnly value={articleLinkPath || "Create and save the article slug first"} />
             </label>
 
             <div className={styles.actions}>

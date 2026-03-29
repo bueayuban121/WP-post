@@ -44,6 +44,75 @@ type FacebookPostResponse = {
   hashtags: string[];
 };
 
+export type ArticlePromptConfig = {
+  systemArticlePrompt?: string;
+  clientArticlePrompt?: string;
+  clientExpertisePrompt?: string;
+  clientBrandVoicePrompt?: string;
+};
+
+type EditorialPattern = {
+  name: string;
+  briefInstruction: string;
+  draftInstruction: string;
+};
+
+const HUMAN_EDITORIAL_STYLE_GUIDE = [
+  "Write like a real Thai SEO content writer with editorial judgment, not like an AI that is summarizing research.",
+  "Open with broad category context first, then narrow into the article topic, then explain why the topic matters to the reader right now.",
+  "Avoid generic stock openings that could fit any article. The first paragraph should feel connected to the exact product, situation, season, or reader problem in this topic.",
+  "The intro should usually feel like 3 to 4 short-to-medium paragraphs with clear flow, not a single compressed block.",
+  "Use a natural explanatory rhythm: context, clarification, implication, and then practical guidance.",
+  "Vary paragraph openings and sentence length so the article feels authored by a human.",
+  "Prefer specific, useful, question-led, or decision-led headings over vague generic headings.",
+  "Blend prose with selective lists only when useful. Do not make the whole article read like bullet notes.",
+  "Add practical interpretation that sounds experienced, such as why a choice matters, what people often miss, or how to judge quality in practice.",
+  "Work in concrete mini-scenarios, common buyer mistakes, real usage tradeoffs, or practical judging criteria where relevant.",
+  "A warm expert tone is allowed. Light conversational softness is okay when it helps the article feel natural, but do not overuse it.",
+  "Avoid report language, AI-sounding summaries, and repetitive transitions.",
+  "Do not let each section end with a tidy summary sentence. Let some paragraphs end on a practical implication, a contrast, or the next question the reader should consider.",
+  "When relevant, place a recommendation section near the end after delivering substantial informational value first.",
+  "End with a real wrap-up that helps the reader decide what to do next."
+].join("\n");
+
+const EDITORIAL_PATTERNS: EditorialPattern[] = [
+  {
+    name: "problem-solution",
+    briefInstruction:
+      "Shape the brief like a problem-solution article. Start from a reader problem or common confusion, then move into explanation, decision criteria, and practical resolution.",
+    draftInstruction:
+      "Write this piece in a problem-solution flow. Open from the reader's pain point or confusion, then unpack the cause, what to look for, and how to make a better decision in practice."
+  },
+  {
+    name: "buyer-guide",
+    briefInstruction:
+      "Shape the brief like a buyer guide. Focus on how the reader should evaluate options, compare criteria, and choose appropriately for their context.",
+    draftInstruction:
+      "Write this piece like a buyer guide. Help the reader compare options, judge quality, avoid common purchase mistakes, and choose with more confidence."
+  },
+  {
+    name: "expert-explainer",
+    briefInstruction:
+      "Shape the brief like an expert explainer. Start with broad context, explain underlying principles clearly, then connect that explanation to practical decisions.",
+    draftInstruction:
+      "Write this piece like an expert explainer. Clarify the topic in accessible language, explain why it matters, and translate expert knowledge into practical understanding."
+  },
+  {
+    name: "myth-vs-reality",
+    briefInstruction:
+      "Shape the brief around misconceptions and clarification. The article should correct common assumptions, explain what is actually true, and guide the reader toward better judgment.",
+    draftInstruction:
+      "Write this piece by surfacing common misconceptions first, then correcting them with clear explanation and practical interpretation so the reader leaves with a sharper understanding."
+  },
+  {
+    name: "decision-checklist",
+    briefInstruction:
+      "Shape the brief like a decision checklist article. The structure should help readers review concrete factors one by one before they act.",
+    draftInstruction:
+      "Write this piece like a decision checklist. Keep it prose-led, but organize the explanation so readers can mentally check each factor before making a final choice."
+  }
+];
+
 function cleanText(value: string) {
   return value
     .replace(/https?:\/\/\S+/gi, "")
@@ -89,6 +158,52 @@ function getApiKey() {
   return process.env.OPENAI_API_KEY?.trim() || "";
 }
 
+function buildArticlePromptLayer(config?: ArticlePromptConfig) {
+  const layers = [
+    config?.systemArticlePrompt?.trim(),
+    config?.clientExpertisePrompt?.trim(),
+    config?.clientBrandVoicePrompt?.trim(),
+    config?.clientArticlePrompt?.trim()
+  ].filter(Boolean);
+
+  if (layers.length === 0) {
+    return "";
+  }
+
+  return [
+    "",
+    "Additional writing instructions:",
+    ...layers.map((item, index) => `${index + 1}. ${item}`)
+  ].join("\n");
+}
+
+function hashText(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash;
+}
+
+function pickEditorialPattern(parts: string[]) {
+  const key = parts.join(" | ").trim();
+  const patternIndex = hashText(key) % EDITORIAL_PATTERNS.length;
+  return EDITORIAL_PATTERNS[patternIndex];
+}
+
+function resolveEditorialPattern(parts: string[], overrideName?: string) {
+  if (overrideName) {
+    const matched = EDITORIAL_PATTERNS.find((pattern) => pattern.name === overrideName.trim());
+    if (matched) {
+      return matched;
+    }
+  }
+
+  return pickEditorialPattern(parts);
+}
+
 function stripCodeFence(value: string) {
   return value
     .replace(/^```(?:json)?/i, "")
@@ -100,7 +215,7 @@ function parseJson<T>(value: string): T {
   return JSON.parse(stripCodeFence(value)) as T;
 }
 
-async function complete(messages: ChatMessage[], temperature = 0.4) {
+async function complete(messages: ChatMessage[], temperature = 0.4, maxCompletionTokens = 4000) {
   const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is missing.");
@@ -115,7 +230,7 @@ async function complete(messages: ChatMessage[], temperature = 0.4) {
     body: JSON.stringify({
       model: DEFAULT_MODEL,
       temperature,
-      max_completion_tokens: 4000,
+      max_completion_tokens: maxCompletionTokens,
       messages
     })
   });
@@ -228,9 +343,10 @@ export async function synthesizeResearchWithOpenAi(input: {
     "Rules for summary:",
     "- Write Thai as the main language.",
     "- English source names and technical terms are allowed where helpful.",
-    "- Summary must be 1500 to 2000 Thai words.",
+    "- Summary must be 2200 to 3200 Thai words.",
     "- It must read like a real research summary before article writing begins.",
     "- It must synthesize, compare, and explain findings, not just list sources.",
+    "- Use clear prose with deeper explanation, richer context, and practical interpretation for each major finding.",
     "- Use short section labels inside normal prose if needed, but do not write the final article.",
     "- Do not use H1/H2 markdown, bullet spam, raw links, or pasted URLs.",
     "- Explain what sources agree on, what they disagree on, and what remains uncertain.",
@@ -249,7 +365,8 @@ export async function synthesizeResearchWithOpenAi(input: {
         content: prompt
       }
     ],
-    0.35
+    0.35,
+    6500
   );
 
   const parsed = parseJson<ResearchSynthesisResponse>(content);
@@ -266,15 +383,31 @@ export async function generateBriefWithOpenAi(input: {
   selectedIdea: TopicIdea;
   research: ResearchPack;
   researchSummary: string;
+  sectionCount?: number;
+  promptConfig?: ArticlePromptConfig;
+  editorialPatternName?: string;
 }) {
-  const { seedKeyword, selectedIdea, research, researchSummary } = input;
+  const {
+    seedKeyword,
+    selectedIdea,
+    research,
+    researchSummary,
+    sectionCount = 3,
+    promptConfig,
+    editorialPatternName
+  } = input;
   const sourceContext = JSON.stringify(summarizeSources(research.sources), null, 2);
+  const editorialPattern = resolveEditorialPattern(
+    [seedKeyword, selectedIdea.title, selectedIdea.angle],
+    editorialPatternName
+  );
 
   const prompt = [
     `Seed keyword: ${seedKeyword}`,
     `Selected topic: ${selectedIdea.title}`,
     `Topic angle: ${selectedIdea.angle}`,
     `Search intent: ${selectedIdea.searchIntent}`,
+    `Editorial pattern: ${editorialPattern.name}`,
     `Research audience: ${research.audience}`,
     `Research objective: ${research.objective}`,
     "",
@@ -290,11 +423,21 @@ export async function generateBriefWithOpenAi(input: {
     "Rules:",
     "- Output in Thai, except technical terms or source names.",
     "- Title must feel like a real client-ready SEO article title.",
-    "- Outline must be 5 to 7 headings and should not repeat the same concept.",
+    `- Outline must be ${sectionCount} headings exactly.`,
+    "- Keep the article structure tight and readable. One heading should cover one clear block of content.",
+    "- Build the outline for a human-style article flow: broad context, practical explanation, decision factors or criteria, and a closing direction or recommendation when relevant.",
+    "- Favor headings that sound like real Thai editorial subheads, not generic templates.",
+    "- Headings should support explanation that is useful for a real reader, not just keyword placement.",
     "- FAQs must be useful and non-repetitive.",
     "- Internal links should be generic article ideas, not full URLs.",
     "- Do not include raw links, markdown, or source dump language.",
-    "- Avoid vague phrases like 'สิ่งที่ควรรู้' repeated across many headings unless truly necessary."
+    "- Avoid vague phrases like 'สิ่งที่ควรรู้' repeated across many headings unless truly necessary.",
+    `- Pattern instruction: ${editorialPattern.briefInstruction}`,
+    "- Do not reuse the same heading formula on every article. Let the heading style match the chosen editorial pattern.",
+    "- FAQ items should be materially different from one another. Avoid near-duplicate question wording that only swaps a few terms.",
+    "- Prefer FAQ questions that reflect real buyer concerns, misunderstandings, after-purchase care, or usage edge cases.",
+    HUMAN_EDITORIAL_STYLE_GUIDE,
+    buildArticlePromptLayer(promptConfig)
   ].join("\n");
 
   const content = await complete(
@@ -302,7 +445,7 @@ export async function generateBriefWithOpenAi(input: {
       {
         role: "system",
         content:
-          "You are a Thai SEO content strategist. Build a practical content brief from real research. Avoid repetition, vague headings, and template-like wording. Return JSON only."
+          "You are a Thai SEO content strategist and editorial planner. Build a practical content brief from real research so the final article can read like a polished human-written Thai SEO article. Avoid repetition, vague headings, and template-like wording. Return JSON only."
       },
       {
         role: "user",
@@ -331,15 +474,33 @@ export async function generateDraftWithOpenAi(input: {
   brief: ContentBrief;
   research: ResearchPack;
   researchSummary: string;
+  sectionCount?: number;
+  wordsPerSection?: string;
+  promptConfig?: ArticlePromptConfig;
+  editorialPatternName?: string;
 }) {
-  const { seedKeyword, brief, research, researchSummary } = input;
+  const {
+    seedKeyword,
+    brief,
+    research,
+    researchSummary,
+    sectionCount = Math.min(Math.max(brief.outline.length, 1), 3),
+    wordsPerSection = "500-700",
+    promptConfig,
+    editorialPatternName
+  } = input;
   const sourceContext = JSON.stringify(summarizeSources(research.sources), null, 2);
+  const editorialPattern = resolveEditorialPattern(
+    [seedKeyword, brief.title, brief.angle, brief.audience],
+    editorialPatternName
+  );
 
   const prompt = [
     `Seed keyword: ${seedKeyword}`,
     `Article title: ${brief.title}`,
     `Audience: ${brief.audience}`,
     `Angle: ${brief.angle}`,
+    `Editorial pattern: ${editorialPattern.name}`,
     `Meta description: ${brief.metaDescription}`,
     "",
     "Outline:",
@@ -356,14 +517,31 @@ export async function generateDraftWithOpenAi(input: {
     "",
     "Rules:",
     "- Write in Thai as the main language.",
-    "- Make it readable, client-ready, and natural.",
+    "- Make it readable, client-ready, natural, and convincingly human-written.",
+    "- Start the intro from broad category context or reader problem first, then narrow into the specific topic and what this article will help the reader decide or understand.",
+    "- The intro should usually be 3 to 4 short-to-medium paragraphs, not a single block.",
+    "- The intro must not open with a generic filler sentence that could fit almost any article in the same category.",
+    `- Produce exactly ${sectionCount} sections matching the first ${sectionCount} outline headings.`,
+    `- Each section body should be around ${wordsPerSection} Thai words before the next image break.`,
     "- Do not insert URLs, raw source links, or markdown.",
     "- Avoid repetitive phrases and repeated explanations.",
     "- Each section body should add new value, not restate the intro.",
     "- The draft should sound like a polished article, not a stitched summary.",
     "- Use short paragraphs and practical transitions.",
     "- Do not mention 'จากการรีเสิร์ชพบว่า' repeatedly.",
-    "- Do not echo the same warning, definition, or sentence structure in every section."
+    "- Do not echo the same warning, definition, or sentence structure in every section.",
+    "- Use a human editorial rhythm: explain the point, clarify why it matters, then give practical interpretation or examples.",
+    "- Vary paragraph openings. Do not let every paragraph start with the same pattern.",
+    "- Use selective lists only when they genuinely improve clarity. Most of the article should still read like natural prose.",
+    "- Add experienced-writer details such as common mistakes, what readers often overlook, or how to judge quality in practice.",
+    "- Include concrete situations, practical tradeoffs, or reader-facing examples when they help the explanation feel lived-in and credible.",
+    "- If the topic naturally supports a recommendation section, place it near the end after giving real value first.",
+    "- The conclusion must synthesize the article and help the reader choose a next step, not merely repeat the title.",
+    `- Pattern instruction: ${editorialPattern.draftInstruction}`,
+    "- Vary structural rhythm across articles. Do not default to the exact same opening, section pacing, and wrap-up every time.",
+    "- Avoid stock transitions or stock conclusion phrasing such as repeating the same 'นอกจากนี้', 'อีกหนึ่ง', 'สรุปแล้ว', or neat recap sentence at the end of every section.",
+    HUMAN_EDITORIAL_STYLE_GUIDE,
+    buildArticlePromptLayer(promptConfig)
   ].join("\n");
 
   const content = await complete(
@@ -371,7 +549,7 @@ export async function generateDraftWithOpenAi(input: {
       {
         role: "system",
         content:
-          "You are a senior Thai editorial writer. Write an SEO article draft from a research-backed brief. The output must be clear, readable, non-repetitive, and suitable for client delivery. Return JSON only."
+          "You are a senior Thai editorial writer. Write an SEO article draft from a research-backed brief. The output must feel like it was written by a skilled human content editor for a real client website: clear, readable, specific, naturally paced, and non-repetitive. Return JSON only."
       },
       {
         role: "user",
@@ -389,7 +567,79 @@ export async function generateDraftWithOpenAi(input: {
         heading: cleanText(section.heading),
         body: cleanParagraphBlock(section.body)
       }))
-      .filter((section) => section.heading && section.body),
+      .filter((section) => section.heading && section.body)
+      .slice(0, sectionCount),
+    conclusion: cleanParagraphBlock(parsed.conclusion)
+  } satisfies ArticleDraft;
+}
+
+export async function polishDraftWithOpenAi(input: {
+  seedKeyword: string;
+  brief: ContentBrief;
+  draft: ArticleDraft;
+  promptConfig?: ArticlePromptConfig;
+}) {
+  const { seedKeyword, brief, draft, promptConfig } = input;
+
+  const prompt = [
+    `Seed keyword: ${seedKeyword}`,
+    `Article title: ${brief.title}`,
+    `Audience: ${brief.audience}`,
+    `Angle: ${brief.angle}`,
+    "",
+    "Current intro:",
+    draft.intro || "-",
+    "",
+    "Current sections:",
+    draft.sections.map((section, index) => `${index + 1}. ${section.heading}\n${section.body}`).join("\n\n"),
+    "",
+    "Current conclusion:",
+    draft.conclusion || "-",
+    "",
+    "Return JSON only in this shape:",
+    '{"intro":"","sections":[{"heading":"","body":""}],"conclusion":""}',
+    "",
+    "Polish rules:",
+    "- Keep the same overall article meaning, structure, and section count.",
+    "- Rewrite for stronger human editorial flow, smoother Thai, and more natural rhythm.",
+    "- Remove AI-sounding phrasing, report language, stiffness, and repeated transitions.",
+    "- Keep SEO usefulness, but reduce any feeling of template repetition.",
+    "- Make paragraph pacing feel human: varied openings, varied sentence length, and clearer transitions.",
+    "- Remove generic opening lines and replace them with wording that feels tied to the actual reader situation or product context.",
+    "- Break up sections that feel too evenly structured. The article should not read like every paragraph was generated from the same template.",
+    "- Trim tidy recap sentences that merely restate what the section already said, unless they genuinely add a new takeaway.",
+    "- Keep the article client-ready and publish-ready.",
+    "- Do not add raw URLs, markdown, or source references.",
+    HUMAN_EDITORIAL_STYLE_GUIDE,
+    buildArticlePromptLayer(promptConfig)
+  ].join("\n");
+
+  const content = await complete(
+    [
+      {
+        role: "system",
+        content:
+          "You are a senior Thai editorial polish editor. Rewrite existing Thai SEO article drafts so they read more naturally, more confidently, and more human, while preserving the article structure and intent. Return JSON only."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    0.3,
+    5000
+  );
+
+  const parsed = parseJson<DraftResponse>(content);
+  return {
+    intro: cleanParagraphBlock(parsed.intro),
+    sections: parsed.sections
+      .map((section) => ({
+        heading: cleanText(section.heading),
+        body: cleanParagraphBlock(section.body)
+      }))
+      .filter((section) => section.heading && section.body)
+      .slice(0, draft.sections.length),
     conclusion: cleanParagraphBlock(parsed.conclusion)
   } satisfies ArticleDraft;
 }
@@ -459,3 +709,5 @@ export async function generateFacebookPostWithOpenAi(input: {
     )
   };
 }
+
+

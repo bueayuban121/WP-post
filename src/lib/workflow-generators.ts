@@ -1,4 +1,5 @@
 import { mockWorkflowJob } from "@/data/mock-workflow";
+import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import { generateKeywordIdeasWithOpenAi } from "@/lib/openai";
 import { tavilySearch } from "@/lib/tavily";
 import type {
@@ -535,7 +536,12 @@ function makeSeoTitle(title: string) {
   return `${title} คืออะไร และควรเริ่มจากตรงไหน`;
 }
 
-function buildOutline(seedKeyword: string, selectedIdea: TopicIdea, research: ResearchPack) {
+function buildOutline(
+  seedKeyword: string,
+  selectedIdea: TopicIdea,
+  research: ResearchPack,
+  sectionCount = 3
+) {
   const thaiSource = research.sources.find((source) => source.region === "TH");
   const globalSource = research.sources.find((source) => source.region === "Global");
 
@@ -546,14 +552,18 @@ function buildOutline(seedKeyword: string, selectedIdea: TopicIdea, research: Re
     globalSource ? `สิ่งที่แหล่งต่างประเทศใช้ยืนยันประเด็นนี้` : `แนวทางจากต่างประเทศที่ช่วยให้เนื้อหาครบขึ้น`,
     `วิธีนำข้อมูลเรื่อง ${selectedIdea.title} ไปใช้จริงแบบไม่เสี่ยง`,
     `คำถามที่คนค้นต่อจากหัวข้อนี้`
-  ];
+  ].slice(0, Math.max(1, Math.min(sectionCount, 3)));
 }
 
 export function generateBrief(
   seedKeyword: string,
   selectedIdea: TopicIdea,
-  research: ResearchPack
+  research: ResearchPack,
+  options?: { sectionCount?: number }
 ): ContentBrief {
+  const settings = normalizeGenerationSettings({
+    sectionCount: options?.sectionCount
+  });
   const seoTitle = makeSeoTitle(selectedIdea.title);
   const metaDescription = trimSentence(
     [
@@ -574,7 +584,7 @@ export function generateBrief(
     categoryIds: [],
     tagIds: [],
     featuredImageUrl: "",
-    outline: buildOutline(seedKeyword, selectedIdea, research),
+    outline: buildOutline(seedKeyword, selectedIdea, research, settings.sectionCount),
     faqs: [
       `${seedKeyword} ต้องเช็กอะไรเป็นอย่างแรก`,
       `${selectedIdea.title} ควรระวังความเข้าใจผิดเรื่องไหน`,
@@ -662,15 +672,19 @@ function buildSectionBody(input: {
 export function generateDraft(
   seedKeyword: string,
   brief: ContentBrief,
-  research: ResearchPack
+  research: ResearchPack,
+  options?: { sectionCount?: number }
 ): ArticleDraft {
+  const settings = normalizeGenerationSettings({
+    sectionCount: options?.sectionCount
+  });
   const intro = [
     `${brief.title} เป็นคำถามที่ผู้อ่านจำนวนมากค้นหาเพราะต้องการคำตอบที่ชัด ใช้งานได้ และมีข้อมูลรองรับมากกว่าคำแนะนำสั้น ๆ ที่กระจายอยู่หลายแหล่ง.`,
     `บทความนี้จึงถอดจากรีเสิร์ชจริงทั้งฝั่งไทยและต่างประเทศ เพื่อช่วยให้ผู้อ่านเข้าใจภาพรวม เห็นจุดที่ต้องระวัง และรู้ว่าควรทำอะไรต่ออย่างเป็นลำดับ.`,
     `เป้าหมายไม่ใช่แค่ตอบว่าใช่หรือไม่ใช่ แต่ทำให้เรื่อง ${seedKeyword} ถูกอธิบายแบบอ่านแล้วตัดสินใจหรือปรับใช้ต่อได้ทันที.`
   ].join("\n\n");
 
-  const sections = brief.outline.map((heading, index) => ({
+  const sections = brief.outline.slice(0, settings.sectionCount).map((heading, index) => ({
     heading,
     body: buildSectionBody({
       heading,

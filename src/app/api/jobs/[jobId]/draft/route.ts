@@ -1,6 +1,7 @@
 import { getJobScopeForUser, requireRouteSession } from "@/lib/auth";
+import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import { generateJobDraft, getJob, saveJobDraft } from "@/lib/job-store";
-import type { ArticleDraft } from "@/types/workflow";
+import type { ArticleDraft, WorkflowGenerationSettings } from "@/types/workflow";
 import { NextResponse } from "next/server";
 
 export async function POST(
@@ -17,7 +18,9 @@ export async function POST(
   if (!currentJob) {
     return NextResponse.json({ error: "Job not found." }, { status: 404 });
   }
-  const body = (await request.json().catch(() => null)) as Partial<ArticleDraft> | null;
+  const body = (await request.json().catch(() => null)) as
+    | (Partial<ArticleDraft> & { generationSettings?: Partial<WorkflowGenerationSettings> })
+    | null;
 
   const hasDraftPayload =
     !!body &&
@@ -33,8 +36,8 @@ export async function POST(
           heading: typeof section.heading === "string" ? section.heading : "",
           body: typeof section.body === "string" ? section.body : ""
         }))
-      })
-    : await generateJobDraft(jobId);
+      }, normalizeGenerationSettings(body?.generationSettings))
+    : await generateJobDraft(jobId, normalizeGenerationSettings(body?.generationSettings));
 
   if (!job) {
     return NextResponse.json({ error: "Job not found." }, { status: 404 });
