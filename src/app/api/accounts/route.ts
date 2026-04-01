@@ -24,6 +24,7 @@ export async function POST(request: Request) {
     articlePrompt?: string;
     expertisePrompt?: string;
     brandVoicePrompt?: string;
+    researchProvider?: "tavily" | "dataforseo";
     wordpressUrl?: string;
     wordpressUsername?: string;
     wordpressAppPassword?: string;
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
       articlePrompt: body.articlePrompt,
       expertisePrompt: body.expertisePrompt,
       brandVoicePrompt: body.brandVoicePrompt,
+      researchProvider: body.researchProvider,
       wordpressUrl: body.wordpressUrl,
       wordpressUsername: body.wordpressUsername,
       wordpressAppPassword: body.wordpressAppPassword,

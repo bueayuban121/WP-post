@@ -72,6 +72,7 @@ model Client {
   articlePrompt      String       @default("")
   expertisePrompt    String       @default("")
   brandVoicePrompt   String       @default("")
+  researchProvider   String       @default("")
   wordpressUrl       String       @default("")
   wordpressUsername  String       @default("")
   wordpressAppPassword String     @default("")
@@ -86,6 +87,7 @@ model Client {
 model SystemConfig {
   id                  String   @id @default("global")
   articlePrompt       String   @default("")
+  researchProvider    String   @default("tavily")
   updatedAt           DateTime @updatedAt
   createdAt           DateTime @default(now())
 }

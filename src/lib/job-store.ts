@@ -1,9 +1,11 @@
 import { mockWorkflowJob } from "@/data/mock-workflow";
 import { generateArticleImages } from "@/lib/article-images";
+import { buildResearchPackFromDataForSeo } from "@/lib/dataforseo";
 import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import { generateBriefWithOpenAi, generateDraftWithOpenAi, polishDraftWithOpenAi } from "@/lib/openai";
 import { generateImageWithPhaya, isPhayaConfigured } from "@/lib/phaya";
 import { getPromptConfig } from "@/lib/prompt-config";
+import { resolveResearchProviderByClientName } from "@/lib/research-provider-config";
 import { buildNewJob, generateBrief, generateDraft, generateResearch } from "@/lib/workflow-generators";
 import { getPrismaClient, isDatabaseConfigured } from "@/lib/prisma";
 import { listWorkflowEvents } from "@/lib/workflow-events";
@@ -484,7 +486,10 @@ export async function getJob(jobId: string, scope?: JobAccessScope) {
 }
 
 export async function createJob(input: { client: string; seedKeyword: string; clientId?: string | null }) {
-  const job = await buildNewJob(input.seedKeyword, input.client);
+  const provider = input.clientId
+    ? (await resolveResearchProviderByClientName(input.client))
+    : await resolveResearchProviderByClientName(input.client);
+  const job = await buildNewJob(input.seedKeyword, input.client, provider);
 
   if (!isDatabaseConfigured()) {
     jobs.set(job.id, job);
@@ -710,7 +715,11 @@ export async function runResearch(jobId: string) {
   const job = await getJob(jobId);
   if (!job) return null;
   const selectedIdea = job.ideas.find((idea) => idea.id === job.selectedIdeaId) as TopicIdea;
-  const research = generateResearch(job.seedKeyword, selectedIdea);
+  const provider = await resolveResearchProviderByClientName(job.client);
+  const research =
+    provider === "dataforseo"
+      ? (await buildResearchPackFromDataForSeo(job.seedKeyword, selectedIdea)).research
+      : generateResearch(job.seedKeyword, selectedIdea);
 
   if (!isDatabaseConfigured()) {
     job.research = research;

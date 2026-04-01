@@ -4,6 +4,8 @@ import {
   synthesizeResearchWithOpenAi
 } from "@/lib/openai";
 import { generateArticleImages } from "@/lib/article-images";
+import { buildResearchPackFromDataForSeo } from "@/lib/dataforseo";
+import { resolveResearchProviderByClientName } from "@/lib/research-provider-config";
 import { generateImageWithPhaya, isPhayaConfigured } from "@/lib/phaya";
 import { tavilySearch } from "@/lib/tavily";
 import { generateBrief, generateDraft, generateResearch } from "@/lib/workflow-generators";
@@ -37,7 +39,21 @@ function toInsight(
 async function buildResearchPack(job: WorkflowJob) {
   const selectedIdea = getSelectedIdea(job);
   const seedKeyword = job.seedKeyword;
+  const provider = await resolveResearchProviderByClientName(job.client);
   let searchError: string | null = null;
+
+  if (provider === "dataforseo") {
+    const dataForSeoResult = await buildResearchPackFromDataForSeo(seedKeyword, selectedIdea);
+    return {
+      research: dataForSeoResult.research,
+      payload: {
+        provider: dataForSeoResult.provider,
+        summaryHooks: dataForSeoResult.summaryHooks,
+        summaryText: dataForSeoResult.summaryText,
+        error: null
+      }
+    };
+  }
 
   try {
     const [thai, global] = await Promise.all([

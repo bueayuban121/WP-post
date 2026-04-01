@@ -1,6 +1,8 @@
 import { mockWorkflowJob } from "@/data/mock-workflow";
+import { generateIdeasFromDataForSeo } from "@/lib/dataforseo";
 import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import { generateKeywordIdeasWithOpenAi } from "@/lib/openai";
+import type { ResearchProvider } from "@/lib/research-provider-config";
 import { tavilySearch } from "@/lib/tavily";
 import type {
   ArticleDraft,
@@ -473,10 +475,24 @@ async function generateIdeasFromTavily(seedKeyword: string): Promise<TopicIdea[]
   }
 }
 
-export async function generateIdeas(seedKeyword: string): Promise<TopicIdea[]> {
-  const aiIdeas = await generateIdeasFromTavily(seedKeyword);
+export async function generateIdeas(
+  seedKeyword: string,
+  provider: ResearchProvider = "tavily"
+): Promise<TopicIdea[]> {
+  const aiIdeas =
+    provider === "dataforseo"
+      ? await generateIdeasFromDataForSeo(seedKeyword)
+      : await generateIdeasFromTavily(seedKeyword);
+
   if (aiIdeas && aiIdeas.length > 0) {
     return aiIdeas;
+  }
+
+  if (provider === "dataforseo") {
+    const fallbackIdeas = await generateIdeasFromTavily(seedKeyword);
+    if (fallbackIdeas && fallbackIdeas.length > 0) {
+      return fallbackIdeas;
+    }
   }
 
   return buildIdeaSet(seedKeyword)
@@ -708,8 +724,12 @@ export function generateDraft(
   };
 }
 
-export async function buildNewJob(seedKeyword: string, client: string): Promise<WorkflowJob> {
-  const ideas = await generateIdeas(seedKeyword);
+export async function buildNewJob(
+  seedKeyword: string,
+  client: string,
+  provider: ResearchProvider = "tavily"
+): Promise<WorkflowJob> {
+  const ideas = await generateIdeas(seedKeyword, provider);
 
   return {
     id: crypto.randomUUID(),

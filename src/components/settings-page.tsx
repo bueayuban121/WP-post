@@ -18,6 +18,7 @@ type ManagedAccountDraft = {
   clientArticlePrompt: string;
   clientExpertisePrompt: string;
   clientBrandVoicePrompt: string;
+  clientResearchProvider: "tavily" | "dataforseo";
   clientWordpressUrl: string;
   clientWordpressUsername: string;
   clientWordpressAppPassword: string;
@@ -32,6 +33,7 @@ type NewAccountState = {
   articlePrompt: string;
   expertisePrompt: string;
   brandVoicePrompt: string;
+  researchProvider: "tavily" | "dataforseo";
   wordpressUrl: string;
   wordpressUsername: string;
   wordpressAppPassword: string;
@@ -54,6 +56,7 @@ function createAccountDraft(user: AppUserSession): ManagedAccountDraft {
     clientArticlePrompt: user.clientArticlePrompt ?? "",
     clientExpertisePrompt: user.clientExpertisePrompt ?? "",
     clientBrandVoicePrompt: user.clientBrandVoicePrompt ?? "",
+    clientResearchProvider: user.clientResearchProvider === "dataforseo" ? "dataforseo" : "tavily",
     clientWordpressUrl: user.clientWordpressUrl ?? "",
     clientWordpressUsername: user.clientWordpressUsername ?? "",
     clientWordpressAppPassword: user.clientWordpressAppPassword ?? "",
@@ -70,6 +73,7 @@ const emptyNewAccount: NewAccountState = {
   articlePrompt: "",
   expertisePrompt: "",
   brandVoicePrompt: "",
+  researchProvider: "tavily",
   wordpressUrl: "",
   wordpressUsername: "",
   wordpressAppPassword: "",
@@ -109,6 +113,7 @@ export function SettingsPage({
   const [accountStatus, setAccountStatus] = useState("");
   const [accountPending, setAccountPending] = useState(false);
   const [systemArticlePrompt, setSystemArticlePrompt] = useState("");
+  const [defaultResearchProvider, setDefaultResearchProvider] = useState<"tavily" | "dataforseo">("tavily");
   const [promptSaved, setPromptSaved] = useState("");
   const [accountDrafts, setAccountDrafts] = useState<Record<string, ManagedAccountDraft>>(() =>
     Object.fromEntries(managedUsers.map((user) => [user.id, createAccountDraft(user)]))
@@ -133,9 +138,14 @@ export function SettingsPage({
     void (async () => {
       try {
         const response = await fetch("/api/settings/prompts", { cache: "no-store" });
-        const data = (await response.json()) as { error?: string; systemArticlePrompt?: string };
+        const data = (await response.json()) as {
+          error?: string;
+          systemArticlePrompt?: string;
+          defaultResearchProvider?: "tavily" | "dataforseo";
+        };
         if (response.ok) {
           setSystemArticlePrompt(data.systemArticlePrompt ?? "");
+          setDefaultResearchProvider(data.defaultResearchProvider === "dataforseo" ? "dataforseo" : "tavily");
         }
       } catch {
         // Keep the field editable locally when the request fails.
@@ -152,16 +162,22 @@ export function SettingsPage({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          systemArticlePrompt
+          systemArticlePrompt,
+          defaultResearchProvider
         })
       });
-      const data = (await response.json()) as { error?: string; systemArticlePrompt?: string };
+      const data = (await response.json()) as {
+        error?: string;
+        systemArticlePrompt?: string;
+        defaultResearchProvider?: "tavily" | "dataforseo";
+      };
       if (!response.ok) {
         throw new Error(data.error ?? "Unable to save system prompt.");
       }
 
       setSystemArticlePrompt(data.systemArticlePrompt ?? "");
-      setPromptSaved("System article prompt saved.");
+      setDefaultResearchProvider(data.defaultResearchProvider === "dataforseo" ? "dataforseo" : "tavily");
+      setPromptSaved("System AI settings saved.");
     } catch (error) {
       setPromptSaved(error instanceof Error ? error.message : "Unable to save system prompt.");
     } finally {
@@ -208,6 +224,7 @@ export function SettingsPage({
       clientArticlePrompt?: string;
       clientExpertisePrompt?: string;
       clientBrandVoicePrompt?: string;
+      clientResearchProvider?: "tavily" | "dataforseo";
       clientWordpressUrl?: string;
       clientWordpressUsername?: string;
       clientWordpressAppPassword?: string;
@@ -262,6 +279,7 @@ export function SettingsPage({
           clientArticlePrompt: null,
           clientExpertisePrompt: null,
           clientBrandVoicePrompt: null,
+          clientResearchProvider: null,
           clientWordpressUrl: null,
           clientWordpressUsername: null,
           clientWordpressAppPassword: null,
@@ -337,6 +355,20 @@ export function SettingsPage({
                 onChange={(event) => setSystemArticlePrompt(event.target.value)}
               />
             </label>
+
+            <label>
+              Default research provider
+              <small>กำหนด provider กลางของระบบ ลูกค้ารายไหนไม่ override จะใช้ค่านี้</small>
+              <select
+                value={defaultResearchProvider}
+                onChange={(event) =>
+                  setDefaultResearchProvider(event.target.value as "tavily" | "dataforseo")
+                }
+              >
+                <option value="tavily">tavily</option>
+                <option value="dataforseo">dataforseo</option>
+              </select>
+            </label>
           </div>
 
           <div className={styles.actions}>
@@ -395,6 +427,23 @@ export function SettingsPage({
                 value={newAccount.password}
                 onChange={(event) => setNewAccount((current) => ({ ...current, password: event.target.value }))}
               />
+            </label>
+
+            <label>
+              Research provider
+              <small>เลือก provider สำหรับงานแตก keyword และรีเสิร์ชของลูกค้ารายนี้</small>
+              <select
+                value={newAccount.researchProvider}
+                onChange={(event) =>
+                  setNewAccount((current) => ({
+                    ...current,
+                    researchProvider: event.target.value as "tavily" | "dataforseo"
+                  }))
+                }
+              >
+                <option value="tavily">tavily</option>
+                <option value="dataforseo">dataforseo</option>
+              </select>
             </label>
 
             <label>
@@ -544,6 +593,23 @@ export function SettingsPage({
                       </label>
 
                       <label>
+                        Research provider
+                        <select
+                          value={accountDrafts[account.id]?.clientResearchProvider ?? "tavily"}
+                          onChange={(event) =>
+                            updateAccountDraft(
+                              account.id,
+                              "clientResearchProvider",
+                              event.target.value as "tavily" | "dataforseo"
+                            )
+                          }
+                        >
+                          <option value="tavily">tavily</option>
+                          <option value="dataforseo">dataforseo</option>
+                        </select>
+                      </label>
+
+                      <label>
                         WordPress URL
                         <input
                           value={accountDrafts[account.id]?.clientWordpressUrl ?? ""}
@@ -630,6 +696,7 @@ export function SettingsPage({
                             clientArticlePrompt: accountDrafts[account.id]?.clientArticlePrompt ?? "",
                             clientExpertisePrompt: accountDrafts[account.id]?.clientExpertisePrompt ?? "",
                             clientBrandVoicePrompt: accountDrafts[account.id]?.clientBrandVoicePrompt ?? "",
+                            clientResearchProvider: accountDrafts[account.id]?.clientResearchProvider ?? "tavily",
                             clientWordpressUrl: accountDrafts[account.id]?.clientWordpressUrl ?? "",
                             clientWordpressUsername: accountDrafts[account.id]?.clientWordpressUsername ?? "",
                             clientWordpressAppPassword: accountDrafts[account.id]?.clientWordpressAppPassword ?? "",
