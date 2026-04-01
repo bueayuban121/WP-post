@@ -5,8 +5,9 @@ import { generateKeywordIdeasWithOpenAi, synthesizeResearchWithOpenAi } from "@/
 const DATAFORSEO_LOGIN = process.env.DATAFORSEO_LOGIN?.trim() ?? "";
 const DATAFORSEO_PASSWORD = process.env.DATAFORSEO_PASSWORD?.trim() ?? "";
 const DATAFORSEO_BASE_URL = (process.env.DATAFORSEO_BASE_URL?.trim() || "https://api.dataforseo.com").replace(/\/$/, "");
-const DATAFORSEO_KEYWORD_IDEAS_PATH = process.env.DATAFORSEO_KEYWORD_IDEAS_PATH?.trim() || "/v3/dataforseo_labs/keyword_ideas/live";
-const DATAFORSEO_LOCATION_CODE = Number(process.env.DATAFORSEO_LOCATION_CODE || "2840");
+const DATAFORSEO_KEYWORD_IDEAS_PATH =
+  process.env.DATAFORSEO_KEYWORD_IDEAS_PATH?.trim() || "/v3/dataforseo_labs/google/keyword_ideas/live";
+const DATAFORSEO_LOCATION_CODE = Number(process.env.DATAFORSEO_LOCATION_CODE || "2764");
 const DATAFORSEO_LANGUAGE_CODE = process.env.DATAFORSEO_LANGUAGE_CODE?.trim() || "th";
 
 type DataForSeoKeywordIdeaItem = {
