@@ -8,7 +8,7 @@ const DATAFORSEO_BASE_URL = (process.env.DATAFORSEO_BASE_URL?.trim() || "https:/
 const DATAFORSEO_KEYWORD_IDEAS_PATH =
   process.env.DATAFORSEO_KEYWORD_IDEAS_PATH?.trim() || "/v3/dataforseo_labs/google/keyword_ideas/live";
 const DATAFORSEO_LOCATION_CODE = Number(process.env.DATAFORSEO_LOCATION_CODE || "2764");
-const DATAFORSEO_LANGUAGE_CODE = process.env.DATAFORSEO_LANGUAGE_CODE?.trim() || "th";
+const DATAFORSEO_LANGUAGE_NAME = process.env.DATAFORSEO_LANGUAGE_NAME?.trim() || "Thai";
 
 type DataForSeoKeywordIdeaItem = {
   keyword?: string;
@@ -83,7 +83,7 @@ async function callDataForSeoKeywordIdeas(keywords: string[], limit = 12) {
       {
         keywords,
         location_code: DATAFORSEO_LOCATION_CODE,
-        language_code: DATAFORSEO_LANGUAGE_CODE,
+        language_name: DATAFORSEO_LANGUAGE_NAME,
         limit
       }
     ])
