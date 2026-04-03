@@ -489,10 +489,13 @@ export async function generateIdeas(
   }
 
   if (provider === "dataforseo") {
-    const fallbackIdeas = await generateIdeasFromTavily(seedKeyword);
-    if (fallbackIdeas && fallbackIdeas.length > 0) {
-      return fallbackIdeas;
-    }
+    return buildIdeaSet(seedKeyword)
+      .slice(0, 12)
+      .map((idea) => ({
+        id: crypto.randomUUID(),
+        ...idea,
+        title: idea.title.replace(/\s*ปี\s*202\d/gi, "").trim()
+      }));
   }
 
   return buildIdeaSet(seedKeyword)

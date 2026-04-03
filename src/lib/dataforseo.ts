@@ -122,6 +122,39 @@ function makeRelatedKeywords(seedKeyword: string, keyword: string) {
   ]).slice(0, 6);
 }
 
+function buildKeywordVariantFallback(seedKeyword: string): TopicIdea[] {
+  const cleanSeed = trimSentence(seedKeyword);
+  const lowerSeed = cleanSeed.toLowerCase();
+  const variants = dedupe([
+    cleanSeed,
+    `${cleanSeed} แท้`,
+    `${cleanSeed} คุณภาพดี`,
+    `${cleanSeed} ไทย`,
+    `${cleanSeed} ธรรมชาติ`,
+    `${cleanSeed} premium`,
+    `${cleanSeed} organic`,
+    lowerSeed.includes("protein") || /โปรตีน/.test(cleanSeed) ? `${cleanSeed} isolate` : "",
+    lowerSeed.includes("protein") || /โปรตีน/.test(cleanSeed) ? `${cleanSeed} concentrate` : "",
+    lowerSeed.includes("soy") || /ถั่วเหลือง/.test(cleanSeed) ? "soy protein" : "",
+    lowerSeed.includes("soy") || /ถั่วเหลือง/.test(cleanSeed) ? "soybean protein" : "",
+    /ข้าว/.test(cleanSeed) ? "jasmine rice" : "",
+    /ข้าว/.test(cleanSeed) ? "fragrant rice" : ""
+  ]).filter((keyword) => isDirectKeywordVariant(cleanSeed, keyword));
+
+  return variants.slice(0, 15).map((keyword, index) => ({
+    id: crypto.randomUUID(),
+    title: keyword,
+    angle: `Use "${keyword}" as the selected keyword for the next research step while keeping the broader intent of "${cleanSeed}".`,
+    searchIntent: inferIntentFromKeyword(keyword),
+    difficulty: "low",
+    confidence: Math.max(68, 88 - index),
+    whyItMatters: "This keyword variant is a direct extension of the seed keyword and is suitable for the next step.",
+    thaiSignal: `Direct keyword variant derived from "${cleanSeed}".`,
+    globalSignal: "Fallback keyword variant generated locally when DataForSEO is unavailable.",
+    relatedKeywords: makeRelatedKeywords(cleanSeed, keyword)
+  }));
+}
+
 function isDirectKeywordVariant(seedKeyword: string, keyword: string) {
   const normalized = trimSentence(keyword);
   const normalizedLower = normalized.toLowerCase();
@@ -249,7 +282,7 @@ async function callDataForSeoKeywordVariants(seedKeyword: string) {
 
 export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<TopicIdea[] | null> {
   if (!isDataForSeoConfigured()) {
-    return null;
+    return buildKeywordVariantFallback(seedKeyword);
   }
 
   try {
@@ -257,7 +290,7 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
     const suggestions = extractGoogleAdsSuggestions(response).filter((item) => item.keyword).slice(0, 30);
 
     if (suggestions.length === 0) {
-      return null;
+      return buildKeywordVariantFallback(seedKeyword);
     }
 
     const directKeywords = dedupe([seedKeyword, ...suggestions.map((item) => String(item.keyword ?? ""))]).filter(
@@ -299,7 +332,7 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
       };
     });
   } catch {
-    return null;
+    return buildKeywordVariantFallback(seedKeyword);
   }
 }
 
