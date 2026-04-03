@@ -1,6 +1,6 @@
-import type { ResearchPack, TopicIdea } from "@/types/workflow";
+import { synthesizeResearchWithOpenAi } from "@/lib/openai";
 import type { ResearchProvider } from "@/lib/research-provider-config";
-import { generateKeywordIdeasWithOpenAi, synthesizeResearchWithOpenAi } from "@/lib/openai";
+import type { ResearchPack, TopicIdea } from "@/types/workflow";
 
 const DATAFORSEO_LOGIN = process.env.DATAFORSEO_LOGIN?.trim() ?? "";
 const DATAFORSEO_PASSWORD = process.env.DATAFORSEO_PASSWORD?.trim() ?? "";
@@ -42,27 +42,89 @@ export function isDataForSeoConfigured() {
   return Boolean(DATAFORSEO_LOGIN && DATAFORSEO_PASSWORD);
 }
 
+function trimSentence(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function dedupe(values: string[]) {
+  return [...new Set(values.map((value) => trimSentence(value)).filter(Boolean))];
+}
+
+function extractItems(response: DataForSeoResponse) {
+  return response.tasks?.flatMap((task) => task.result?.flatMap((result) => result.items ?? []) ?? []) ?? [];
+}
+
+function inferIntentFromKeyword(keyword: string): TopicIdea["searchIntent"] {
+  const normalized = keyword.toLowerCase();
+
+  if (/price|review|compare|best|buy/.test(normalized)) {
+    return "commercial";
+  }
+
+  if (/how|why|vs|guide|checklist/.test(normalized)) {
+    return "problem-solving";
+  }
+
+  return "informational";
+}
+
+function inferDifficulty(score?: number): TopicIdea["difficulty"] {
+  if (typeof score !== "number") {
+    return "medium";
+  }
+
+  if (score >= 60) return "high";
+  if (score >= 35) return "medium";
+  return "low";
+}
+
+function makeRelatedKeywords(seedKeyword: string, keyword: string) {
+  return dedupe([
+    seedKeyword,
+    keyword,
+    `${seedKeyword} review`,
+    `${seedKeyword} benefits`,
+    `${seedKeyword} price`,
+    `${keyword} guide`
+  ]).slice(0, 6);
+}
+
+function buildInsightLine(item: DataForSeoKeywordIdeaItem) {
+  const parts: string[] = [];
+  const volume = item.keyword_info?.search_volume;
+  const competition = item.keyword_info?.competition;
+  const cpc = item.keyword_info?.cpc;
+  const difficulty = item.keyword_properties?.keyword_difficulty;
+
+  if (typeof volume === "number") parts.push(`search volume ${volume.toLocaleString()}`);
+  if (typeof competition === "number") parts.push(`competition ${competition.toFixed(2)}`);
+  if (typeof cpc === "number") parts.push(`CPC $${cpc.toFixed(2)}`);
+  if (typeof difficulty === "number") parts.push(`difficulty ${difficulty}`);
+
+  return parts.length > 0 ? parts.join(", ") : "keyword variant from DataForSEO";
+}
+
 function buildFallbackResearch(seedKeyword: string, selectedIdea: TopicIdea): ResearchPack {
   return {
-    objective: `รวบรวมข้อมูลตั้งต้นสำหรับหัวข้อ "${selectedIdea.title}" เพื่อสรุปเป็น research pack ที่นำไปเขียนบทความต่อได้`,
-    audience: `ผู้อ่านที่กำลังค้นหาเรื่อง ${seedKeyword} และต้องการคำตอบที่ชัดเจน ใช้งานได้จริง และช่วยตัดสินใจต่อได้`,
+    objective: `Build a usable research pack for "${selectedIdea.title}" based on the broader seed keyword "${seedKeyword}".`,
+    audience: `Readers searching for ${seedKeyword} who need a clear and practical answer before moving on to the article stage.`,
     gaps: [
-      `ต้องสรุปคำตอบเรื่อง ${selectedIdea.title} ให้ชัดและเชื่อมกับสิ่งที่ผู้อ่านอยากรู้จริง`,
-      "ควรแปลข้อมูลเชิงเทคนิคให้เป็นภาษาที่อ่านง่ายขึ้น",
-      "ต้องมีมุมมองที่ช่วยให้ผู้อ่านนำข้อมูลไปใช้ต่อได้"
+      `Clarify what people actually need to know when they search for "${selectedIdea.title}".`,
+      "Translate raw keyword data into plain language and practical takeaways.",
+      "Identify the angle that should be emphasized in the final article."
     ],
     sources: [
       {
         region: "TH",
         title: `Thai keyword signal for ${selectedIdea.title}`,
         source: "App fallback",
-        insight: `หัวข้อ ${selectedIdea.title} ควรถูกอธิบายด้วยบริบทไทยและตัวอย่างที่ใช้งานได้จริง`
+        insight: `Use local Thai search intent and wording around "${selectedIdea.title}" to guide the research summary.`
       },
       {
         region: "Global",
         title: `Global keyword signal for ${selectedIdea.title}`,
         source: "App fallback",
-        insight: "ควรใช้แนวคิดจากแหล่งสากลเพื่อเสริมมาตรฐานการอธิบายและคำศัพท์ที่แม่นขึ้น"
+        insight: "Use broader terminology and reference framing to strengthen the explanation."
       }
     ]
   };
@@ -96,61 +158,6 @@ async function callDataForSeoKeywordIdeas(keywords: string[], limit = 12) {
   return (await response.json()) as DataForSeoResponse;
 }
 
-function trimSentence(value: string) {
-  return value.replace(/\s+/g, " ").trim();
-}
-
-function dedupe(values: string[]) {
-  return [...new Set(values.map((value) => trimSentence(value)).filter(Boolean))];
-}
-
-function inferIntentFromTitle(title: string): TopicIdea["searchIntent"] {
-  const normalized = title.toLowerCase();
-
-  if (/ราคา|ซื้อ|รีวิว|เปรียบเทียบ|vs|ดีที่สุด|แนะนำ/.test(title) || /price|review|compare|best/.test(normalized)) {
-    return "commercial";
-  }
-
-  if (/วิธี|แก้|ทำยังไง|ทำอย่างไร|ปัญหา|ผิดพลาด|ทำไม|ควร|ต้อง/.test(title)) {
-    return "problem-solving";
-  }
-
-  return "informational";
-}
-
-function inferDifficulty(score?: number): TopicIdea["difficulty"] {
-  if (typeof score !== "number") {
-    return "medium";
-  }
-
-  if (score >= 60) return "high";
-  if (score >= 35) return "medium";
-  return "low";
-}
-
-function makeRelatedKeywords(seedKeyword: string, keyword: string) {
-  return dedupe([seedKeyword, keyword, `${seedKeyword} รีวิว`, `${seedKeyword} วิธีเลือก`, `${seedKeyword} ราคา`]).slice(0, 6);
-}
-
-function buildInsightLine(item: DataForSeoKeywordIdeaItem) {
-  const parts: string[] = [];
-  const volume = item.keyword_info?.search_volume;
-  const competition = item.keyword_info?.competition;
-  const cpc = item.keyword_info?.cpc;
-  const difficulty = item.keyword_properties?.keyword_difficulty;
-
-  if (typeof volume === "number") parts.push(`search volume ประมาณ ${volume.toLocaleString()}`);
-  if (typeof competition === "number") parts.push(`competition ${competition.toFixed(2)}`);
-  if (typeof cpc === "number") parts.push(`CPC ประมาณ $${cpc.toFixed(2)}`);
-  if (typeof difficulty === "number") parts.push(`difficulty ${difficulty}`);
-
-  return parts.length > 0 ? parts.join(", ") : "มีสัญญาณ keyword data จาก DataForSEO";
-}
-
-function extractItems(response: DataForSeoResponse) {
-  return response.tasks?.flatMap((task) => task.result?.flatMap((result) => result.items ?? []) ?? []) ?? [];
-}
-
 export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<TopicIdea[] | null> {
   if (!isDataForSeoConfigured()) {
     return null;
@@ -158,54 +165,39 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
 
   try {
     const response = await callDataForSeoKeywordIdeas([seedKeyword], 15);
-    const items = extractItems(response).filter((item) => item.keyword && item.keyword !== seedKeyword).slice(0, 15);
+    const items = extractItems(response)
+      .filter((item) => item.keyword)
+      .filter((item) => trimSentence(String(item.keyword ?? "")).toLowerCase() !== seedKeyword.trim().toLowerCase())
+      .slice(0, 20);
 
     if (items.length === 0) {
       return null;
     }
 
-    const aiIdeas = await generateKeywordIdeasWithOpenAi({
-      seedKeyword,
-      thaiSummary: items.map((item) => `${item.keyword}: ${buildInsightLine(item)}`).join("\n"),
-      globalSummary: "",
-      thaiTitles: items.map((item) => String(item.keyword ?? "")).filter(Boolean),
-      globalTitles: []
-    }).catch(() => []);
+    const dedupedKeywords = dedupe(items.map((item) => String(item.keyword ?? "")));
 
-    if (aiIdeas.length >= 8) {
-      return aiIdeas.slice(0, 12).map((idea, index) => ({
-        id: crypto.randomUUID(),
-        title: trimSentence(idea.title),
-        angle: trimSentence(idea.angle),
-        searchIntent: idea.searchIntent,
-        difficulty: idea.difficulty,
-        confidence: Math.max(70, Math.min(98, Math.round(idea.confidence || 86) - index)),
-        whyItMatters: trimSentence(idea.whyItMatters),
-        thaiSignal: trimSentence(idea.thaiSignal),
-        globalSignal: `DataForSEO metrics: ${buildInsightLine(items[index] ?? {})}`,
-        relatedKeywords: dedupe(idea.relatedKeywords).slice(0, 6)
-      }));
-    }
+    return dedupedKeywords.slice(0, 15).map((keyword, index) => {
+      const matchedItem =
+        items.find((item) => trimSentence(String(item.keyword ?? "")).toLowerCase() === keyword.toLowerCase()) ?? {};
+      const keywordDifficulty = matchedItem.keyword_properties?.keyword_difficulty;
+      const searchVolume = matchedItem.keyword_info?.search_volume;
+      const confidenceBase = typeof searchVolume === "number" && searchVolume > 0 ? 90 : 82;
 
-    return items.slice(0, 12).map((item, index) => {
-      const title = trimSentence(String(item.keyword ?? ""));
-      const keywordDifficulty = item.keyword_properties?.keyword_difficulty;
-      const searchVolume = item.keyword_info?.search_volume;
       return {
         id: crypto.randomUUID(),
-        title,
-        angle: `อธิบายหัวข้อ "${title}" โดยใช้ keyword data จาก DataForSEO ช่วยคัดความต้องการค้นหาและมุมที่ควรเขียนต่อให้ชัดขึ้น`,
-        searchIntent: inferIntentFromTitle(title),
+        title: keyword,
+        angle: `Use "${keyword}" as the selected keyword for the next research step while keeping the broader intent of "${seedKeyword}".`,
+        searchIntent: inferIntentFromKeyword(keyword),
         difficulty: inferDifficulty(keywordDifficulty),
-        confidence: Math.max(72, Math.min(96, 92 - index)),
+        confidence: Math.max(68, Math.min(97, confidenceBase - index)),
         whyItMatters:
           typeof searchVolume === "number" && searchVolume > 0
-            ? `คำนี้มีสัญญาณความสนใจจาก search volume ประมาณ ${searchVolume.toLocaleString()} และเหมาะกับการนำไปรีเสิร์ชต่อ`
-            : `คำนี้มีสัญญาณจาก DataForSEO ว่านำไปต่อยอดเป็นหัวข้อบทความได้จริง`,
-        thaiSignal: `ใช้ keyword data เพื่อช่วยจับ long-tail และคำที่คนค้นจริงเกี่ยวกับ "${seedKeyword}"`,
-        globalSignal: `DataForSEO metrics: ${buildInsightLine(item)}`,
-        relatedKeywords: makeRelatedKeywords(seedKeyword, title)
-      } satisfies TopicIdea;
+            ? `Estimated search volume around ${searchVolume.toLocaleString()} suggests this variant is worth researching next.`
+            : "This keyword variant appears in DataForSEO results and is suitable for the next step.",
+        thaiSignal: `Keyword variant related to "${seedKeyword}" surfaced from DataForSEO keyword ideas.`,
+        globalSignal: `DataForSEO metrics: ${buildInsightLine(matchedItem)}`,
+        relatedKeywords: makeRelatedKeywords(seedKeyword, keyword)
+      };
     });
   } catch {
     return null;
@@ -246,12 +238,12 @@ export async function buildResearchPackFromDataForSeo(
     }));
 
     const fallbackResearch: ResearchPack = {
-      objective: `ใช้ keyword intelligence จาก DataForSEO เพื่อสรุปหัวข้อ "${selectedIdea.title}" ให้ชัดว่าเนื้อหาควรตอบ search intent ตรงไหนและควรพาไปต่ออย่างไร`,
-      audience: `ผู้อ่านที่ค้นหาเรื่อง ${seedKeyword} และกำลังเปรียบเทียบคำตอบหรือแนวทางที่ตรงกับความต้องการจริง`,
+      objective: `Use DataForSEO keyword intelligence to clarify how "${selectedIdea.title}" should be researched and framed before article writing.`,
+      audience: `Readers searching for ${seedKeyword} who are comparing answers, angles, or buying considerations tied to "${selectedIdea.title}".`,
       gaps: [
-        `ต้องแปล keyword metrics ให้กลายเป็น insight ที่ใช้เขียนเรื่อง "${selectedIdea.title}" ได้จริง ไม่ใช่แค่ list ตัวเลข`,
-        "ควรช่วยให้เห็นว่าคำค้นย่อยไหนบอกความต้องการของผู้อ่านชัดที่สุด",
-        "ต้องเชื่อม keyword data ให้กลายเป็นโครงเนื้อหาที่ตอบโจทย์คนอ่านไทย"
+        `Turn keyword metrics into useful research insight for "${selectedIdea.title}" instead of listing numbers only.`,
+        "Show which related terms reveal the clearest user intent.",
+        "Translate keyword data into a content angle that fits Thai readers."
       ],
       sources
     };

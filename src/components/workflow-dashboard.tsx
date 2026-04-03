@@ -982,7 +982,7 @@ export function WorkflowDashboard({
           id: "expand",
           index: "01",
           title: "Expand keywords",
-          detail: `${safeJob.ideas.length} AI opportunities`,
+          detail: `${safeJob.ideas.length} keyword options`,
           state: "complete"
         },
         {
@@ -1351,12 +1351,12 @@ export function WorkflowDashboard({
                   <div className={styles.sectionHead}>
                     <div>
                       <span className={styles.label}>Step 2</span>
-                      <h2>AI Keyword Expansion</h2>
+                      <h2>Keyword Expansion</h2>
                     </div>
-                    <span className={styles.statusChip}>{job.ideas.length} keywords</span>
+                    <span className={styles.statusChip}>{job.ideas.length} keyword options</span>
                   </div>
                   <p className={styles.sectionText}>
-                    ระบบขยาย seed keyword เป็น keyword opportunities สำหรับเลือกไปรีเสิร์ชต่อ เลือกคำที่ตรงกับสิ่งที่ลูกค้าต้องการที่สุดก่อน แล้วค่อยกด Run Research
+                    ระบบขยาย seed keyword เป็น keyword variants หรือคำใกล้เคียงสำหรับเลือกไปรีเสิร์ชต่อ เลือกคำที่ตรงกับโจทย์ลูกค้าที่สุดก่อน แล้วค่อยกด Run Research
                   </p>
                   <div className={styles.sectionLead}>
                     <div className={styles.quickStats}>
@@ -1393,7 +1393,7 @@ export function WorkflowDashboard({
                       <div className={styles.selectedIdeaFields}>
                         <label className={styles.editorField}>
                           <span>Keyword title</span>
-                          <small>แก้ wording ของหัวข้อก่อนนำไปรีเสิร์ช</small>
+                          <small>แก้ wording ของ keyword ที่เลือกก่อนนำไปรีเสิร์ช</small>
                           <input value={selectedIdeaTitle} onChange={(event) => setSelectedIdeaTitle(event.target.value)} />
                         </label>
                         <label className={styles.editorField}>
