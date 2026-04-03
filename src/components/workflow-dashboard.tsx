@@ -502,6 +502,7 @@ export function WorkflowDashboard({
       throw new Error("Job payload missing.");
     }
     replaceJob(data.job, message, nextTab);
+    return data.job as WorkflowJob;
   }
 
   async function fetchJob(jobId: string) {
@@ -607,12 +608,36 @@ export function WorkflowDashboard({
       setStatusMessage(inKeywordVariantPhase ? "Selecting keyword variant" : "Selecting article topic");
       setError("");
       try {
-        await postJob(
+        const selectedJob = await postJob(
           `/api/jobs/${job.id}/ideas/select`,
           { ideaId: idea.id },
-          inKeywordVariantPhase ? `Keyword selected: ${idea.title}` : `Selected topic: ${idea.title}`,
+          inKeywordVariantPhase
+            ? `Keyword selected: ${idea.title}. Article topics are ready below.`
+            : `Selected topic: ${idea.title}`,
           inKeywordVariantPhase ? "expand" : "research"
         );
+
+        if (!inKeywordVariantPhase) {
+          const generationSettings = getGenerationSettings();
+          const researchedJob = await postJob(
+            `/api/jobs/${selectedJob.id}/research`,
+            undefined,
+            "Research summary ready",
+            "research"
+          );
+          await postJob(
+            `/api/jobs/${researchedJob.id}/brief`,
+            { generationSettings },
+            "Brief ready",
+            "article"
+          );
+          await postJob(
+            `/api/jobs/${researchedJob.id}/draft`,
+            { generationSettings },
+            "Article generated",
+            "article"
+          );
+        }
       } catch (selectError) {
         setError(selectError instanceof Error ? selectError.message : "Select failed");
       } finally {
