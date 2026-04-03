@@ -5,7 +5,7 @@ import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import { generateBriefWithOpenAi, generateDraftWithOpenAi, polishDraftWithOpenAi } from "@/lib/openai";
 import { generateImageWithPhaya, isPhayaConfigured } from "@/lib/phaya";
 import { getPromptConfig } from "@/lib/prompt-config";
-import { resolveResearchProviderByClientName } from "@/lib/research-provider-config";
+import { resolveResearchProviderByClientId, resolveResearchProviderByClientName } from "@/lib/research-provider-config";
 import { buildNewJob, generateBrief, generateDraft, generateResearch, generateTopicIdeas } from "@/lib/workflow-generators";
 import { getPrismaClient, isDatabaseConfigured } from "@/lib/prisma";
 import { listWorkflowEvents } from "@/lib/workflow-events";
@@ -566,7 +566,7 @@ export async function getJob(jobId: string, scope?: JobAccessScope) {
 
 export async function createJob(input: { client: string; seedKeyword: string; clientId?: string | null }) {
   const provider = input.clientId
-    ? (await resolveResearchProviderByClientName(input.client))
+    ? (await resolveResearchProviderByClientId(input.clientId))
     : await resolveResearchProviderByClientName(input.client);
   const job = await buildNewJob(input.seedKeyword, input.client, provider);
 

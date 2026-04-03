@@ -46,6 +46,11 @@ export async function getResearchProviderConfig(clientId?: string | null): Promi
   };
 }
 
+export async function resolveResearchProviderByClientId(clientId?: string | null): Promise<ResearchProvider> {
+  const config = await getResearchProviderConfig(clientId);
+  return config.effectiveResearchProvider;
+}
+
 export async function resolveResearchProviderByClientName(clientName?: string | null): Promise<ResearchProvider> {
   const prisma = getPrismaClient();
   if (!prisma || !clientName?.trim()) {

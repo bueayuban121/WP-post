@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { type FormEvent, useCallback, useEffect, useState, useTransition } from "react";
+import type { AppUserSession } from "@/lib/auth";
 import type {
   ArticleImageAsset,
   ArticleDraft,
@@ -260,14 +261,31 @@ function getLatestEvent(job: WorkflowJob, type: WorkflowAutomationEvent["type"])
 
 export function WorkflowDashboard({
   initialTab = "expand",
-  initialJobId = ""
+  initialJobId = "",
+  currentUser,
+  managedUsers = []
 }: {
   initialTab?: WorkspaceTab;
   initialJobId?: string;
+  currentUser: AppUserSession;
+  managedUsers?: AppUserSession[];
 }) {
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [activeJobId, setActiveJobId] = useState("");
-  const [projectName, setProjectName] = useState("AquaCare Thailand");
+  const availableClientAccounts = managedUsers
+    .filter((user) => user.role === "client" && user.clientId && user.clientName)
+    .map((user) => ({
+      id: user.clientId as string,
+      name: user.clientName as string
+    }))
+    .filter((account, index, accounts) => accounts.findIndex((item) => item.id === account.id) === index);
+  const [selectedClientId, setSelectedClientId] = useState(() => {
+    if (currentUser.role === "client") {
+      return currentUser.clientId ?? "";
+    }
+
+    return availableClientAccounts[0]?.id ?? "";
+  });
   const [seedKeyword, setSeedKeyword] = useState("ปลาทอง");
   const [tone, setTone] = useState("Calm expert");
   const [bannedWords, setBannedWords] = useState("ดีที่สุด, การันตี, รักษาหาย");
@@ -292,6 +310,13 @@ export function WorkflowDashboard({
   const [selectedIdeaTitle, setSelectedIdeaTitle] = useState("");
   const [selectedIdeaAngle, setSelectedIdeaAngle] = useState("");
   const [editorialPatternOverride, setEditorialPatternOverride] = useState("");
+  const selectedClientAccount =
+    currentUser.role === "client"
+      ? {
+          id: currentUser.clientId ?? "",
+          name: currentUser.clientName ?? ""
+        }
+      : availableClientAccounts.find((account) => account.id === selectedClientId) ?? null;
 
   const job = jobs.find((item) => item.id === activeJobId) ?? jobs[0] ?? null;
   const activeIdea = job?.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? null;
@@ -553,10 +578,18 @@ export function WorkflowDashboard({
       setStatusMessage("Creating project");
       setError("");
       try {
+        if (!selectedClientAccount?.name) {
+          throw new Error("Please select a client account before creating the job.");
+        }
+
         await postJob(
           "/api/jobs",
-          { client: projectName, seedKeyword },
-          `Created project for ${getProjectName(projectName)}`,
+          {
+            client: selectedClientAccount.name,
+            clientId: selectedClientAccount.id,
+            seedKeyword
+          },
+          `Created keyword workflow for ${getProjectName(selectedClientAccount.name)}`,
           "expand"
         );
       } catch (createError) {
@@ -1171,9 +1204,23 @@ export function WorkflowDashboard({
 
             <form className={styles.createForm} onSubmit={createProject}>
               <label>
-                Project name
+                Client account
                 <small>ชื่อโปรเจกต์หรือเว็บไซต์ปลายทาง</small>
-                <input value={projectName} onChange={(event) => setProjectName(event.target.value)} />
+                {currentUser.role === "client" ? (
+                  <input disabled value={selectedClientAccount?.name ?? ""} />
+                ) : (
+                  <select value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)}>
+                    {availableClientAccounts.length > 0 ? (
+                      availableClientAccounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="">No client accounts found</option>
+                    )}
+                  </select>
+                )}
               </label>
               <label>
                 Seed keyword

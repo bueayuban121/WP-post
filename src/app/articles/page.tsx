@@ -1,12 +1,20 @@
 import { WorkflowDashboard } from "@/components/workflow-dashboard";
-import { requirePageSession } from "@/lib/auth";
+import { listManagedUsers, requirePageSession } from "@/lib/auth";
 
 export default async function ArticlesPage({
   searchParams
 }: {
   searchParams: Promise<{ job?: string }>;
 }) {
-  await requirePageSession();
+  const currentUser = await requirePageSession();
+  const managedUsers = currentUser.role === "admin" ? await listManagedUsers() : [];
   const params = await searchParams;
-  return <WorkflowDashboard initialJobId={params.job ?? ""} initialTab="article" />;
+  return (
+    <WorkflowDashboard
+      currentUser={currentUser}
+      initialJobId={params.job ?? ""}
+      initialTab="article"
+      managedUsers={managedUsers}
+    />
+  );
 }

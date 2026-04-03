@@ -17,11 +17,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: session.error }, { status: session.status });
   }
 
-  const body = (await request.json()) as { client?: string; seedKeyword?: string };
+  const body = (await request.json()) as { client?: string; clientId?: string; seedKeyword?: string };
   const client =
     session.user.role === "client"
       ? session.user.clientName?.trim()
       : body.client?.trim();
+  const clientId =
+    session.user.role === "client"
+      ? session.user.clientId
+      : body.clientId?.trim() || undefined;
   const seedKeyword = body.seedKeyword?.trim();
 
   if (!client || !seedKeyword) {
@@ -34,7 +38,7 @@ export async function POST(request: Request) {
   const job = await createJob({
     client,
     seedKeyword,
-    clientId: session.user.role === "client" ? session.user.clientId : undefined
+    clientId
   });
   return NextResponse.json({ job }, { status: 201 });
 }
