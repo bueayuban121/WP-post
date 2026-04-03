@@ -95,7 +95,7 @@ function isDirectKeywordVariant(seedKeyword: string, keyword: string) {
   const seedLower = seedKeyword.trim().toLowerCase();
   const tokenCount = normalized.split(/\s+/).length;
 
-  if (!normalized || normalizedLower === seedLower) {
+  if (!normalized) {
     return false;
   }
 
@@ -196,17 +196,17 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
     const response = await callDataForSeoKeywordIdeas([seedKeyword], 15);
     const items = extractItems(response)
       .filter((item) => item.keyword)
-      .filter((item) => trimSentence(String(item.keyword ?? "")).toLowerCase() !== seedKeyword.trim().toLowerCase())
       .slice(0, 20);
 
     if (items.length === 0) {
       return null;
     }
 
-    const directKeywords = dedupe(items.map((item) => String(item.keyword ?? ""))).filter((keyword) =>
+    const directKeywords = dedupe([seedKeyword, ...items.map((item) => String(item.keyword ?? ""))]).filter((keyword) =>
       isDirectKeywordVariant(seedKeyword, keyword)
     );
-    const dedupedKeywords = directKeywords.length > 0 ? directKeywords : dedupe(items.map((item) => String(item.keyword ?? "")));
+    const dedupedKeywords =
+      directKeywords.length > 0 ? directKeywords : dedupe([seedKeyword, ...items.map((item) => String(item.keyword ?? ""))]);
 
     return dedupedKeywords.slice(0, 15).map((keyword, index) => {
       const matchedItem =

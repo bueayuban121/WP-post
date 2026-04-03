@@ -8,6 +8,8 @@ export type WorkflowStage =
   | "approved"
   | "published";
 
+export type ResearchProvider = "tavily" | "dataforseo";
+
 export type TopicIdea = {
   id: string;
   title: string;
@@ -103,6 +105,7 @@ export type WorkflowJob = {
   id: string;
   client: string;
   seedKeyword: string;
+  researchProvider: ResearchProvider;
   stage: WorkflowStage;
   selectedIdeaId: string;
   ideas: TopicIdea[];

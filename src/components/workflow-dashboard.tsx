@@ -43,7 +43,7 @@ type EditorialPatternPreview = {
 
 const stageLabels = {
   idea_pool: "Keyword Expansion",
-  selected: "Keyword Selected",
+  selected: "Topic Planning",
   researching: "Research Ready",
   brief_ready: "Brief Ready",
   drafting: "Draft Ready",
@@ -295,6 +295,9 @@ export function WorkflowDashboard({
 
   const job = jobs.find((item) => item.id === activeJobId) ?? jobs[0] ?? null;
   const activeIdea = job?.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? null;
+  const usingDataForSeo = job?.researchProvider === "dataforseo";
+  const inKeywordVariantPhase = Boolean(job && usingDataForSeo && job.stage === "idea_pool");
+  const inTopicSelectionPhase = Boolean(job && usingDataForSeo && job.stage === "selected" && !job.selectedIdeaId);
   const articleImages = editableImages.length > 0 ? editableImages : job?.images ?? [];
   const articleSections = draftSections.length > 0 ? draftSections : job?.draft.sections ?? [];
   const editorialPattern = job
@@ -312,6 +315,8 @@ export function WorkflowDashboard({
     briefFeaturedImageUrl.trim() || articleImages[0]?.src || "/article-images/goldfish-water-1.svg";
   const researchSummary = buildResearchSummary(job?.seedKeyword ?? "", activeIdea, job);
   const hasSelectedIdea = Boolean(activeIdea);
+  const selectedKeywordLabel = job?.seedKeyword ?? "";
+  const selectedTopicLabel = activeIdea?.title ?? "";
   const hasResearch = Boolean(job?.research.sources.length);
   const hasDraft = Boolean(job?.draft.sections.length);
   const imageEvent = job ? getLatestEvent(job, "images") : undefined;
@@ -566,14 +571,14 @@ export function WorkflowDashboard({
     if (!job) return;
     startTransition(async () => {
       setPendingAction("select-keyword");
-      setStatusMessage("Selecting keyword");
+      setStatusMessage(inKeywordVariantPhase ? "Selecting keyword variant" : "Selecting article topic");
       setError("");
       try {
         await postJob(
           `/api/jobs/${job.id}/ideas/select`,
           { ideaId: idea.id },
-          `Selected keyword: ${idea.title}`,
-          "research"
+          inKeywordVariantPhase ? `Keyword selected: ${idea.title}` : `Selected topic: ${idea.title}`,
+          inKeywordVariantPhase ? "expand" : "research"
         );
       } catch (selectError) {
         setError(selectError instanceof Error ? selectError.message : "Select failed");
@@ -584,11 +589,11 @@ export function WorkflowDashboard({
   }
 
   async function saveSelectedKeyword() {
-    if (!job || !activeIdea) return;
+    if (!job || !activeIdea || inKeywordVariantPhase) return;
 
     startTransition(async () => {
       setPendingAction("save-keyword");
-      setStatusMessage("Saving selected keyword");
+      setStatusMessage("Saving selected topic");
       setError("");
       try {
         await postJob(
@@ -598,7 +603,7 @@ export function WorkflowDashboard({
             title: selectedIdeaTitle,
             angle: selectedIdeaAngle
           },
-          "Selected keyword updated",
+          "Selected topic updated",
           "expand"
         );
       } catch (saveError) {
@@ -981,8 +986,10 @@ export function WorkflowDashboard({
         {
           id: "expand",
           index: "01",
-          title: "Expand keywords",
-          detail: `${safeJob.ideas.length} keyword options`,
+          title: inKeywordVariantPhase ? "Choose keyword" : "Choose topic",
+          detail: inKeywordVariantPhase
+            ? `${safeJob.ideas.length} keyword variants ready`
+            : `${safeJob.ideas.length} article topics ready`,
           state: "complete"
         },
         {
@@ -993,7 +1000,9 @@ export function WorkflowDashboard({
             ? `${safeJob.research.sources.length} sources collected`
             : hasSelectedIdea
               ? "Ready to run research"
-              : "Select one keyword first",
+              : inKeywordVariantPhase
+                ? "Select one keyword first"
+                : "Select one article topic first",
           state: hasResearch ? "complete" : hasSelectedIdea ? "active" : "locked"
         },
         {
@@ -1026,9 +1035,11 @@ export function WorkflowDashboard({
 
     if (!hasSelectedIdea) {
       return {
-        title: "Choose one keyword opportunity",
-        detail: "Start by selecting a single topic before the system moves into research.",
-        cta: "Review keyword options",
+        title: inKeywordVariantPhase ? "Choose one keyword variant first" : "Choose one article topic next",
+        detail: inKeywordVariantPhase
+          ? "Start with a direct keyword from DataForSEO, then the system will expand it into article topics for the next choice."
+          : "The keyword is locked inแล้ว ขั้นถัดไปคือเลือกหัวข้อบทความจาก keyword ที่เลือกไว้ก่อนเริ่ม research.",
+        cta: inKeywordVariantPhase ? "Review keyword variants" : "Review article topics",
         disabled: false,
         onClick: () => setTab("expand")
       };
@@ -1320,7 +1331,12 @@ export function WorkflowDashboard({
                   <p className={styles.focusText}>{primaryActionConfig.detail}</p>
                   <div className={styles.focusMeta}>
                     <span className={styles.focusPill}>Current stage: {stageLabels[job.stage]}</span>
-                    <span className={styles.focusPill}>Selected topic: {activeIdea?.title ?? "Waiting for selection"}</span>
+                    <span className={styles.focusPill}>
+                      Working keyword: {selectedKeywordLabel || "Waiting for selection"}
+                    </span>
+                    <span className={styles.focusPill}>
+                      Selected topic: {selectedTopicLabel || "Waiting for topic selection"}
+                    </span>
                     <span className={styles.focusPill}>Primary workspace: {activeWorkflowStep.title}</span>
                     {editorialPattern ? (
                       <span className={styles.focusPill}>Editorial pattern: {editorialPattern.label}</span>
@@ -1351,34 +1367,47 @@ export function WorkflowDashboard({
                   <div className={styles.sectionHead}>
                     <div>
                       <span className={styles.label}>Step 2</span>
-                      <h2>Keyword Expansion</h2>
+                      <h2>{inKeywordVariantPhase ? "Keyword Expansion" : "Article Topic Expansion"}</h2>
                     </div>
-                    <span className={styles.statusChip}>{job.ideas.length} keyword options</span>
+                    <span className={styles.statusChip}>
+                      {job.ideas.length} {inKeywordVariantPhase ? "keyword variants" : "article topics"}
+                    </span>
                   </div>
                   <p className={styles.sectionText}>
-                    ระบบขยาย seed keyword เป็น keyword variants หรือคำใกล้เคียงสำหรับเลือกไปรีเสิร์ชต่อ เลือกคำที่ตรงกับโจทย์ลูกค้าที่สุดก่อน แล้วค่อยกด Run Research
+                    {inKeywordVariantPhase
+                      ? "ระบบจะใช้ DataForSEO แตก seed keyword ออกมาเป็นคำใกล้เคียงตรงๆ ก่อน ให้ลูกค้าเลือก keyword ที่ใช่ที่สุด แล้วระบบค่อยคิดหัวข้อบทความจากคำนั้นต่อ"
+                      : "ตอนนี้ keyword หลักถูกเลือกแล้ว ขั้นนี้คือให้ AI คิดต่อเป็นหัวข้อบทความจาก keyword ที่เลือก เพื่อให้ลูกค้าเลือกหัวข้อก่อนเริ่ม research"}
                   </p>
                   <div className={styles.sectionLead}>
                     <div className={styles.quickStats}>
                       <div>
-                        <span className={styles.label}>Seed</span>
+                        <span className={styles.label}>{inKeywordVariantPhase ? "Seed" : "Selected keyword"}</span>
                         <strong>{job.seedKeyword}</strong>
                       </div>
                       <div>
-                        <span className={styles.label}>Selected</span>
-                        <strong>{activeIdea?.title ?? "Not selected"}</strong>
+                        <span className={styles.label}>{inKeywordVariantPhase ? "Next step" : "Selected topic"}</span>
+                        <strong>
+                          {inKeywordVariantPhase ? "Choose 1 keyword" : activeIdea?.title ?? "Not selected"}
+                        </strong>
                       </div>
                       <div>
-                        <span className={styles.label}>Intent mix</span>
-                        <strong>{job.ideas.map((idea) => idea.searchIntent).filter((value, index, array) => array.indexOf(value) === index).join(" · ")}</strong>
+                        <span className={styles.label}>{inKeywordVariantPhase ? "Provider" : "Intent mix"}</span>
+                        <strong>
+                          {inKeywordVariantPhase
+                            ? "DataForSEO"
+                            : job.ideas
+                                .map((idea) => idea.searchIntent)
+                                .filter((value, index, array) => array.indexOf(value) === index)
+                                .join(" · ")}
+                        </strong>
                       </div>
                     </div>
                   </div>
-                  {activeIdea ? (
+                  {!inKeywordVariantPhase && activeIdea ? (
                     <section className={styles.selectedIdeaEditor}>
                       <div className={styles.selectedIdeaHead}>
                         <div>
-                          <span className={styles.label}>Selected Keyword</span>
+                          <span className={styles.label}>Selected Topic</span>
                           <h3>Refine before research</h3>
                         </div>
                         <button
@@ -1392,8 +1421,8 @@ export function WorkflowDashboard({
                       </div>
                       <div className={styles.selectedIdeaFields}>
                         <label className={styles.editorField}>
-                          <span>Keyword title</span>
-                          <small>แก้ wording ของ keyword ที่เลือกก่อนนำไปรีเสิร์ช</small>
+                          <span>Topic title</span>
+                          <small>แก้ wording ของหัวข้อบทความที่เลือกก่อนนำไปรีเสิร์ช</small>
                           <input value={selectedIdeaTitle} onChange={(event) => setSelectedIdeaTitle(event.target.value)} />
                         </label>
                         <label className={styles.editorField}>
@@ -1408,20 +1437,25 @@ export function WorkflowDashboard({
                     {job.ideas.map((idea) => (
                       <article
                         key={idea.id}
-                        className={`${styles.keywordCard} ${job.selectedIdeaId === idea.id ? styles.keywordCardActive : ""}`}
+                        className={`${styles.keywordCard} ${
+                          !inKeywordVariantPhase && job.selectedIdeaId === idea.id ? styles.keywordCardActive : ""
+                        }`}
                       >
                         <strong>{idea.title}</strong>
+                        {!inKeywordVariantPhase ? <p>{idea.angle}</p> : null}
                         <button
                           className={styles.primaryButton}
                           disabled={Boolean(pendingAction)}
                           onClick={() => void selectKeyword(idea)}
                           type="button"
                         >
-                          {pendingAction === "select-keyword" && job.selectedIdeaId !== idea.id
+                          {pendingAction === "select-keyword" && (!inKeywordVariantPhase && job.selectedIdeaId !== idea.id)
                             ? "Selecting..."
-                            : job.selectedIdeaId === idea.id
+                            : !inKeywordVariantPhase && job.selectedIdeaId === idea.id
                               ? "Selected"
-                              : "Select keyword"}
+                              : inKeywordVariantPhase
+                                ? "Use this keyword"
+                                : "Select topic"}
                         </button>
                       </article>
                     ))}
@@ -1465,8 +1499,9 @@ export function WorkflowDashboard({
                   </div>
                   <div className={styles.researchLayout}>
                     <article className={styles.researchMain}>
-                      <h3>{activeIdea?.title ?? "Select a keyword first"}</h3>
+                      <h3>{activeIdea?.title ?? "Select an article topic first"}</h3>
                       <div className={styles.researchIntro}>
+                        <span className={styles.focusPill}>Keyword: {selectedKeywordLabel || "Waiting for keyword"}</span>
                         <span className={styles.focusPill}>Sources: {job.research.sources.length}</span>
                         <span className={styles.focusPill}>Gaps: {job.research.gaps.length}</span>
                         <span className={styles.focusPill}>Audience: {job.research.audience || "Waiting for synthesis"}</span>
@@ -1658,7 +1693,7 @@ export function WorkflowDashboard({
                       <Image alt={articleImages[0]?.alt ?? "Featured article image"} height={900} src={featuredImageSrc} unoptimized width={1600} />
                     </div>
                     <div className={styles.articleMeta}>
-                      <span>Keyword: {job.seedKeyword}</span>
+                      <span>Keyword: {selectedKeywordLabel}</span>
                       <span>Status: {stageLabels[job.stage]}</span>
                       <span>Words before image: {articleLength}</span>
                       <span>Image count: {imageCount}</span>

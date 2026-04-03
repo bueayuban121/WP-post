@@ -503,6 +503,21 @@ export async function generateIdeas(
     }));
 }
 
+export async function generateTopicIdeas(seedKeyword: string): Promise<TopicIdea[]> {
+  const aiIdeas = await generateIdeasFromTavily(seedKeyword);
+
+  if (aiIdeas && aiIdeas.length > 0) {
+    return aiIdeas;
+  }
+
+  return buildIdeaSet(seedKeyword)
+    .slice(0, 12)
+    .map((idea) => ({
+      id: crypto.randomUUID(),
+      ...idea
+    }));
+}
+
 function formatSourceLine(source: ResearchSource) {
   return `${source.title} จาก ${source.source} ชี้ว่า ${source.insight}`;
 }
@@ -735,6 +750,7 @@ export async function buildNewJob(
     id: crypto.randomUUID(),
     client,
     seedKeyword,
+    researchProvider: provider,
     stage: "idea_pool",
     selectedIdeaId: "",
     ideas,

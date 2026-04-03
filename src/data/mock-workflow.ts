@@ -15,6 +15,7 @@ export const workflowStages = [
 export const mockWorkflowJob: WorkflowJob = {
   id: "job-goldfish-001",
   client: "AquaCare Thailand",
+  researchProvider: "tavily",
   seedKeyword: "ปลาทอง",
   stage: "brief_ready",
   selectedIdeaId: "idea-2",

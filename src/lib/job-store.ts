@@ -6,7 +6,7 @@ import { generateBriefWithOpenAi, generateDraftWithOpenAi, polishDraftWithOpenAi
 import { generateImageWithPhaya, isPhayaConfigured } from "@/lib/phaya";
 import { getPromptConfig } from "@/lib/prompt-config";
 import { resolveResearchProviderByClientName } from "@/lib/research-provider-config";
-import { buildNewJob, generateBrief, generateDraft, generateResearch } from "@/lib/workflow-generators";
+import { buildNewJob, generateBrief, generateDraft, generateResearch, generateTopicIdeas } from "@/lib/workflow-generators";
 import { getPrismaClient, isDatabaseConfigured } from "@/lib/prisma";
 import { listWorkflowEvents } from "@/lib/workflow-events";
 import type {
@@ -67,6 +67,62 @@ type JobAccessScope = {
 
 function cloneJob(job: WorkflowJob): WorkflowJob {
   return JSON.parse(JSON.stringify(job)) as WorkflowJob;
+}
+
+function createEmptyResearch(): ResearchPack {
+  return {
+    objective: "",
+    audience: "",
+    gaps: [],
+    sources: []
+  };
+}
+
+function createEmptyBrief(): ContentBrief {
+  return {
+    title: "",
+    slug: "",
+    metaTitle: "",
+    metaDescription: "",
+    audience: "",
+    angle: "",
+    publishStatus: "draft",
+    categoryIds: [],
+    tagIds: [],
+    featuredImageUrl: "",
+    outline: [],
+    faqs: [],
+    internalLinks: []
+  };
+}
+
+function createEmptyDraft(): ArticleDraft {
+  return {
+    intro: "",
+    sections: [],
+    conclusion: ""
+  };
+}
+
+function createEmptyFacebook(): FacebookPostDraft {
+  return {
+    caption: "",
+    hashtags: [],
+    selectedImageId: "",
+    status: "draft"
+  };
+}
+
+function isKeywordVariantPhase(job: WorkflowJob) {
+  return job.researchProvider === "dataforseo" && job.stage === "idea_pool";
+}
+
+async function withResolvedProvider(job: WorkflowJob): Promise<WorkflowJob> {
+  const provider = await resolveResearchProviderByClientName(job.client);
+  return {
+    ...job,
+    researchProvider: provider
+  };
 }
 
 function toAppStage(stage: WorkflowStage): AppWorkflowStage {
@@ -171,6 +227,7 @@ function fromStoredJob(job: StoredJob): WorkflowJob {
     id: job.id,
     client: job.client?.name ?? "Unknown client",
     seedKeyword: job.seedKeyword,
+    researchProvider: "tavily",
     stage: toAppStage(job.stage),
     selectedIdeaId: job.selectedIdeaId ?? "",
     ideas: job.ideas.map((idea) => ({
@@ -259,7 +316,9 @@ async function updateStoredWorkflow(
   jobId: string,
   stage: AppWorkflowStage,
   payload: {
+    seedKeyword?: string;
     selectedIdeaId?: string;
+    ideas?: TopicIdea[];
     research?: ResearchPack;
     brief?: ContentBrief;
     draft?: ArticleDraft;
@@ -273,8 +332,28 @@ async function updateStoredWorkflow(
   const job = await prisma.keywordJob.update({
     where: { id: jobId },
     data: {
+      ...(payload.seedKeyword !== undefined ? { seedKeyword: payload.seedKeyword } : {}),
       stage: toDbStage(stage),
-      ...(payload.selectedIdeaId ? { selectedIdeaId: payload.selectedIdeaId } : {}),
+      ...(payload.selectedIdeaId !== undefined ? { selectedIdeaId: payload.selectedIdeaId || null } : {}),
+      ...(payload.ideas
+        ? {
+            ideas: {
+              deleteMany: {},
+              create: payload.ideas.map((idea) => ({
+                id: idea.id,
+                title: idea.title,
+                angle: idea.angle,
+                searchIntent: idea.searchIntent,
+                difficulty: idea.difficulty,
+                confidence: idea.confidence,
+                whyItMatters: idea.whyItMatters,
+                thaiSignal: idea.thaiSignal,
+                globalSignal: idea.globalSignal,
+                relatedKeywords: idea.relatedKeywords
+              }))
+            }
+          }
+        : {}),
       ...(payload.research
         ? {
             researchPack: {
@@ -421,14 +500,14 @@ async function updateStoredWorkflow(
     include: jobInclude
   });
 
-  return fromStoredJob(job);
+  return withResolvedProvider(fromStoredJob(job));
 }
 
 export async function listJobs(scope?: JobAccessScope) {
   if (!isDatabaseConfigured()) {
     return Promise.all(
       Array.from(jobs.values()).map(async (job) => ({
-        ...cloneJob(job),
+        ...(await withResolvedProvider(cloneJob(job))),
         automationEvents: await listWorkflowEvents(job.id)
       }))
     );
@@ -438,7 +517,7 @@ export async function listJobs(scope?: JobAccessScope) {
   if (!prisma) {
     return Promise.all(
       Array.from(jobs.values()).map(async (job) => ({
-        ...cloneJob(job),
+        ...(await withResolvedProvider(cloneJob(job))),
         automationEvents: await listWorkflowEvents(job.id)
       }))
     );
@@ -456,7 +535,7 @@ export async function listJobs(scope?: JobAccessScope) {
     }
   });
 
-  return storedJobs.map(fromStoredJob);
+  return Promise.all(storedJobs.map(async (job) => withResolvedProvider(fromStoredJob(job))));
 }
 
 export async function getJob(jobId: string, scope?: JobAccessScope) {
@@ -464,7 +543,7 @@ export async function getJob(jobId: string, scope?: JobAccessScope) {
     const job = jobs.get(jobId);
     if (!job) return null;
     return {
-      ...cloneJob(job),
+      ...(await withResolvedProvider(cloneJob(job))),
       automationEvents: await listWorkflowEvents(job.id)
     };
   }
@@ -482,7 +561,7 @@ export async function getJob(jobId: string, scope?: JobAccessScope) {
     },
     include: jobInclude
   });
-  return job ? fromStoredJob(job) : null;
+  return job ? withResolvedProvider(fromStoredJob(job)) : null;
 }
 
 export async function createJob(input: { client: string; seedKeyword: string; clientId?: string | null }) {
@@ -494,7 +573,7 @@ export async function createJob(input: { client: string; seedKeyword: string; cl
   if (!isDatabaseConfigured()) {
     jobs.set(job.id, job);
     return {
-      ...cloneJob(job),
+      ...(await withResolvedProvider(cloneJob(job))),
       automationEvents: await listWorkflowEvents(job.id)
     };
   }
@@ -529,7 +608,7 @@ export async function createJob(input: { client: string; seedKeyword: string; cl
   });
 
   return {
-    ...fromStoredJob(createdJob),
+    ...(await withResolvedProvider(fromStoredJob(createdJob))),
     client: input.client
   };
 }
@@ -551,42 +630,44 @@ export async function selectIdea(jobId: string, ideaId: string) {
   const selectedIdea = job.ideas.find((idea) => idea.id === ideaId);
   if (!selectedIdea) return null;
 
+  if (isKeywordVariantPhase(job)) {
+    const nextKeyword = selectedIdea.title.trim();
+    const topicIdeas = await generateTopicIdeas(nextKeyword);
+
+    if (!isDatabaseConfigured()) {
+      job.seedKeyword = nextKeyword;
+      job.stage = "selected";
+      job.selectedIdeaId = "";
+      job.ideas = topicIdeas;
+      job.research = createEmptyResearch();
+      job.brief = createEmptyBrief();
+      job.draft = createEmptyDraft();
+      job.images = [];
+      job.facebook = createEmptyFacebook();
+      jobs.set(job.id, job);
+      return cloneJob(job);
+    }
+
+    return updateStoredWorkflow(jobId, "selected", {
+      seedKeyword: nextKeyword,
+      selectedIdeaId: "",
+      ideas: topicIdeas,
+      research: createEmptyResearch(),
+      brief: createEmptyBrief(),
+      draft: createEmptyDraft(),
+      images: [],
+      facebook: createEmptyFacebook()
+    });
+  }
+
   if (!isDatabaseConfigured()) {
     job.selectedIdeaId = ideaId;
     job.stage = "selected";
-    job.research = {
-      objective: "",
-      audience: "",
-      gaps: [],
-      sources: []
-    };
-    job.brief = {
-      title: "",
-      slug: "",
-      metaTitle: "",
-      metaDescription: "",
-      audience: "",
-      angle: "",
-      publishStatus: "draft",
-      categoryIds: [],
-      tagIds: [],
-      featuredImageUrl: "",
-      outline: [],
-      faqs: [],
-      internalLinks: []
-    };
-    job.draft = {
-      intro: "",
-      sections: [],
-      conclusion: ""
-    };
+    job.research = createEmptyResearch();
+    job.brief = createEmptyBrief();
+    job.draft = createEmptyDraft();
     job.images = [];
-    job.facebook = {
-      caption: "",
-      hashtags: [],
-      selectedImageId: "",
-      status: "draft"
-    };
+    job.facebook = createEmptyFacebook();
     jobs.set(job.id, job);
     return cloneJob(job);
   }
@@ -625,39 +706,11 @@ export async function updateSelectedIdea(
     );
     job.selectedIdeaId = ideaId;
     job.stage = "selected";
-    job.research = {
-      objective: "",
-      audience: "",
-      gaps: [],
-      sources: []
-    };
-    job.brief = {
-      title: "",
-      slug: "",
-      metaTitle: "",
-      metaDescription: "",
-      audience: "",
-      angle: "",
-      publishStatus: "draft",
-      categoryIds: [],
-      tagIds: [],
-      featuredImageUrl: "",
-      outline: [],
-      faqs: [],
-      internalLinks: []
-    };
-    job.draft = {
-      intro: "",
-      sections: [],
-      conclusion: ""
-    };
+    job.research = createEmptyResearch();
+    job.brief = createEmptyBrief();
+    job.draft = createEmptyDraft();
     job.images = [];
-    job.facebook = {
-      caption: "",
-      hashtags: [],
-      selectedImageId: "",
-      status: "draft"
-    };
+    job.facebook = createEmptyFacebook();
     jobs.set(job.id, job);
     return cloneJob(job);
   }
@@ -675,46 +728,19 @@ export async function updateSelectedIdea(
 
   return updateStoredWorkflow(jobId, "selected", {
     selectedIdeaId: ideaId,
-    research: {
-      objective: "",
-      audience: "",
-      gaps: [],
-      sources: []
-    },
-    brief: {
-      title: "",
-      slug: "",
-      metaTitle: "",
-      metaDescription: "",
-      audience: "",
-      angle: "",
-      publishStatus: "draft",
-      categoryIds: [],
-      tagIds: [],
-      featuredImageUrl: "",
-      outline: [],
-      faqs: [],
-      internalLinks: []
-    },
-    draft: {
-      intro: "",
-      sections: [],
-      conclusion: ""
-    },
+    research: createEmptyResearch(),
+    brief: createEmptyBrief(),
+    draft: createEmptyDraft(),
     images: [],
-    facebook: {
-      caption: "",
-      hashtags: [],
-      selectedImageId: "",
-      status: "draft"
-    }
+    facebook: createEmptyFacebook()
   });
 }
 
 export async function runResearch(jobId: string) {
   const job = await getJob(jobId);
   if (!job) return null;
-  const selectedIdea = job.ideas.find((idea) => idea.id === job.selectedIdeaId) as TopicIdea;
+  const selectedIdea = job.ideas.find((idea) => idea.id === job.selectedIdeaId);
+  if (!selectedIdea) return null;
   const provider = await resolveResearchProviderByClientName(job.client);
   const research =
     provider === "dataforseo"
@@ -734,7 +760,8 @@ export async function runResearch(jobId: string) {
 export async function generateJobBrief(jobId: string, options?: Partial<WorkflowGenerationSettings> | null) {
   const job = await getJob(jobId);
   if (!job) return null;
-  const selectedIdea = job.ideas.find((idea) => idea.id === job.selectedIdeaId) as TopicIdea;
+  const selectedIdea = job.ideas.find((idea) => idea.id === job.selectedIdeaId);
+  if (!selectedIdea) return null;
   const settings = normalizeGenerationSettings(options);
   const prisma = getPrismaClient();
   const clientRows =
