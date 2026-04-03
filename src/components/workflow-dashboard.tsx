@@ -1410,10 +1410,6 @@ export function WorkflowDashboard({
                         key={idea.id}
                         className={`${styles.keywordCard} ${job.selectedIdeaId === idea.id ? styles.keywordCardActive : ""}`}
                       >
-                        <div className={styles.keywordMeta}>
-                          <span>{idea.searchIntent}</span>
-                          <span>{idea.confidence}%</span>
-                        </div>
                         <strong>{idea.title}</strong>
                         <button
                           className={styles.primaryButton}

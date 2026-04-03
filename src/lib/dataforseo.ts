@@ -89,6 +89,35 @@ function makeRelatedKeywords(seedKeyword: string, keyword: string) {
   ]).slice(0, 6);
 }
 
+function isDirectKeywordVariant(seedKeyword: string, keyword: string) {
+  const normalized = trimSentence(keyword);
+  const normalizedLower = normalized.toLowerCase();
+  const seedLower = seedKeyword.trim().toLowerCase();
+  const tokenCount = normalized.split(/\s+/).length;
+
+  if (!normalized || normalizedLower === seedLower) {
+    return false;
+  }
+
+  if (tokenCount > 4) {
+    return false;
+  }
+
+  if (/[?!:]/.test(normalized)) {
+    return false;
+  }
+
+  if (/\b(202\d|vs|how|why|best|review|guide|checklist)\b/i.test(normalized)) {
+    return false;
+  }
+
+  if (/(วิธี|เลือก|เปรียบเทียบ|ข้อดี|ข้อเสีย|คืออะไร|กับคุณ|ปี\s*20\d\d)/.test(normalized)) {
+    return false;
+  }
+
+  return true;
+}
+
 function buildInsightLine(item: DataForSeoKeywordIdeaItem) {
   const parts: string[] = [];
   const volume = item.keyword_info?.search_volume;
@@ -174,7 +203,10 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
       return null;
     }
 
-    const dedupedKeywords = dedupe(items.map((item) => String(item.keyword ?? "")));
+    const directKeywords = dedupe(items.map((item) => String(item.keyword ?? ""))).filter((keyword) =>
+      isDirectKeywordVariant(seedKeyword, keyword)
+    );
+    const dedupedKeywords = directKeywords.length > 0 ? directKeywords : dedupe(items.map((item) => String(item.keyword ?? "")));
 
     return dedupedKeywords.slice(0, 15).map((keyword, index) => {
       const matchedItem =
