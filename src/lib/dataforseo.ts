@@ -5,10 +5,13 @@ import type { ResearchPack, TopicIdea } from "@/types/workflow";
 const DATAFORSEO_LOGIN = process.env.DATAFORSEO_LOGIN?.trim() ?? "";
 const DATAFORSEO_PASSWORD = process.env.DATAFORSEO_PASSWORD?.trim() ?? "";
 const DATAFORSEO_BASE_URL = (process.env.DATAFORSEO_BASE_URL?.trim() || "https://api.dataforseo.com").replace(/\/$/, "");
+const DATAFORSEO_VARIANTS_PATH =
+  process.env.DATAFORSEO_VARIANTS_PATH?.trim() || "/v3/keywords_data/google_ads/keywords_for_keywords/live";
 const DATAFORSEO_KEYWORD_IDEAS_PATH =
   process.env.DATAFORSEO_KEYWORD_IDEAS_PATH?.trim() || "/v3/dataforseo_labs/google/keyword_ideas/live";
 const DATAFORSEO_LOCATION_CODE = Number(process.env.DATAFORSEO_LOCATION_CODE || "2764");
 const DATAFORSEO_LANGUAGE_NAME = process.env.DATAFORSEO_LANGUAGE_NAME?.trim() || "Thai";
+const DATAFORSEO_LANGUAGE_CODE = process.env.DATAFORSEO_LANGUAGE_CODE?.trim() || "th";
 
 type DataForSeoKeywordIdeaItem = {
   keyword?: string;
@@ -34,6 +37,22 @@ type DataForSeoResponse = {
   tasks?: DataForSeoTask[];
 };
 
+type GoogleAdsKeywordSuggestion = {
+  keyword?: string;
+  competition?: string;
+  competition_index?: number;
+  search_volume?: number;
+  cpc?: number;
+};
+
+type GoogleAdsTask = {
+  result?: GoogleAdsKeywordSuggestion[];
+};
+
+type GoogleAdsResponse = {
+  tasks?: GoogleAdsTask[];
+};
+
 function getAuthHeader() {
   return `Basic ${Buffer.from(`${DATAFORSEO_LOGIN}:${DATAFORSEO_PASSWORD}`).toString("base64")}`;
 }
@@ -52,6 +71,10 @@ function dedupe(values: string[]) {
 
 function extractItems(response: DataForSeoResponse) {
   return response.tasks?.flatMap((task) => task.result?.flatMap((result) => result.items ?? []) ?? []) ?? [];
+}
+
+function extractGoogleAdsSuggestions(response: GoogleAdsResponse) {
+  return response.tasks?.flatMap((task) => task.result ?? []) ?? [];
 }
 
 function inferIntentFromKeyword(keyword: string): TopicIdea["searchIntent"] {
@@ -75,6 +98,16 @@ function inferDifficulty(score?: number): TopicIdea["difficulty"] {
 
   if (score >= 60) return "high";
   if (score >= 35) return "medium";
+  return "low";
+}
+
+function inferDifficultyFromCompetitionIndex(score?: number): TopicIdea["difficulty"] {
+  if (typeof score !== "number") {
+    return "medium";
+  }
+
+  if (score >= 80) return "high";
+  if (score >= 45) return "medium";
   return "low";
 }
 
@@ -187,32 +220,58 @@ async function callDataForSeoKeywordIdeas(keywords: string[], limit = 12) {
   return (await response.json()) as DataForSeoResponse;
 }
 
+async function callDataForSeoKeywordVariants(seedKeyword: string) {
+  if (!isDataForSeoConfigured()) {
+    throw new Error("DataForSEO credentials are not configured.");
+  }
+
+  const response = await fetch(`${DATAFORSEO_BASE_URL}${DATAFORSEO_VARIANTS_PATH}`, {
+    method: "POST",
+    headers: {
+      Authorization: getAuthHeader(),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify([
+      {
+        keywords: [seedKeyword],
+        location_code: DATAFORSEO_LOCATION_CODE,
+        language_code: DATAFORSEO_LANGUAGE_CODE
+      }
+    ])
+  });
+
+  if (!response.ok) {
+    throw new Error(`DataForSEO keyword variants failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as GoogleAdsResponse;
+}
+
 export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<TopicIdea[] | null> {
   if (!isDataForSeoConfigured()) {
     return null;
   }
 
   try {
-    const response = await callDataForSeoKeywordIdeas([seedKeyword], 15);
-    const items = extractItems(response)
-      .filter((item) => item.keyword)
-      .slice(0, 20);
+    const response = await callDataForSeoKeywordVariants(seedKeyword);
+    const suggestions = extractGoogleAdsSuggestions(response).filter((item) => item.keyword).slice(0, 30);
 
-    if (items.length === 0) {
+    if (suggestions.length === 0) {
       return null;
     }
 
-    const directKeywords = dedupe([seedKeyword, ...items.map((item) => String(item.keyword ?? ""))]).filter((keyword) =>
-      isDirectKeywordVariant(seedKeyword, keyword)
+    const directKeywords = dedupe([seedKeyword, ...suggestions.map((item) => String(item.keyword ?? ""))]).filter(
+      (keyword) => isDirectKeywordVariant(seedKeyword, keyword)
     );
     const dedupedKeywords =
-      directKeywords.length > 0 ? directKeywords : dedupe([seedKeyword, ...items.map((item) => String(item.keyword ?? ""))]);
+      directKeywords.length > 0
+        ? directKeywords
+        : dedupe([seedKeyword, ...suggestions.map((item) => String(item.keyword ?? ""))]);
 
     return dedupedKeywords.slice(0, 15).map((keyword, index) => {
       const matchedItem =
-        items.find((item) => trimSentence(String(item.keyword ?? "")).toLowerCase() === keyword.toLowerCase()) ?? {};
-      const keywordDifficulty = matchedItem.keyword_properties?.keyword_difficulty;
-      const searchVolume = matchedItem.keyword_info?.search_volume;
+        suggestions.find((item) => trimSentence(String(item.keyword ?? "")).toLowerCase() === keyword.toLowerCase()) ?? {};
+      const searchVolume = matchedItem.search_volume;
       const confidenceBase = typeof searchVolume === "number" && searchVolume > 0 ? 90 : 82;
 
       return {
@@ -220,14 +279,22 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
         title: keyword,
         angle: `Use "${keyword}" as the selected keyword for the next research step while keeping the broader intent of "${seedKeyword}".`,
         searchIntent: inferIntentFromKeyword(keyword),
-        difficulty: inferDifficulty(keywordDifficulty),
+        difficulty: inferDifficultyFromCompetitionIndex(matchedItem.competition_index),
         confidence: Math.max(68, Math.min(97, confidenceBase - index)),
         whyItMatters:
           typeof searchVolume === "number" && searchVolume > 0
             ? `Estimated search volume around ${searchVolume.toLocaleString()} suggests this variant is worth researching next.`
             : "This keyword variant appears in DataForSEO results and is suitable for the next step.",
         thaiSignal: `Keyword variant related to "${seedKeyword}" surfaced from DataForSEO keyword ideas.`,
-        globalSignal: `DataForSEO metrics: ${buildInsightLine(matchedItem)}`,
+        globalSignal: `DataForSEO metrics: ${[
+          typeof searchVolume === "number" ? `search volume ${searchVolume.toLocaleString()}` : "",
+          typeof matchedItem.competition_index === "number"
+            ? `competition index ${matchedItem.competition_index}`
+            : "",
+          typeof matchedItem.cpc === "number" ? `CPC $${matchedItem.cpc.toFixed(2)}` : ""
+        ]
+          .filter(Boolean)
+          .join(", ") || "keyword variant from DataForSEO"}`,
         relatedKeywords: makeRelatedKeywords(seedKeyword, keyword)
       };
     });
