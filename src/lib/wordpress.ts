@@ -431,6 +431,13 @@ async function syncSeoMeta(input: {
         _aioseo_title: metaTitle,
         _aioseo_description: metaDescription
       }
+    },
+    {
+      target: "seopress",
+      meta: {
+        _seopress_titles_title: metaTitle,
+        _seopress_titles_desc: metaDescription
+      }
     }
   ];
 
@@ -468,7 +475,10 @@ async function syncSeoMeta(input: {
   return {
     attempted: true,
     synced: false,
-    warnings
+    warnings: [
+      ...warnings,
+      "WordPress created the post, but no supported SEO REST meta fields accepted the meta title/description. The site may need a REST-enabled SEO plugin or theme/plugin support to render frontend meta tags."
+    ]
   };
 }
 

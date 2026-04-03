@@ -10,6 +10,8 @@ function getPublishMeta(payload: Record<string, unknown> | undefined) {
     (Array.isArray(payload?.uploadErrors) ? payload.uploadErrors : undefined) ??
     (Array.isArray(wordpress?.uploadErrors) ? wordpress.uploadErrors : undefined) ??
     [];
+  const seoMeta = wordpress?.seoMeta as Record<string, unknown> | undefined;
+  const seoWarnings = Array.isArray(seoMeta?.warnings) ? seoMeta.warnings : [];
 
   return {
     link:
@@ -24,6 +26,12 @@ function getPublishMeta(payload: Record<string, unknown> | undefined) {
     uploadedMediaCount:
       (typeof payload?.uploadedMediaCount === "number" ? payload.uploadedMediaCount : undefined) ??
       (typeof wordpress?.uploadedMediaCount === "number" ? wordpress.uploadedMediaCount : undefined),
+    seoAttempted: typeof seoMeta?.attempted === "boolean" ? seoMeta.attempted : false,
+    seoSynced: typeof seoMeta?.synced === "boolean" ? seoMeta.synced : false,
+    seoTarget: typeof seoMeta?.target === "string" ? seoMeta.target : undefined,
+    seoWarnings: seoWarnings
+      .map((item) => (typeof item === "string" ? item : "SEO meta sync warning"))
+      .filter(Boolean),
     uploadErrors: uploadErrors.map((item) => {
       const record = item as Record<string, unknown>;
       return {
@@ -64,7 +72,7 @@ export default async function PublishedPage() {
         <span className={styles.eyebrow}>Published Posts</span>
         <h1 className={styles.title}>Track every WordPress post after publish</h1>
         <p className={styles.description}>
-          ตรวจสอบโพสต์ที่เผยแพร่แล้ว, เปิดลิงก์ WordPress ปลายทาง, และย้อนกลับไปแก้บทความได้จากหน้าเดียว
+          à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¹‚à¸žà¸ªà¸•à¹Œà¸—à¸µà¹ˆà¹€à¸œà¸¢à¹à¸žà¸£à¹ˆà¹à¸¥à¹‰à¸§, à¹€à¸›à¸´à¸”à¸¥à¸´à¸‡à¸à¹Œ WordPress à¸›à¸¥à¸²à¸¢à¸—à¸²à¸‡, à¹à¸¥à¸°à¸¢à¹‰à¸­à¸™à¸à¸¥à¸±à¸šà¹„à¸›à¹à¸à¹‰à¸šà¸—à¸„à¸§à¸²à¸¡à¹„à¸”à¹‰à¸ˆà¸²à¸à¸«à¸™à¹‰à¸²à¹€à¸”à¸µà¸¢à¸§
         </p>
       </section>
 
@@ -73,7 +81,7 @@ export default async function PublishedPage() {
           <div className={styles.panelHead}>
             <div>
               <h2>No published posts yet</h2>
-              <p>เมื่อคิว publish สำเร็จ รายการจะมาแสดงที่หน้านี้พร้อมลิงก์ WordPress และสถานะล่าสุด</p>
+              <p>à¹€à¸¡à¸·à¹ˆà¸­à¸„à¸´à¸§ publish à¸ªà¸³à¹€à¸£à¹‡à¸ˆ à¸£à¸²à¸¢à¸à¸²à¸£à¸ˆà¸°à¸¡à¸²à¹à¸ªà¸”à¸‡à¸—à¸µà¹ˆà¸«à¸™à¹‰à¸²à¸™à¸µà¹‰à¸žà¸£à¹‰à¸­à¸¡à¸¥à¸´à¸‡à¸à¹Œ WordPress à¹à¸¥à¸°à¸ªà¸–à¸²à¸™à¸°à¸¥à¹ˆà¸²à¸ªà¸¸à¸”</p>
             </div>
             <Link className={styles.badge} href="/keywords">
               Open workflow
@@ -86,7 +94,7 @@ export default async function PublishedPage() {
             <div className={styles.panelHead}>
               <div>
                 <h2>Published history</h2>
-                <p>รวมโพสต์ที่ publish ผ่านระบบ พร้อมเช็กสถานะและกลับไปแก้ต้นฉบับได้ทันที</p>
+                <p>à¸£à¸§à¸¡à¹‚à¸žà¸ªà¸•à¹Œà¸—à¸µà¹ˆ publish à¸œà¹ˆà¸²à¸™à¸£à¸°à¸šà¸š à¸žà¸£à¹‰à¸­à¸¡à¹€à¸Šà¹‡à¸à¸ªà¸–à¸²à¸™à¸°à¹à¸¥à¸°à¸à¸¥à¸±à¸šà¹„à¸›à¹à¸à¹‰à¸•à¹‰à¸™à¸‰à¸šà¸±à¸šà¹„à¸”à¹‰à¸—à¸±à¸™à¸—à¸µ</p>
               </div>
               <div className={styles.tableMeta}>
                 <strong>{publishedItems.length}</strong>
@@ -120,12 +128,20 @@ export default async function PublishedPage() {
                   {typeof meta.uploadedMediaCount === "number" ? (
                     <span className={styles.muted}>Media {meta.uploadedMediaCount}</span>
                   ) : null}
+                  {meta.seoAttempted ? (
+                    <span className={styles.muted}>
+                      SEO {meta.seoSynced ? `synced${meta.seoTarget ? ` via ${meta.seoTarget}` : ""}` : "not synced"}
+                    </span>
+                  ) : null}
                 </div>
                 <div>
                   <strong>{publishEvent?.updatedAt?.slice(0, 10) || "-"}</strong>
                   <span className={styles.muted}>{publishEvent?.updatedAt?.slice(11, 19) || ""}</span>
                   {meta.uploadErrors.length > 0 ? (
                     <span className={styles.muted}>Upload issues {meta.uploadErrors.length}</span>
+                  ) : null}
+                  {meta.seoWarnings.length > 0 ? (
+                    <span className={styles.muted}>SEO warnings {meta.seoWarnings.length}</span>
                   ) : null}
                 </div>
                 <div className={styles.actions}>

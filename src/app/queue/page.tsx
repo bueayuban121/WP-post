@@ -23,6 +23,8 @@ function buildQueueMessage(payload: Record<string, unknown> | undefined, fallbac
   const uploadErrors =
     (Array.isArray(payload?.uploadErrors) ? payload.uploadErrors : undefined) ??
     (Array.isArray(wordpress?.uploadErrors) ? wordpress.uploadErrors : undefined);
+  const seoMeta = wordpress?.seoMeta as Record<string, unknown> | undefined;
+  const seoWarnings = Array.isArray(seoMeta?.warnings) ? seoMeta.warnings : [];
 
   if (provider) {
     parts.push(`Provider: ${provider}`);
@@ -34,6 +36,14 @@ function buildQueueMessage(payload: Record<string, unknown> | undefined, fallbac
 
   if (uploadErrors && uploadErrors.length > 0) {
     parts.push(`Upload issues: ${uploadErrors.length}`);
+  }
+
+  if (typeof seoMeta?.attempted === "boolean" && seoMeta.attempted) {
+    parts.push(typeof seoMeta?.synced === "boolean" && seoMeta.synced ? "SEO meta synced" : "SEO meta not synced");
+  }
+
+  if (seoWarnings.length > 0) {
+    parts.push(`SEO warnings: ${seoWarnings.length}`);
   }
 
   return parts.filter(Boolean).join(" · ");
@@ -66,7 +76,7 @@ export default async function QueuePage() {
         <span className={styles.eyebrow}>Queue</span>
         <h1 className={styles.title}>Track automation status across every content job</h1>
         <p className={styles.description}>
-          ดูได้ทันทีว่างานไหนกำลังคิว งานไหนสำเร็จ งานไหนล้มเหลว และระบบไหนเป็นคนรัน เพื่อแก้ปัญหาได้เร็วขึ้นเวลาทำงานจริง
+          à¸”à¸¹à¹„à¸”à¹‰à¸—à¸±à¸™à¸—à¸µà¸§à¹ˆà¸²à¸‡à¸²à¸™à¹„à¸«à¸™à¸à¸³à¸¥à¸±à¸‡à¸„à¸´à¸§ à¸‡à¸²à¸™à¹„à¸«à¸™à¸ªà¸³à¹€à¸£à¹‡à¸ˆ à¸‡à¸²à¸™à¹„à¸«à¸™à¸¥à¹‰à¸¡à¹€à¸«à¸¥à¸§ à¹à¸¥à¸°à¸£à¸°à¸šà¸šà¹„à¸«à¸™à¹€à¸›à¹‡à¸™à¸„à¸™à¸£à¸±à¸™ à¹€à¸žà¸·à¹ˆà¸­à¹à¸à¹‰à¸›à¸±à¸à¸«à¸²à¹„à¸”à¹‰à¹€à¸£à¹‡à¸§à¸‚à¸¶à¹‰à¸™à¹€à¸§à¸¥à¸²à¸—à¸³à¸‡à¸²à¸™à¸ˆà¸£à¸´à¸‡
         </p>
       </section>
 
@@ -93,8 +103,8 @@ export default async function QueuePage() {
         <QueueTableClient rows={rows} />
       ) : (
         <section className={styles.emptyState}>
-          <strong>ยังไม่มี queue event</strong>
-          <p className={styles.muted}>เมื่อเริ่มรัน research, draft หรือ publish งานจะเริ่มเข้ามาแสดงในหน้านี้</p>
+          <strong>à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µ queue event</strong>
+          <p className={styles.muted}>à¹€à¸¡à¸·à¹ˆà¸­à¹€à¸£à¸´à¹ˆà¸¡à¸£à¸±à¸™ research, draft à¸«à¸£à¸·à¸­ publish à¸‡à¸²à¸™à¸ˆà¸°à¹€à¸£à¸´à¹ˆà¸¡à¹€à¸‚à¹‰à¸²à¸¡à¸²à¹à¸ªà¸”à¸‡à¹ƒà¸™à¸«à¸™à¹‰à¸²à¸™à¸µà¹‰</p>
           <div className={styles.actions}>
             <Link className={styles.primaryButton} href="/">
               Open workflow
