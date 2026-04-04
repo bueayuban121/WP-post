@@ -76,7 +76,8 @@ export default async function QueuePage() {
         <span className={styles.eyebrow}>Queue</span>
         <h1 className={styles.title}>Track automation status across every content job</h1>
         <p className={styles.description}>
-          à¸”à¸¹à¹„à¸”à¹‰à¸—à¸±à¸™à¸—à¸µà¸§à¹ˆà¸²à¸‡à¸²à¸™à¹„à¸«à¸™à¸à¸³à¸¥à¸±à¸‡à¸„à¸´à¸§ à¸‡à¸²à¸™à¹„à¸«à¸™à¸ªà¸³à¹€à¸£à¹‡à¸ˆ à¸‡à¸²à¸™à¹„à¸«à¸™à¸¥à¹‰à¸¡à¹€à¸«à¸¥à¸§ à¹à¸¥à¸°à¸£à¸°à¸šà¸šà¹„à¸«à¸™à¹€à¸›à¹‡à¸™à¸„à¸™à¸£à¸±à¸™ à¹€à¸žà¸·à¹ˆà¸­à¹à¸à¹‰à¸›à¸±à¸à¸«à¸²à¹„à¸”à¹‰à¹€à¸£à¹‡à¸§à¸‚à¸¶à¹‰à¸™à¹€à¸§à¸¥à¸²à¸—à¸³à¸‡à¸²à¸™à¸ˆà¸£à¸´à¸‡
+          ดูได้ทันทีว่างานไหนกำลังเข้าคิว งานไหนสำเร็จ งานไหนล้มเหลว และระบบไหนเป็นคนรัน
+          เพื่อให้ตามงานและแก้ปัญหาได้เร็วขึ้นระหว่างใช้งานจริง
         </p>
       </section>
 
@@ -103,8 +104,8 @@ export default async function QueuePage() {
         <QueueTableClient rows={rows} />
       ) : (
         <section className={styles.emptyState}>
-          <strong>à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µ queue event</strong>
-          <p className={styles.muted}>à¹€à¸¡à¸·à¹ˆà¸­à¹€à¸£à¸´à¹ˆà¸¡à¸£à¸±à¸™ research, draft à¸«à¸£à¸·à¸­ publish à¸‡à¸²à¸™à¸ˆà¸°à¹€à¸£à¸´à¹ˆà¸¡à¹€à¸‚à¹‰à¸²à¸¡à¸²à¹à¸ªà¸”à¸‡à¹ƒà¸™à¸«à¸™à¹‰à¸²à¸™à¸µà¹‰</p>
+          <strong>ยังไม่มี queue event</strong>
+          <p className={styles.muted}>เมื่อเริ่มรัน research, draft หรือ publish งานจะเริ่มเข้ามาแสดงในหน้านี้</p>
           <div className={styles.actions}>
             <Link className={styles.primaryButton} href="/">
               Open workflow

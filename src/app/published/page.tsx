@@ -72,7 +72,7 @@ export default async function PublishedPage() {
         <span className={styles.eyebrow}>Published Posts</span>
         <h1 className={styles.title}>Track every WordPress post after publish</h1>
         <p className={styles.description}>
-          à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¹‚à¸žà¸ªà¸•à¹Œà¸—à¸µà¹ˆà¹€à¸œà¸¢à¹à¸žà¸£à¹ˆà¹à¸¥à¹‰à¸§, à¹€à¸›à¸´à¸”à¸¥à¸´à¸‡à¸à¹Œ WordPress à¸›à¸¥à¸²à¸¢à¸—à¸²à¸‡, à¹à¸¥à¸°à¸¢à¹‰à¸­à¸™à¸à¸¥à¸±à¸šà¹„à¸›à¹à¸à¹‰à¸šà¸—à¸„à¸§à¸²à¸¡à¹„à¸”à¹‰à¸ˆà¸²à¸à¸«à¸™à¹‰à¸²à¹€à¸”à¸µà¸¢à¸§
+          ตรวจสอบโพสต์ที่เผยแพร่แล้ว เปิดลิงก์ WordPress ปลายทาง และย้อนกลับไปแก้บทความได้จากหน้าเดียว
         </p>
       </section>
 
@@ -81,7 +81,7 @@ export default async function PublishedPage() {
           <div className={styles.panelHead}>
             <div>
               <h2>No published posts yet</h2>
-              <p>à¹€à¸¡à¸·à¹ˆà¸­à¸„à¸´à¸§ publish à¸ªà¸³à¹€à¸£à¹‡à¸ˆ à¸£à¸²à¸¢à¸à¸²à¸£à¸ˆà¸°à¸¡à¸²à¹à¸ªà¸”à¸‡à¸—à¸µà¹ˆà¸«à¸™à¹‰à¸²à¸™à¸µà¹‰à¸žà¸£à¹‰à¸­à¸¡à¸¥à¸´à¸‡à¸à¹Œ WordPress à¹à¸¥à¸°à¸ªà¸–à¸²à¸™à¸°à¸¥à¹ˆà¸²à¸ªà¸¸à¸”</p>
+              <p>เมื่อคิว publish สำเร็จ รายการจะมาแสดงที่หน้านี้พร้อมลิงก์ WordPress และสถานะล่าสุด</p>
             </div>
             <Link className={styles.badge} href="/keywords">
               Open workflow
@@ -94,7 +94,7 @@ export default async function PublishedPage() {
             <div className={styles.panelHead}>
               <div>
                 <h2>Published history</h2>
-                <p>à¸£à¸§à¸¡à¹‚à¸žà¸ªà¸•à¹Œà¸—à¸µà¹ˆ publish à¸œà¹ˆà¸²à¸™à¸£à¸°à¸šà¸š à¸žà¸£à¹‰à¸­à¸¡à¹€à¸Šà¹‡à¸à¸ªà¸–à¸²à¸™à¸°à¹à¸¥à¸°à¸à¸¥à¸±à¸šà¹„à¸›à¹à¸à¹‰à¸•à¹‰à¸™à¸‰à¸šà¸±à¸šà¹„à¸”à¹‰à¸—à¸±à¸™à¸—à¸µ</p>
+                <p>รวมโพสต์ที่ publish ผ่านระบบ พร้อมเช็กสถานะและกลับไปแก้ต้นฉบับได้ทันที</p>
               </div>
               <div className={styles.tableMeta}>
                 <strong>{publishedItems.length}</strong>
