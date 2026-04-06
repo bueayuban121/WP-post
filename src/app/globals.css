@@ -40,7 +40,8 @@ body {
     radial-gradient(circle at 50% 100%, rgba(115, 89, 58, 0.08), transparent 28%),
     linear-gradient(180deg, #faf6ee 0%, #f4efe6 42%, #efe6da 100%);
   color: var(--foreground);
-  font-family: "Aptos", "Segoe UI Variable", "Noto Sans Thai", "Segoe UI", sans-serif;
+  font-family: "Segoe UI Variable Display", "Aptos", "Noto Sans Thai", "Segoe UI", sans-serif;
+  letter-spacing: -0.01em;
   overflow-x: hidden;
 }
 

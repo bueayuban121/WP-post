@@ -118,6 +118,31 @@
   isolation: isolate;
 }
 
+.heroHome::before,
+.heroKeywords::before,
+.heroArticles::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.heroHome::before {
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.04), transparent 48%);
+}
+
+.heroKeywords::before {
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.08), transparent 40%),
+    linear-gradient(315deg, rgba(50, 92, 170, 0.08), transparent 42%);
+}
+
+.heroArticles::before {
+  background:
+    linear-gradient(135deg, rgba(164, 77, 36, 0.08), transparent 40%),
+    linear-gradient(315deg, rgba(15, 118, 110, 0.06), transparent 44%);
+}
+
 .heroContent {
   flex: 1 1 58%;
   position: relative;
@@ -509,6 +534,26 @@
   box-shadow: 0 0 26px rgba(15, 118, 110, 0.08);
 }
 
+.shellKeywords .navTab:hover,
+.shellKeywords .navTabActive,
+.shellKeywords .jobChipActive,
+.shellKeywords .contentTabActive {
+  border-color: rgba(34, 94, 168, 0.26);
+  background: rgba(34, 94, 168, 0.08);
+  color: #234e8d;
+  box-shadow: 0 0 26px rgba(34, 94, 168, 0.08);
+}
+
+.shellArticles .navTab:hover,
+.shellArticles .navTabActive,
+.shellArticles .jobChipActive,
+.shellArticles .contentTabActive {
+  border-color: rgba(164, 77, 36, 0.24);
+  background: rgba(164, 77, 36, 0.08);
+  color: #934921;
+  box-shadow: 0 0 26px rgba(164, 77, 36, 0.08);
+}
+
 .motionScene {
   animation: revealUp 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -532,6 +577,18 @@
   background:
     linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(164, 77, 36, 0.06) 40%, rgba(255, 255, 255, 0.58) 100%),
     rgba(255, 251, 245, 0.92);
+}
+
+.shellKeywords .focusPanel {
+  background:
+    linear-gradient(135deg, rgba(34, 94, 168, 0.1), rgba(15, 118, 110, 0.06) 42%, rgba(255, 255, 255, 0.62) 100%),
+    rgba(246, 250, 255, 0.94);
+}
+
+.shellArticles .focusPanel {
+  background:
+    linear-gradient(135deg, rgba(164, 77, 36, 0.1), rgba(121, 85, 43, 0.06) 42%, rgba(255, 255, 255, 0.62) 100%),
+    rgba(255, 249, 241, 0.94);
 }
 
 .focusCopy {
@@ -654,6 +711,30 @@
   transform: translateY(-4px);
   border-color: rgba(15, 118, 110, 0.24);
   box-shadow: 0 20px 45px rgba(56, 39, 19, 0.12), 0 0 0 1px rgba(15, 118, 110, 0.08);
+}
+
+.shellKeywords .keywordCard {
+  background:
+    linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(238, 245, 253, 0.95)),
+    rgba(248, 251, 255, 0.94);
+}
+
+.shellKeywords .keywordCard:hover,
+.shellKeywords .keywordCardActive {
+  border-color: rgba(34, 94, 168, 0.24);
+  box-shadow: 0 20px 45px rgba(35, 61, 102, 0.12), 0 0 0 1px rgba(34, 94, 168, 0.08);
+}
+
+.shellArticles .keywordCard {
+  background:
+    linear-gradient(180deg, rgba(255, 250, 244, 0.98), rgba(248, 239, 229, 0.95)),
+    rgba(255, 250, 244, 0.94);
+}
+
+.shellArticles .keywordCard:hover,
+.shellArticles .keywordCardActive {
+  border-color: rgba(164, 77, 36, 0.24);
+  box-shadow: 0 20px 45px rgba(93, 53, 27, 0.12), 0 0 0 1px rgba(164, 77, 36, 0.08);
 }
 
 .keywordMeta {
@@ -868,6 +949,21 @@
   gap: 16px;
 }
 
+.shellHome {
+  --page-accent: rgba(15, 118, 110, 0.16);
+  --page-accent-strong: rgba(15, 118, 110, 0.24);
+}
+
+.shellKeywords {
+  --page-accent: rgba(34, 94, 168, 0.16);
+  --page-accent-strong: rgba(34, 94, 168, 0.24);
+}
+
+.shellArticles {
+  --page-accent: rgba(164, 77, 36, 0.16);
+  --page-accent-strong: rgba(164, 77, 36, 0.24);
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
@@ -882,6 +978,22 @@
     linear-gradient(180deg, rgba(255, 251, 245, 0.94), rgba(249, 243, 235, 0.9)),
     rgba(255, 251, 245, 0.9);
   box-shadow: 0 24px 68px rgba(56, 38, 18, 0.1);
+}
+
+.shellKeywords .topbar,
+.shellKeywords .panel,
+.shellKeywords .articleLayout {
+  background:
+    linear-gradient(180deg, rgba(248, 251, 255, 0.95), rgba(239, 245, 253, 0.92)),
+    rgba(248, 251, 255, 0.92);
+}
+
+.shellArticles .topbar,
+.shellArticles .panel,
+.shellArticles .articleLayout {
+  background:
+    linear-gradient(180deg, rgba(255, 250, 244, 0.96), rgba(248, 239, 229, 0.94)),
+    rgba(255, 250, 244, 0.92);
 }
 
 .topbar,

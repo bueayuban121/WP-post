@@ -49,6 +49,18 @@ type EditorialPatternPreview = {
   description: string;
 };
 
+type PageMode = "home" | "keywords" | "articles";
+
+type PagePresentation = {
+  heroClassName: string;
+  shellClassName: string;
+  kicker: string;
+  title: string;
+  description: string;
+  primaryCta: string;
+  secondaryCta: string;
+};
+
 const stageLabels = {
   idea_pool: "Keyword Expansion",
   selected: "Topic Planning",
@@ -65,6 +77,39 @@ const automationLabels: Record<WorkflowAutomationEvent["status"], string> = {
   running: "Running",
   succeeded: "Succeeded",
   failed: "Failed"
+};
+
+const pagePresentations: Record<PageMode, PagePresentation> = {
+  home: {
+    heroClassName: styles.heroHome,
+    shellClassName: styles.shellHome,
+    kicker: "FUTURE SEO SYSTEM",
+    title: "Turn one keyword into a research-backed article, then ship it cleanly.",
+    description:
+      "Move from seed keyword to selection, research, article drafting, image planning, and WordPress delivery in one focused editorial workflow.",
+    primaryCta: "Create Project",
+    secondaryCta: "Open Workflow"
+  },
+  keywords: {
+    heroClassName: styles.heroKeywords,
+    shellClassName: styles.shellKeywords,
+    kicker: "KEYWORD DISCOVERY",
+    title: "Shape raw seed keywords into clearer search directions before writing.",
+    description:
+      "Use this workspace to expand seed keywords, choose the strongest direction, and pass a cleaner input into topic planning and research.",
+    primaryCta: "Start With Keyword",
+    secondaryCta: "Review Workflow"
+  },
+  articles: {
+    heroClassName: styles.heroArticles,
+    shellClassName: styles.shellArticles,
+    kicker: "EDITORIAL STUDIO",
+    title: "Refine the brief, draft, and image plan in a calmer article workspace.",
+    description:
+      "This page is tuned for editorial review: shaping the brief, polishing the draft, checking pattern choice, and preparing the article for publish.",
+    primaryCta: "Open Article Studio",
+    secondaryCta: "Jump To Draft"
+  }
 };
 
 
@@ -260,12 +305,14 @@ export function WorkflowDashboard({
   initialTab = "expand",
   initialJobId = "",
   currentUser,
-  managedUsers = []
+  managedUsers = [],
+  pageMode = "home"
 }: {
   initialTab?: WorkspaceTab;
   initialJobId?: string;
   currentUser: AppUserSession;
   managedUsers?: AppUserSession[];
+  pageMode?: PageMode;
 }) {
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [activeJobId, setActiveJobId] = useState("");
@@ -342,6 +389,7 @@ export function WorkflowDashboard({
   const hasResearch = Boolean(job?.research.sources.length);
   const hasDraft = Boolean(job?.draft.sections.length);
   const imageEvent = job ? getLatestEvent(job, "images") : undefined;
+  const pagePresentation = pagePresentations[pageMode];
   const imageStatusLabel = imageEvent
     ? imageEvent.status === "running"
       ? "Generating images..."
@@ -1161,17 +1209,17 @@ export function WorkflowDashboard({
 
   return (
     <main className={styles.page}>
-      <section className={styles.shell}>
+      <section className={`${styles.shell} ${pagePresentation.shellClassName}`}>
         <ConsoleNav />
 
-        <section className={styles.hero}>
+        <section className={`${styles.hero} ${pagePresentation.heroClassName}`}>
           <div className={styles.heroGlow} />
           <div className={styles.heroAmbient} />
           <div className={styles.heroContent}>
-            <span className={styles.kicker}>FUTURE SEO SYSTEM</span>
-            <h1 className={styles.title}>Turn one keyword into a research-backed article, then ship it to WordPress.</h1>
+            <span className={styles.kicker}>{pagePresentation.kicker}</span>
+            <h1 className={styles.title}>{pagePresentation.title}</h1>
             <p className={styles.heroText}>
-              รับ keyword, ขยายเป็น 10-15 keyword opportunities, เลือกคำที่ต้องการ, รีเสิร์ชรวมข้อมูลให้เป็นภาษาไทย, แล้วค่อยสร้างบทความพร้อมภาพและ publish flow ในระบบเดียว
+              {pagePresentation.description}
             </p>
             <div className={styles.heroActions}>
               <button
@@ -1179,7 +1227,7 @@ export function WorkflowDashboard({
                 onClick={() => document.getElementById("projects-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
                 type="button"
               >
-                Create Project
+                {pagePresentation.primaryCta}
               </button>
               <button
                 className={styles.ghostButton}
@@ -1189,7 +1237,7 @@ export function WorkflowDashboard({
                 }}
                 type="button"
               >
-                Open Workflow
+                {pagePresentation.secondaryCta}
               </button>
             </div>
           </div>

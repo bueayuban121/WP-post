@@ -72,12 +72,11 @@ export default async function QueuePage() {
     <main className={styles.page}>
       <ConsoleNav />
 
-      <section className={styles.hero}>
+      <section className={`${styles.hero} ${styles.heroQueue}`}>
         <span className={styles.eyebrow}>Queue</span>
         <h1 className={styles.title}>Track automation status across every content job</h1>
         <p className={styles.description}>
-          ดูได้ทันทีว่างานไหนกำลังเข้าคิว งานไหนสำเร็จ งานไหนล้มเหลว และระบบไหนเป็นคนรัน
-          เพื่อให้ตามงานและแก้ปัญหาได้เร็วขึ้นระหว่างใช้งานจริง
+          ดูได้ทันทีว่างานไหนกำลังเข้าคิว งานไหนกำลังรัน งานไหนสำเร็จ และงานไหนล้มเหลว เพื่อให้ทีมตามงานและแก้ปัญหาได้เร็วขึ้นระหว่างใช้งานจริง
         </p>
       </section>
 
@@ -105,7 +104,7 @@ export default async function QueuePage() {
       ) : (
         <section className={styles.emptyState}>
           <strong>ยังไม่มี queue event</strong>
-          <p className={styles.muted}>เมื่อเริ่มรัน research, draft หรือ publish งานจะเริ่มเข้ามาแสดงในหน้านี้</p>
+          <p className={styles.muted}>เมื่อเริ่มรัน research, draft หรือ publish รายการล่าสุดจะมาแสดงที่หน้านี้โดยอัตโนมัติ</p>
           <div className={styles.actions}>
             <Link className={styles.primaryButton} href="/">
               Open workflow

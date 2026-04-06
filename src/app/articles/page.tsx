@@ -15,6 +15,7 @@ export default async function ArticlesPage({
       initialJobId={params.job ?? ""}
       initialTab="article"
       managedUsers={managedUsers}
+      pageMode="articles"
     />
   );
 }

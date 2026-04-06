@@ -15,6 +15,7 @@ export default async function Home({
       initialJobId={params.job ?? ""}
       initialTab={params.tab ?? "expand"}
       managedUsers={managedUsers}
+      pageMode="home"
     />
   );
 }
