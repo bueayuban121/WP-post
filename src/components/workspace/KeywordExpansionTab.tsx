@@ -50,21 +50,21 @@ export function KeywordExpansionTab({
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="max-w-3xl">
               <span className="inline-flex rounded-full border border-cyan-400/15 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200">
-                {inKeywordVariantPhase ? "Keyword Discovery" : "Topic Planning"}
+                {inKeywordVariantPhase ? "Discovery" : "Topics"}
               </span>
               <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-slate-50 md:text-[2.2rem]">
-                {inKeywordVariantPhase ? "Choose the cleanest keyword direction first." : "Turn the chosen keyword into a stronger article angle."}
+                {inKeywordVariantPhase ? "Choose the cleanest keyword path." : "Turn the chosen keyword into a sharper angle."}
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300 md:text-[15px]">
                 {inKeywordVariantPhase
-                  ? "Start with direct keyword variants from DataForSEO, then choose the one that best matches what the client actually wants to rank for before expanding into article topics."
-                  : "The keyword has been chosen already. Now we shape it into article-ready directions, refine the wording, and prepare the best topic before research begins."}
+                  ? "Start with direct keyword variants from DataForSEO, then pick the one that best fits the ranking direction before expanding into article topics."
+                  : "The keyword is already chosen. Now we shape it into article-ready directions and prepare the strongest topic before research begins."}
               </p>
             </div>
 
             <div className="flex shrink-0 flex-wrap gap-2">
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                {job.ideas.length} {inKeywordVariantPhase ? "keyword variants" : "topic options"}
+                {job.ideas.length} {inKeywordVariantPhase ? "variants" : "topics"}
               </span>
               {intentMix.length > 0 && !inKeywordVariantPhase ? (
                 <span className="inline-flex items-center rounded-full border border-emerald-400/15 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-200">
@@ -77,23 +77,23 @@ export function KeywordExpansionTab({
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
               <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                {inKeywordVariantPhase ? "Seed keyword" : "Chosen keyword"}
+                {inKeywordVariantPhase ? "Seed" : "Keyword"}
               </span>
               <strong className="mt-2 block text-base font-semibold text-slate-50">{job.seedKeyword}</strong>
             </div>
 
             <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
               <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                {inKeywordVariantPhase ? "Next move" : "Selected topic"}
+                {inKeywordVariantPhase ? "Next" : "Topic"}
               </span>
               <strong className="mt-2 block text-base font-semibold text-slate-50">
-                {inKeywordVariantPhase ? "Pick one keyword variant" : activeIdea?.title ?? "Waiting for topic selection"}
+                {inKeywordVariantPhase ? "Pick one variant" : activeIdea?.title ?? "Waiting"}
               </strong>
             </div>
 
             <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
               <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                {inKeywordVariantPhase ? "Provider" : "Editorial intent"}
+                {inKeywordVariantPhase ? "Source" : "Intent"}
               </span>
               <strong className="mt-2 block text-base font-semibold text-slate-50">
                 {inKeywordVariantPhase ? "DataForSEO" : intentMix.join(" · ") || "Balanced mix"}
@@ -112,11 +112,11 @@ export function KeywordExpansionTab({
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
                 <span className="inline-flex rounded-full border border-amber-300/15 bg-amber-300/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-200">
-                  Selected Topic
+                  Topic
                 </span>
-                <h3 className="mt-3 text-xl font-semibold tracking-[-0.03em] text-slate-50">Refine the topic before research</h3>
+                <h3 className="mt-3 text-xl font-semibold tracking-[-0.03em] text-slate-50">Refine before research</h3>
                 <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-300">
-                  Fine-tune the final title and angle so the research step starts from the clearest possible direction.
+                  Fine-tune the final title and angle so research starts from the clearest direction.
                 </p>
               </div>
 
@@ -126,13 +126,13 @@ export function KeywordExpansionTab({
                 onClick={() => saveSelectedKeyword()}
                 className="h-11 rounded-full border border-white/10 bg-white/6 px-5 text-slate-100 shadow-[0_14px_30px_rgba(5,10,18,0.24)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/10"
               >
-                {pendingAction === "save-keyword" ? "Saving..." : "Save topic details"}
+                {pendingAction === "save-keyword" ? "Saving..." : "Save details"}
               </Button>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
               <label className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-slate-100">Topic title</span>
+                <span className="text-sm font-medium text-slate-100">Title</span>
                 <small className="text-xs leading-6 text-slate-400">Adjust the wording before sending this topic into research.</small>
                 <Input
                   value={selectedIdeaTitle}
@@ -187,7 +187,7 @@ export function KeywordExpansionTab({
                   <div className="max-w-3xl">
                     <div className="mb-3 flex flex-wrap gap-2">
                       <span className="inline-flex rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">
-                        {inKeywordVariantPhase ? "Keyword option" : "Article topic"}
+                        {inKeywordVariantPhase ? "Variant" : "Topic"}
                       </span>
                       {!inKeywordVariantPhase ? (
                         <span className="inline-flex rounded-full border border-cyan-400/15 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200">
@@ -204,7 +204,7 @@ export function KeywordExpansionTab({
                       <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">{idea.angle}</p>
                     ) : (
                       <p className="mt-3 text-sm leading-7 text-slate-400">
-                        Direct keyword variant suggested from the selected seed keyword. Choose the cleanest version before expanding into article topics.
+                        Direct keyword variant suggested from the selected seed keyword. Choose the cleanest version before expanding into topics.
                       </p>
                     )}
                   </div>
@@ -225,11 +225,11 @@ export function KeywordExpansionTab({
 
                     {!inKeywordVariantPhase ? (
                       <span className="text-center text-xs leading-6 text-slate-400">
-                        The next step will run research and continue into drafting.
+                        The next step runs research and drafting.
                       </span>
                     ) : (
                       <span className="text-center text-xs leading-6 text-slate-400">
-                        After choosing the keyword, the system will expand article topics next.
+                        After choosing the keyword, the system expands topics next.
                       </span>
                     )}
                   </div>

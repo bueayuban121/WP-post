@@ -6,14 +6,14 @@ import styles from "./console-nav.module.css";
 import { LogoutButton } from "@/components/logout-button";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard" },
+  { href: "/dashboard", label: "Overview" },
   { href: "/projects", label: "Projects" },
   { href: "/keywords", label: "Keywords" },
   { href: "/queue", label: "Queue" },
-  { href: "/articles", label: "Articles" },
-  { href: "/facebook", label: "Facebook" },
-  { href: "/published", label: "Published" },
-  { href: "/settings", label: "Settings" }
+  { href: "/articles", label: "Drafts" },
+  { href: "/facebook", label: "Social" },
+  { href: "/published", label: "Live" },
+  { href: "/settings", label: "Setup" }
 ];
 
 export function ConsoleNav() {
@@ -22,8 +22,8 @@ export function ConsoleNav() {
   return (
     <nav className={styles.topNav}>
       <div className={styles.navBrand}>
-        <span className={styles.kicker}>Auto Post Content</span>
-        <strong>Keyword to research-backed article workflow</strong>
+        <span className={styles.kicker}>Auto Post Studio</span>
+        <strong>Editorial engine</strong>
       </div>
       <div className={styles.navLinks}>
         {navItems.map((item) => {

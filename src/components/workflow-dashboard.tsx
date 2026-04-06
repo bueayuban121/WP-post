@@ -83,32 +83,32 @@ const pagePresentations: Record<PageMode, PagePresentation> = {
   home: {
     heroClassName: styles.heroHome,
     shellClassName: styles.shellHome,
-    kicker: "FUTURE SEO SYSTEM",
-    title: "Turn one keyword into a research-backed article, then ship it cleanly.",
+    kicker: "EDITORIAL FLOW",
+    title: "Turn one keyword into a finished story.",
     description:
       "Move from seed keyword to selection, research, article drafting, image planning, and WordPress delivery in one focused editorial workflow.",
-    primaryCta: "Create Project",
-    secondaryCta: "Open Workflow"
+    primaryCta: "New Project",
+    secondaryCta: "Open Flow"
   },
   keywords: {
     heroClassName: styles.heroKeywords,
     shellClassName: styles.shellKeywords,
-    kicker: "KEYWORD DISCOVERY",
-    title: "Shape raw seed keywords into clearer search directions before writing.",
+    kicker: "DISCOVERY",
+    title: "Shape a cleaner keyword path before writing.",
     description:
       "Use this workspace to expand seed keywords, choose the strongest direction, and pass a cleaner input into topic planning and research.",
-    primaryCta: "Start With Keyword",
-    secondaryCta: "Review Workflow"
+    primaryCta: "Start Search",
+    secondaryCta: "View Flow"
   },
   articles: {
     heroClassName: styles.heroArticles,
     shellClassName: styles.shellArticles,
-    kicker: "EDITORIAL STUDIO",
-    title: "Refine the brief, draft, and image plan in a calmer article workspace.",
+    kicker: "STUDIO",
+    title: "Refine the brief, draft, and image direction.",
     description:
       "This page is tuned for editorial review: shaping the brief, polishing the draft, checking pattern choice, and preparing the article for publish.",
-    primaryCta: "Open Article Studio",
-    secondaryCta: "Jump To Draft"
+    primaryCta: "Open Studio",
+    secondaryCta: "Jump Draft"
   }
 };
 
@@ -1326,7 +1326,7 @@ export function WorkflowDashboard({
               <div className={styles.panel}>
                 <div className={styles.sectionHead}>
                   <div>
-                    <span className={styles.label}>Workflow</span>
+                    <span className={styles.label}>Flow</span>
                     <h2>{getProjectName(job.client)}</h2>
                   </div>
                   <span className={styles.keywordChip}>{job.seedKeyword}</span>
@@ -1361,16 +1361,16 @@ export function WorkflowDashboard({
               <div className={styles.panel}>
                 <div className={styles.sectionHead}>
                   <div>
-                    <span className={styles.label}>Workspace</span>
-                    <h2>Navigate</h2>
+                    <span className={styles.label}>Panels</span>
+                    <h2>Move</h2>
                   </div>
                 </div>
                 <div className={styles.tabColumn}>
-                  <button className={`${styles.navTab} ${tab === "expand" ? styles.navTabActive : ""}`} onClick={() => setTab("expand")} type="button">Keyword Expansion</button>
-                  <button className={`${styles.navTab} ${tab === "research" ? styles.navTabActive : ""}`} onClick={() => setTab("research")} type="button">Research Summary</button>
-                  <button className={`${styles.navTab} ${tab === "queue" ? styles.navTabActive : ""}`} onClick={() => setTab("queue")} type="button">Queue & Logs</button>
-                  <button className={`${styles.navTab} ${tab === "article" ? styles.navTabActive : ""}`} onClick={() => setTab("article")} type="button">Article Studio</button>
-                  <button className={`${styles.navTab} ${tab === "images" ? styles.navTabActive : ""}`} onClick={() => setTab("images")} type="button">Article Images</button>
+                  <button className={`${styles.navTab} ${tab === "expand" ? styles.navTabActive : ""}`} onClick={() => setTab("expand")} type="button">Keywords</button>
+                  <button className={`${styles.navTab} ${tab === "research" ? styles.navTabActive : ""}`} onClick={() => setTab("research")} type="button">Research</button>
+                  <button className={`${styles.navTab} ${tab === "queue" ? styles.navTabActive : ""}`} onClick={() => setTab("queue")} type="button">Queue</button>
+                  <button className={`${styles.navTab} ${tab === "article" ? styles.navTabActive : ""}`} onClick={() => setTab("article")} type="button">Draft</button>
+                  <button className={`${styles.navTab} ${tab === "images" ? styles.navTabActive : ""}`} onClick={() => setTab("images")} type="button">Images</button>
                 </div>
               </div>
             </aside>
@@ -1378,7 +1378,7 @@ export function WorkflowDashboard({
             <section className={styles.content}>
               <section className={`${styles.panel} ${styles.focusPanel}`}>
                 <div className={styles.focusCopy}>
-                  <span className={styles.label}>Next Step</span>
+                  <span className={styles.label}>Now</span>
                   <h2>{primaryActionConfig.title}</h2>
                   <p className={styles.focusText}>{primaryActionConfig.detail}</p>
                   <div className={styles.focusMeta}>
