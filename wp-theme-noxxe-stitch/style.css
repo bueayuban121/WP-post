@@ -1,0 +1,31 @@
+/*
+Theme Name: Noxxe Stitch
+Theme URI: https://noxxe.shop/
+Author: Codex
+Description: WordPress theme package generated from Stitch exports for noxxe.shop.
+Version: 1.0.0
+Text Domain: noxxe-stitch
+*/
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: #131313;
+}
+
+a {
+  text-decoration: none;
+}
+
+.admin-bar nav.fixed {
+  top: 32px;
+}
+
+@media screen and (max-width: 782px) {
+  .admin-bar nav.fixed {
+    top: 46px;
+  }
+}

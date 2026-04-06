@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#1a1c1c",
+              "surface-container-high": "#2a2a2a",
+              "error": "#ffb4ab",
+              "tertiary-fixed": "#5f5e5e",
+              "on-primary-fixed-variant": "#e2e2e2",
+              "primary-fixed-dim": "#454747",
+              "surface-container-low": "#1b1b1b",
+              "on-secondary": "#1a1c1c",
+              "tertiary-container": "#929090",
+              "on-surface": "#e2e2e2",
+              "surface-container-highest": "#353535",
+              "surface-tint": "#c6c6c7",
+              "on-primary-container": "#000000",
+              "surface-bright": "#393939",
+              "inverse-surface": "#e2e2e2",
+              "on-primary-fixed": "#ffffff",
+              "on-background": "#e2e2e2",
+              "surface-variant": "#353535",
+              "secondary-fixed-dim": "#ababab",
+              "on-secondary-fixed-variant": "#3a3c3c",
+              "tertiary": "#e4e2e1",
+              "on-surface-variant": "#c6c6c6",
+              "primary": "#ffffff",
+              "on-secondary-container": "#e2e2e2",
+              "outline-variant": "#474747",
+              "tertiary-fixed-dim": "#474747",
+              "on-tertiary-fixed-variant": "#e4e2e1",
+              "on-secondary-fixed": "#1a1c1c",
+              "secondary-fixed": "#c6c6c6",
+              "secondary-container": "#454747",
+              "secondary": "#c6c6c6",
+              "on-tertiary": "#1b1c1c",
+              "on-error": "#690005",
+              "outline": "#919191",
+              "on-tertiary-container": "#000000",
+              "surface-dim": "#131313",
+              "error-container": "#93000a",
+              "surface-container-lowest": "#0e0e0e",
+              "primary-container": "#d4d4d4",
+              "on-error-container": "#ffdad6",
+              "inverse-primary": "#5d5f5f",
+              "inverse-on-surface": "#303030",
+              "surface": "#131313",
+              "primary-fixed": "#5d5f5f",
+              "on-tertiary-fixed": "#ffffff",
+              "background": "#131313",
+              "surface-container": "#1f1f1f"
+            },
+            fontFamily: {
+              "headline": ["Newsreader"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #131313;
+            color: #e2e2e2;
+            font-family: 'Inter', sans-serif;
+        }
+        .editorial-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+        }
+    </style>
+</head>
+<body class="bg-surface selection:bg-primary selection:text-on-primary">
+<!-- TopNavBar Shell -->
+<nav class="fixed top-0 w-full z-50 rounded-none bg-neutral-950/80 backdrop-blur-2xl flex justify-between items-center px-12 py-8 w-full">
+<div class="text-2xl font-light tracking-[0.3em] font-['Newsreader'] text-white">NOXXE</div>
+<div class="hidden md:flex items-center gap-12">
+<a class="text-white border-b border-white/30 pb-1 font-medium font-['Newsreader'] text-lg tracking-tight" href="#">Shop</a>
+<a class="text-neutral-500 hover:text-white transition-colors duration-500 font-['Inter'] text-xs uppercase tracking-widest" href="#">Lookbook</a>
+<a class="text-neutral-500 hover:text-white transition-colors duration-500 font-['Inter'] text-xs uppercase tracking-widest" href="#">About</a>
+</div>
+<div class="flex items-center gap-8 text-neutral-50">
+<button class="hover:opacity-60 transition-all duration-300 scale-100 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="hover:opacity-60 transition-all duration-300 scale-100 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">shopping_bag</span>
+</button>
+</div>
+</nav>
+<main class="pt-32 pb-24">
+<!-- PDP Section -->
+<div class="max-w-screen-2xl mx-auto px-6 md:px-12 editorial-grid gap-8">
+<!-- Product Gallery (Asymmetric Masonry) -->
+<div class="col-span-12 lg:col-span-7 flex flex-col gap-8">
+<div class="aspect-[4/5] bg-surface-container overflow-hidden">
+<img alt="Asian model wearing Transit Hoodie 01 in a minimalist airport terminal" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/ADBb0uhYp6-eVGjuxmgr-fJryYy5mHUNf2J4kEty4pdaBDnZTcal0wR_R8-e3HWIBWEG0fEKR7yYuEH0Lt8vjelauagUUtT11tuCoxZb2koLnTE45Ri29oedpRSqIxRWjORDE3BLfln3gzCrp_B9-Pk7dlaZd5WiLLIbbTLByceAW_YAJ0sYRpsPYpkTLY0g7D3GJhM06FRNkU1oQ_hugv-19GQeXe8hKvXKFQ00zGnL4sdtyvYsaKNv0MN_9SWS3_w9syav0ju9Y-PU"/>
+</div>
+<div class="grid grid-cols-2 gap-8">
+<div class="aspect-[3/4] bg-surface-container overflow-hidden">
+<img alt="Close up of heavyweight cotton fabric texture in grey" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfB4jH_C3OaAhmr66BdlrXhshX-7YlM6HFox178P_k5rYVlIlfUppbRM4ZHAPxsSBqrgPW60egHEWKOt31-POjweq6DNAhTI1w7NJ14n-Bt0C1P0n-KJKsHQLgn2-_XNvOTrH9iV1m8CJ0yXZUNpcUsIO52Apw-vVBFAjQ2eNvLzIvCxMRC-TEuuSyzWJVMPKbYitouxxxR_CH9IhMYIJ4niCLR9zhpiqRLLr4LwFuYeBQbra8FGNShKE6B90HLtRi85btO8xuKDM"/>
+</div>
+<div class="aspect-[3/4] bg-surface-container overflow-hidden translate-y-12">
+<img alt="Rear view of transit hoodie oversized silhouette on model" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDki43nh-MAO9Ykb4fzu77iSFLRyUGSQNbhmSVA9Gx0s-FJ2hsw4sgWp3qlVxmQmvItV1PqA6YCyo8TNNYphXEHtP2KM-2VZ6maUhq06d__hHHmXxSHXaV4Qz0Ib9y3RHHiEx_br-t0vguZvbds_17pcS8jR2K6kEw-O30zq2p0pyEeQ0ZNagZavEg7zwTmVkTNMd1aspPoNZSst8LzIFRKy_uqRmNQFoFiRrf3DZM103tNVDBmkIR6tapIwMTMSUlBotSrz93am4I"/>
+</div>
+</div>
+</div>
+<!-- Product Info Panel -->
+<div class="col-span-12 lg:col-span-4 lg:col-start-9 flex flex-col pt-12 lg:pt-0">
+<div class="sticky top-40 space-y-12">
+<!-- Header -->
+<div class="space-y-4">
+<h1 class="font-headline text-5xl font-extrabold tracking-tight text-white">Transit Hoodie 01</h1>
+<p class="font-headline text-2xl text-on-surface-variant">$220</p>
+</div>
+<!-- Description -->
+<div class="space-y-4">
+<p class="font-body text-on-surface leading-relaxed max-w-sm">
+                            A refined essential designed for transit and layering. Heavyweight cotton, oversized silhouette, minimal branding.
+                        </p>
+<div class="flex flex-wrap gap-2 pt-2">
+<span class="font-label text-[10px] uppercase tracking-[0.1em] border border-outline-variant/30 px-3 py-1">Refined fabrics</span>
+<span class="font-label text-[10px] uppercase tracking-[0.1em] border border-outline-variant/30 px-3 py-1">Clean silhouettes</span>
+<span class="font-label text-[10px] uppercase tracking-[0.1em] border border-outline-variant/30 px-3 py-1">Versatile styling</span>
+</div>
+</div>
+<!-- Color Selection -->
+<div class="space-y-4">
+<span class="font-label text-[10px] uppercase tracking-[0.15em] text-on-surface-variant">Color: Grey Melange</span>
+<div class="flex gap-4">
+<button class="w-10 h-10 bg-[#C6C6C6] border border-primary ring-offset-4 ring-offset-surface ring-1 ring-primary"></button>
+<button class="w-10 h-10 bg-[#2A2A2A] hover:opacity-80 transition-opacity"></button>
+<button class="w-10 h-10 bg-[#0E0E0E] hover:opacity-80 transition-opacity"></button>
+</div>
+</div>
+<!-- Size Selection -->
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-label text-[10px] uppercase tracking-[0.15em] text-on-surface-variant">Size selection</span>
+<button class="font-label text-[10px] uppercase tracking-[0.15em] text-white underline underline-offset-4">Size Guide</button>
+</div>
+<div class="grid grid-cols-4 gap-2">
+<button class="py-4 border border-outline-variant hover:border-white transition-colors text-xs font-label uppercase">S</button>
+<button class="py-4 border border-white bg-white text-on-primary text-xs font-label uppercase">M</button>
+<button class="py-4 border border-outline-variant hover:border-white transition-colors text-xs font-label uppercase">L</button>
+<button class="py-4 border border-outline-variant hover:border-white transition-colors text-xs font-label uppercase">XL</button>
+</div>
+</div>
+<!-- CTA -->
+<button class="w-full bg-primary text-on-primary font-label text-[11px] uppercase tracking-[0.2em] py-6 font-bold hover:bg-primary-container transition-all scale-100 active:scale-95">
+                        Add to Bag
+                    </button>
+<!-- Details Accordion-style (Minimalist) -->
+<div class="pt-12 border-t border-outline-variant/20 space-y-8">
+<div>
+<span class="font-label text-[10px] uppercase tracking-[0.15em] text-on-surface-variant block mb-2">Fit Guidance</span>
+<p class="font-body text-sm text-on-surface">Oversized fit. True to size for a relaxed look.</p>
+</div>
+<div>
+<span class="font-label text-[10px] uppercase tracking-[0.15em] text-on-surface-variant block mb-2">Care Instructions</span>
+<p class="font-body text-sm text-on-surface">Cold wash. Dry flat.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Complete the Look -->
+<section class="mt-48 max-w-screen-2xl mx-auto px-6 md:px-12">
+<div class="mb-16">
+<h2 class="font-headline text-3xl font-light tracking-tight text-white mb-2">Complete the Look</h2>
+<div class="h-[1px] w-24 bg-primary/30"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] bg-surface-container-low overflow-hidden mb-6">
+<img alt="Asian model wearing Transit Cargo Shorts in melange grey" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDF6HDieQEPGWu0EJN4M1fwmnGMp304sB8k8DhEvP3lkTXIwc1PYXHJOM5IihMRU2H_CcrTGaHyNosNsJMN-LEKp72mJzR6Cluqs81zwUvzyQ8CixSPJ9MmBxEX8JhjVTxUo4j_h29NPu1AS-aaVR924fqMhrSw7HLKMyUB-JTclYC2OJsswVx2nIcA3TJDpoCr5f0r_GtKiWRoWt_WyXjhHUW2LhV73p67h0VGGyup9G4FcYVr-nWkb66FFh7R16lNrztBTvC_Tig"/>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline text-lg text-white">Transit Cargo Shorts</h3>
+<p class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Bottoms</p>
+</div>
+<p class="font-headline text-lg">$140</p>
+</div>
+</div>
+<div class="group cursor-pointer md:translate-y-12">
+<div class="aspect-[3/4] bg-surface-container-low overflow-hidden mb-6">
+<img alt="Minimalist tech sneakers on Asian model in transit setting" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDe9z8UCh6olepfGgsEhjS5WMnz6S4HV2cNtG6Vc-q8CrVkL36_OIZdKo2SR-naItA3e2JZix1k-FRNidJdxNoGz7V9iPmztEmTlrduUC0_RGdrRh586F-LUALnVDoQww3kIF_L6D-icI76lnswAi2dT_l55qGfea5dtXCrbo-TpLirb96x2D2lNQpjjn4_Y4aFBn0H7w90iARu5D7OHFN0ONBCjaZi2YeelhImIgbb0TsBhh5gWzP9W6Cb7BF6LZtK7wc2eW-Gcxs"/>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline text-lg text-white">Strata Sneaker 02</h3>
+<p class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Footwear</p>
+</div>
+<p class="font-headline text-lg">$340</p>
+</div>
+</div>
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] bg-surface-container-low overflow-hidden mb-6">
+<img alt="Asian model with Axis Backpack in a minimal architectural setting" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5gTavff2qh0RWYond0IXuE0aMerr730Q2LnjnRZ75bB_4h2XgTcEGIweLUiRKlZF0Rsb1ZbKPmNcoM4ZXRJp2HscUZ5Oc-HflUiXJ3Ce3dAj2I9emC8GTPpxCWFPQ78TUX5-B1cA4v68sJLCaUWP76Yz9fWG45hrAXDGBWzD5UlqsyD8N3Or5oBnajlCrcXeI0nmvwB7P1zOLTgY5mctqLMTX0lgJPg5V2UUx3W_OAyu7y0ncjk-frEyW4p8tT8rK1h9P2H5AjGI"/>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline text-lg text-white">Axis Backpack</h3>
+<p class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Accessories</p>
+</div>
+<p class="font-headline text-lg">$450</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer Shell -->
+<footer class="bg-neutral-950 w-full rounded-none pt-24 pb-12">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 px-12 max-w-screen-2xl mx-auto">
+<div class="md:col-span-2">
+<div class="text-3xl font-light tracking-[0.4em] font-['Newsreader'] text-white mb-8">NOXXE</div>
+<p class="font-['Inter'] text-[10px] uppercase tracking-[0.15em] text-neutral-600 max-w-xs leading-relaxed">
+                    © 2024 NOXXE. ARCHITECTURAL MONOLITH.
+                </p>
+</div>
+<div class="flex flex-col gap-4">
+<span class="font-['Inter'] text-[10px] uppercase tracking-[0.15em] text-white font-bold mb-4">The Collection</span>
+<a class="text-neutral-600 hover:text-white transition-colors duration-300 font-['Inter'] text-[10px] uppercase tracking-[0.15em] hover:tracking-[0.2em] transition-all duration-500" href="#">The Inner Circle</a>
+<a class="text-neutral-600 hover:text-white transition-colors duration-300 font-['Inter'] text-[10px] uppercase tracking-[0.15em] hover:tracking-[0.2em] transition-all duration-500" href="#">Instagram</a>
+<a class="text-neutral-600 hover:text-white transition-colors duration-300 font-['Inter'] text-[10px] uppercase tracking-[0.15em] hover:tracking-[0.2em] transition-all duration-500" href="#">Pinterest</a>
+</div>
+<div class="flex flex-col gap-4">
+<span class="font-['Inter'] text-[10px] uppercase tracking-[0.15em] text-white font-bold mb-4">Support</span>
+<a class="text-neutral-600 hover:text-white transition-colors duration-300 font-['Inter'] text-[10px] uppercase tracking-[0.15em] hover:tracking-[0.2em] transition-all duration-500" href="#">Terms of Service</a>
+<a class="text-neutral-600 hover:text-white transition-colors duration-300 font-['Inter'] text-[10px] uppercase tracking-[0.15em] hover:tracking-[0.2em] transition-all duration-500" href="#">Privacy</a>
+</div>
+</div>
+</footer>
+</body></html>

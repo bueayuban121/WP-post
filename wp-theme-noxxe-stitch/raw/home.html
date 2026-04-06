@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Newsreader:ital,opsz,wght@0,6..72,200;0,6..72,300;0,6..72,400;1,6..72,200&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#1a1c1c",
+              "surface-container-high": "#2a2a2a",
+              "error": "#ffb4ab",
+              "tertiary-fixed": "#5f5e5e",
+              "on-primary-fixed-variant": "#e2e2e2",
+              "primary-fixed-dim": "#454747",
+              "surface-container-low": "#1b1b1b",
+              "on-secondary": "#1a1c1c",
+              "tertiary-container": "#929090",
+              "on-surface": "#e2e2e2",
+              "surface-container-highest": "#353535",
+              "surface-tint": "#c6c6c7",
+              "on-primary-container": "#000000",
+              "surface-bright": "#393939",
+              "inverse-surface": "#e2e2e2",
+              "on-primary-fixed": "#ffffff",
+              "on-background": "#e2e2e2",
+              "surface-variant": "#353535",
+              "secondary-fixed-dim": "#ababab",
+              "on-secondary-fixed-variant": "#3a3c3c",
+              "tertiary": "#e4e2e1",
+              "on-surface-variant": "#c6c6c6",
+              "primary": "#ffffff",
+              "on-secondary-container": "#e2e2e2",
+              "outline-variant": "#474747",
+              "tertiary-fixed-dim": "#474747",
+              "on-tertiary-fixed-variant": "#e4e2e1",
+              "on-secondary-fixed": "#1a1c1c",
+              "secondary-fixed": "#c6c6c6",
+              "secondary-container": "#454747",
+              "secondary": "#c6c6c6",
+              "on-tertiary": "#1b1c1c",
+              "on-error": "#690005",
+              "outline": "#919191",
+              "on-tertiary-container": "#000000",
+              "surface-dim": "#131313",
+              "error-container": "#93000a",
+              "surface-container-lowest": "#0e0e0e",
+              "primary-container": "#d4d4d4",
+              "on-error-container": "#ffdad6",
+              "inverse-primary": "#5d5f5f",
+              "inverse-on-surface": "#303030",
+              "surface": "#131313",
+              "primary-fixed": "#5d5f5f",
+              "on-tertiary-fixed": "#ffffff",
+              "background": "#131313",
+              "surface-container": "#1f1f1f"
+            },
+            fontFamily: {
+              "headline": ["Newsreader"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0rem", "lg": "0rem", "xl": "0rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .text-shadow-hero {
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary">
+<!-- TopNavBar Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 rounded-none bg-neutral-950/80 backdrop-blur-2xl flex justify-between items-center px-6 md:px-12 py-6 md:py-8">
+<div class="flex items-center gap-12">
+<a class="text-2xl font-light tracking-[0.3em] font-['Newsreader'] text-white" href="/">NOXXE</a>
+<div class="hidden md:flex gap-8">
+<a class="text-white border-b border-white/30 pb-1 font-medium font-['Inter'] text-xs uppercase tracking-widest" href="#">Shop</a>
+<a class="text-neutral-500 hover:text-white transition-colors duration-500 font-['Inter'] text-xs uppercase tracking-widest" href="#">Lookbook</a>
+<a class="text-neutral-500 hover:text-white transition-colors duration-500 font-['Inter'] text-xs uppercase tracking-widest" href="#">About</a>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<button class="text-neutral-50 hover:opacity-60 transition-all duration-300 scale-100 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+<button class="text-neutral-50 hover:opacity-60 transition-all duration-300 scale-100 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="shopping_bag">shopping_bag</span>
+</button>
+</div>
+</nav>
+<main>
+<!-- Section 1: Hero -->
+<section class="relative h-screen w-full overflow-hidden">
+<div class="absolute inset-0 bg-neutral-950/40 z-10"></div>
+<img alt="Noxxe Warehouse Atmosphere" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/ADBb0ujywup18Uqnv3Oo9NSjrd7KxInH79eCggFTiRoZEtg0nMtCM-5of-3Pril0AfAhp3g0wmVpq0-zGey9tWAsN_dmCpwJEodCYvW8cxXR_QzEpVk2LJUDhZFgQLXi-lTem6FSzmZUMOAlUjBeR83fEYPNL4seXq3hDnOjqb19KgcVpviUB35yKWEHCGm_6uzk9mjlZuw0jQAoD4SItdXri-o360jd-63PxdF4xUw5xDFZw0_gyA44JgLsgGIcqPgHrMn0zTLFEkmTMw"/>
+<div class="relative z-20 h-full flex flex-col justify-end px-6 md:px-12 pb-24 max-w-screen-2xl mx-auto">
+<div class="max-w-4xl">
+<h1 class="font-headline text-6xl md:text-8xl lg:text-9xl text-white leading-none tracking-tight mb-8">The Art of Departure.</h1>
+<p class="font-body text-xl md:text-2xl text-neutral-200 font-light mb-12 tracking-wide max-w-2xl">Refined transit uniforms engineered for the modern nomad navigating the street-side terminal.</p>
+<div class="flex flex-col md:flex-row gap-6">
+<button class="bg-primary text-on-primary px-16 py-6 font-medium tracking-widest text-xs uppercase hover:bg-primary-container transition-colors duration-500">Shop Transit Kit</button>
+<button class="bg-transparent border border-white/20 text-white px-16 py-6 font-medium tracking-widest text-xs uppercase hover:bg-white hover:text-on-primary transition-all duration-500 backdrop-blur-sm">Explore Journey</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Brand Positioning -->
+<section class="py-48 px-6 md:px-12 bg-surface">
+<div class="max-w-screen-xl mx-auto border-l border-outline-variant/20 pl-8 md:pl-24">
+<p class="font-headline italic text-3xl md:text-5xl lg:text-6xl text-on-surface leading-[1.1] font-light">
+                “Transit is not a wait; it is a state of being. Street-side functionality meeting terminal silence.”
+            </p>
+</div>
+</section>
+<!-- Section 3: Why NOXXE - Travel Focus -->
+<section class="py-48 px-6 md:px-12 bg-surface-container-low">
+<div class="max-w-screen-2xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-24">
+<div class="space-y-6">
+<h3 class="font-headline text-4xl font-light">Terminal Street</h3>
+<p class="font-body text-[10px] text-on-surface-variant leading-relaxed tracking-[0.2em] opacity-80 uppercase">Acoustic-soft fabrics designed for the high-frequency noise of the airport and the street.</p>
+</div>
+<div class="space-y-6">
+<h3 class="font-headline text-4xl font-light">Modular Transit</h3>
+<p class="font-body text-[10px] text-on-surface-variant leading-relaxed tracking-[0.2em] opacity-80 uppercase">Street-ready silhouettes that transition seamlessly from the warehouse to the long-haul cabin.</p>
+</div>
+<div class="space-y-6">
+<h3 class="font-headline text-4xl font-light">Structural Ease</h3>
+<p class="font-body text-[10px] text-on-surface-variant leading-relaxed tracking-[0.2em] opacity-80 uppercase">Architectural tailoring that allows for 360-degree movement in high-density environments.</p>
+</div>
+</div>
+</section>
+<!-- Section 4: Featured Products -->
+<section class="py-48 px-6 md:px-12 bg-surface">
+<div class="max-w-screen-2xl mx-auto">
+<div class="flex justify-between items-end mb-32">
+<h2 class="font-headline text-5xl md:text-7xl tracking-tighter">Transit Core</h2>
+<a class="font-label text-[10px] tracking-[0.3em] uppercase border-b border-primary/30 pb-2 mb-2" href="#">Full Inventory</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-16 md:gap-12">
+<!-- Item 1 -->
+<div class="md:col-span-7 group cursor-pointer">
+<div class="aspect-[4/5] overflow-hidden bg-surface-container mb-8">
+<img alt="Transit Hoodie Duo" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida/ADBb0uhYp6-eVGjuxmgr-fJryYy5mHUNf2J4kEty4pdaBDnZTcal0wR_R8-e3HWIBWEG0fEKR7yYuEH0Lt8vjelauagUUtT11tuCoxZb2koLnTE45Ri29oedpRSqIxRWjORDE3BLfln3gzCrp_B9-Pk7dlaZd5WiLLIbbTLByceAW_YAJ0sYRpsPYpkTLY0g7D3GJhM06FRNkU1oQ_hugv-19GQeXe8hKvXKFQ00zGnL4sdtyvYsaKNv0MN_9SWS3_w9syav0ju9Y-PU"/>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-headline text-2xl mb-2">Cabin Zip Hoodie 01</h4>
+<p class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Heavyweight Knit / Moonrock Grey</p>
+</div>
+<span class="font-headline text-2xl">$420</span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="md:col-span-4 md:col-start-9 md:mt-48 group cursor-pointer">
+<div class="aspect-[2/3] overflow-hidden bg-surface-container mb-8">
+<img alt="Terminal Street Suit" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida/ADBb0ujPVOPoMuMAi-NM2FLiMOFePa2ytZmQWX_GtUr9egBaGwE5yk3P3o10y9Xi5K5NvczmtXd4CHfwwuFX2T9CDalB8-Sq5HOwg2hjU6aghDbM7D4qcLsDZmzT6MuqC7gvWCAOfCf7hFOON-AGwd6RsKjWnPNbyOKwUVXL2BehyNba3pvDN_j3NDhVDuYPy2EkCswYbBzNNzunFFUjP0gPF4JdLt2u_g9tIevNy1_Rw1I8rrTLTiH3NhKTlfcaw31OFNnDqRg5a6Qe"/>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-headline text-2xl mb-2">Transit Shell 02</h4>
+<p class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Core Fleece / Bone</p>
+</div>
+<span class="font-headline text-2xl">$380</span>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="md:col-span-5 md:col-start-2 group cursor-pointer">
+<div class="aspect-[1/1] overflow-hidden bg-surface-container mb-8">
+<img alt="Warehouse Studio Shots" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida/ADBb0ujywup18Uqnv3Oo9NSjrd7KxInH79eCggFTiRoZEtg0nMtCM-5of-3Pril0AfAhp3g0wmVpq0-zGey9tWAsN_dmCpwJEodCYvW8cxXR_QzEpVk2LJUDhZFgQLXi-lTem6FSzmZUMOAlUjBeR83fEYPNL4seXq3hDnOjqb19KgcVpviUB35yKWEHCGm_6uzk9mjlZuw0jQAoD4SItdXri-o360jd-63PxdF4xUw5xDFZw0_gyA44JgLsgGIcqPgHrMn0zTLFEkmTMw"/>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-headline text-2xl mb-2">Terminal Pant 01</h4>
+<p class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Structured Twill / Carbon</p>
+</div>
+<span class="font-headline text-2xl">$280</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 5: Lookbook Preview - Cinematic Travel Imagery -->
+<section class="relative h-screen w-full group overflow-hidden">
+<img alt="Transit vision board" class="w-full h-full object-cover transition-transform duration-[4s] group-hover:scale-105" src="https://lh3.googleusercontent.com/aida/ADBb0ugK1tsagmLFKiBtq92y4Ucli8kmN_Cd6KTDP3B4Pg-ZL2XLN7WjLrb8TF1_b87IAagSmqQlYYm-Sclxdl-CRNfeMZJj-xcmHhQNcT9QUR1rF1x3Q-BxOgMjx98U5L2JAlNArPJ0F5dhg05KygrKcVvAHh5iIuCVfuwidSeehACla_M2By0Nyx75waQVxWmPb8MqeTPfmZhb_rHCOJUNKjNEFQzI-pfy_5xm6uyoyA88QMQrx-QP4GW7iVLRsYcYYMBhzkXY_cczjA"/>
+<div class="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-1000"></div>
+<div class="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+<span class="font-label text-[10px] tracking-[0.5em] text-white uppercase mb-8">Spring / Summer 2024</span>
+<h2 class="font-headline text-6xl md:text-9xl text-white tracking-tighter mb-12">Transit Vision</h2>
+<a class="font-label text-xs uppercase tracking-[0.4em] text-white border-b border-white/40 pb-3 hover:border-white transition-all duration-500" href="#">View High-End Journal</a>
+</div>
+</section>
+<!-- Section 6: Manifesto -->
+<section class="py-72 px-6 md:px-12 bg-surface text-center">
+<div class="max-w-5xl mx-auto space-y-16">
+<span class="font-label text-[10px] tracking-[0.5em] text-on-surface-variant uppercase">The Philosophy</span>
+<h2 class="font-headline text-5xl md:text-7xl lg:text-8xl font-light leading-[1] tracking-tight">The street is loud enough. Travel in silence. Find movement in stillness.</h2>
+<div class="w-px h-32 bg-outline-variant/30 mx-auto"></div>
+</div>
+</section>
+<!-- Section 7: Flagship / Terminal Atmosphere -->
+<section class="px-6 md:px-12 mb-64">
+<div class="max-w-screen-2xl mx-auto relative overflow-hidden h-[700px]">
+<img alt="Noxxe Warehouse Exterior" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/ADBb0ujywup18Uqnv3Oo9NSjrd7KxInH79eCggFTiRoZEtg0nMtCM-5of-3Pril0AfAhp3g0wmVpq0-zGey9tWAsN_dmCpwJEodCYvW8cxXR_QzEpVk2LJUDhZFgQLXi-lTem6FSzmZUMOAlUjBeR83fEYPNL4seXq3hDnOjqb19KgcVpviUB35yKWEHCGm_6uzk9mjlZuw0jQAoD4SItdXri-o360jd-63PxdF4xUw5xDFZw0_gyA44JgLsgGIcqPgHrMn0zTLFEkmTMw"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+<div class="absolute bottom-24 left-12 md:left-24 max-w-lg">
+<div class="bg-surface/90 backdrop-blur-3xl p-12">
+<h4 class="font-headline text-3xl mb-6">The Terminal Studio</h4>
+<p class="font-body text-sm text-on-surface-variant mb-10 leading-relaxed uppercase tracking-wider">A physical checkpoint for the modern nomad. Experience the collection in a space designed for transit.</p>
+<a class="font-label text-[10px] tracking-widest uppercase underline underline-offset-8 decoration-1" href="#">Schedule Arrival</a>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 8: Inner Circle -->
+<section class="py-64 bg-surface-container-low px-6 md:px-12">
+<div class="max-w-screen-md mx-auto text-center">
+<h3 class="font-headline text-5xl mb-6">The Departure Gate</h3>
+<p class="font-body text-sm text-on-surface-variant mb-16 tracking-[0.1em] uppercase">Priority notifications for limited street drops and travel studies.</p>
+<form class="relative">
+<input class="w-full bg-transparent border-none py-8 px-0 text-center text-sm tracking-[0.3em] focus:ring-0 placeholder:text-neutral-700 transition-all border-b border-outline-variant/30 focus:border-primary" placeholder="EMAIL ADDRESS" type="email"/>
+<button class="mt-12 font-label text-[10px] tracking-[0.4em] uppercase text-on-surface hover:opacity-50 transition-opacity" type="submit">Join the Manifest</button>
+</form>
+</div>
+</section>
+</main>
+<!-- Footer Navigation Shell -->
+<footer class="bg-neutral-950 w-full rounded-none pt-32 pb-16">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-24 px-12 max-w-screen-2xl mx-auto">
+<div class="md:col-span-2">
+<h2 class="text-3xl font-light tracking-[0.5em] font-['Newsreader'] text-white mb-10">NOXXE</h2>
+<p class="text-neutral-600 font-['Inter'] text-[10px] uppercase tracking-[0.2em] max-w-xs leading-[2]">
+                Engineered for the long haul. Designed in transit. Every stitch is a response to the architecture of travel.
+            </p>
+</div>
+<div>
+<h5 class="text-white font-bold font-['Inter'] text-[10px] uppercase tracking-[0.3em] mb-8">Exploration</h5>
+<ul class="space-y-6">
+<li><a class="text-neutral-600 hover:text-white transition-all duration-500 font-['Inter'] text-[10px] uppercase tracking-[0.15em] hover:tracking-[0.25em]" href="#">Manifest</a></li>
+<li><a class="text-neutral-600 hover:text-white transition-all duration-500 font-['Inter'] text-[10px] uppercase tracking-[0.15em] hover:tracking-[0.25em]" href="#">Instagram</a></li>
+<li><a class="text-neutral-600 hover:text-white transition-all duration-500 font-['Inter'] text-[10px] uppercase tracking-[0.15em] hover:tracking-[0.25em]" href="#">Spotify Transit</a></li>
+</ul>
+</div>
+<div>
+<h5 class="text-white font-bold font-['Inter'] text-[10px] uppercase tracking-[0.3em] mb-8">Protocol</h5>
+<ul class="space-y-6">
+<li><a class="text-neutral-600 hover:text-white transition-all duration-500 font-['Inter'] text-[10px] uppercase tracking-[0.15em] hover:tracking-[0.25em]" href="#">Service Terms</a></li>
+<li><a class="text-neutral-600 hover:text-white transition-all duration-500 font-['Inter'] text-[10px] uppercase tracking-[0.15em] hover:tracking-[0.25em]" href="#">Privacy Policy</a></li>
+</ul>
+</div>
+</div>
+<div class="mt-32 px-12 max-w-screen-2xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 border-t border-white/5 pt-16">
+<span class="text-neutral-600 font-['Inter'] text-[10px] uppercase tracking-[0.2em]">© 2024 NOXXE. BUILT FOR DEPARTURE.</span>
+<div class="flex gap-12">
+<span class="text-neutral-800 font-['Inter'] text-[10px] uppercase tracking-[0.25em]">TERMINAL 01</span>
+<span class="text-neutral-800 font-['Inter'] text-[10px] uppercase tracking-[0.25em]">SILENT TRANSIT</span>
+</div>
+</div>
+</footer>
+</body></html>
