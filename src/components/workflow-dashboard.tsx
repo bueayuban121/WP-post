@@ -13,6 +13,13 @@ import type {
   WorkflowJob
 } from "@/types/workflow";
 import { ConsoleNav } from "@/components/console-nav";
+import { SettingsPanel, tonePresets } from "@/components/workspace/SettingsPanel";
+import { ProjectCreateForm } from "@/components/workspace/ProjectCreateForm";
+import { KeywordExpansionTab } from "@/components/workspace/KeywordExpansionTab";
+import { ResearchTab } from "@/components/workspace/ResearchTab";
+import { QueueTab } from "@/components/workspace/QueueTab";
+import { ArticleStudioTab } from "@/components/workspace/ArticleStudioTab";
+import { ArticleImagesTab } from "@/components/workspace/ArticleImagesTab";
 import { buildLongResearchSummary } from "@/lib/research-copy";
 import styles from "./workflow-dashboard.module.css";
 
@@ -60,16 +67,6 @@ const automationLabels: Record<WorkflowAutomationEvent["status"], string> = {
   failed: "Failed"
 };
 
-const tonePresets = [
-  "Calm expert",
-  "Premium editorial",
-  "Friendly educator",
-  "Confident conversion",
-  "Luxury minimal",
-  "Technical authority",
-  "Warm lifestyle",
-  "Bold campaign"
-] as const;
 
 const editorialPatternPreviews: EditorialPatternPreview[] = [
   {
@@ -1218,94 +1215,29 @@ export function WorkflowDashboard({
         </section>
 
         <section id="projects-section" className={styles.workflowFrame}>
-          <section className={styles.panel}>
-            <div className={styles.sectionHead}>
-              <div>
-                <span className={styles.label}>Step 1</span>
-                <h2>Create Project</h2>
-              </div>
-              <span className={styles.statusChip}>{statusMessage}</span>
-            </div>
+          <ProjectCreateForm
+            createProject={createProject as any}
+            currentUser={currentUser}
+            selectedClientId={selectedClientId}
+            setSelectedClientId={setSelectedClientId}
+            availableClientAccounts={availableClientAccounts}
+            selectedClientAccount={selectedClientAccount}
+            seedKeyword={seedKeyword}
+            setSeedKeyword={setSeedKeyword}
+            isPending={isPending}
+            statusMessage={statusMessage}
+          />
 
-            <form className={styles.createForm} onSubmit={createProject}>
-              <label>
-                Client account
-                <small>ชื่อโปรเจกต์หรือเว็บไซต์ปลายทาง</small>
-                {currentUser.role === "client" ? (
-                  <input disabled value={selectedClientAccount?.name ?? ""} />
-                ) : (
-                  <select value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)}>
-                    {availableClientAccounts.length > 0 ? (
-                      availableClientAccounts.map((account) => (
-                        <option key={account.id} value={account.id}>
-                          {account.name}
-                        </option>
-                      ))
-                    ) : (
-                      <option value="">No client accounts found</option>
-                    )}
-                  </select>
-                )}
-              </label>
-              <label>
-                Seed keyword
-                <small>คีย์เวิร์ดตั้งต้นที่ใช้แตกคำ</small>
-                <input value={seedKeyword} onChange={(event) => setSeedKeyword(event.target.value)} />
-              </label>
-              <button className={styles.primaryButton} disabled={isPending} type="submit">
-                {isPending ? "Creating..." : "Create Project"}
-              </button>
-            </form>
-          </section>
-
-          <section id="settings-section" className={styles.panel}>
-            <div className={styles.sectionHead}>
-              <div>
-                <span className={styles.label}>Core Settings</span>
-                <h2>Content Defaults</h2>
-              </div>
-            </div>
-            <div className={styles.settingsForm}>
-              <label>
-                Tone
-                <small>โทนหลักของบทความ</small>
-                <select
-                  value={tonePresets.includes(tone as (typeof tonePresets)[number]) ? tone : "__custom__"}
-                  onChange={(event) => setTone(event.target.value === "__custom__" ? "" : event.target.value)}
-                >
-                  {tonePresets.map((preset) => (
-                    <option key={preset} value={preset}>
-                      {preset}
-                    </option>
-                  ))}
-                  <option value="__custom__">Custom tone</option>
-                </select>
-                {!tonePresets.includes(tone as (typeof tonePresets)[number]) ? (
-                  <input placeholder="Define a custom tone for this client" value={tone} onChange={(event) => setTone(event.target.value)} />
-                ) : null}
-              </label>
-              <label>
-                Restricted words
-                <small>คำต้องห้ามหรือคำที่ไม่ต้องการให้ใช้</small>
-                <input value={bannedWords} onChange={(event) => setBannedWords(event.target.value)} />
-              </label>
-              <label>
-                Target length
-                <small>จำนวนคำเป้าหมายของบทความ</small>
-                <input value={articleLength} onChange={(event) => setArticleLength(event.target.value)} />
-              </label>
-              <label>
-                Image count
-                <small>จำนวนรูปทั้งหมดในบทความ รวม featured image ด้วย</small>
-                <select value={imageCount} onChange={(event) => setImageCount(event.target.value)}>
-                  <option value="1">1 image</option>
-                  <option value="2">2 images</option>
-                  <option value="3">3 images</option>
-                  <option value="4">4 images</option>
-                </select>
-              </label>
-            </div>
-          </section>
+          <SettingsPanel
+            tone={tone}
+            setTone={setTone}
+            bannedWords={bannedWords}
+            setBannedWords={setBannedWords}
+            articleLength={articleLength}
+            setArticleLength={setArticleLength}
+            imageCount={imageCount}
+            setImageCount={setImageCount}
+          />
         </section>
 
         {loadState === "loading" ? (
@@ -1435,500 +1367,96 @@ export function WorkflowDashboard({
               </section>
 
               {tab === "expand" ? (
-                <section className={`${styles.panel} ${styles.motionScene}`}>
-                  <div className={styles.sectionHead}>
-                    <div>
-                      <span className={styles.label}>Step 2</span>
-                      <h2>{inKeywordVariantPhase ? "Keyword Expansion" : "Article Topic Expansion"}</h2>
-                    </div>
-                    <span className={styles.statusChip}>
-                      {job.ideas.length} {inKeywordVariantPhase ? "keyword variants" : "article topics"}
-                    </span>
-                  </div>
-                  <p className={styles.sectionText}>
-                    {inKeywordVariantPhase
-                      ? "ระบบจะใช้ DataForSEO แตก seed keyword ออกมาเป็นคำใกล้เคียงตรงๆ ก่อน ให้ลูกค้าเลือก keyword ที่ใช่ที่สุด แล้วระบบค่อยคิดหัวข้อบทความจากคำนั้นต่อ"
-                      : "ตอนนี้ keyword หลักถูกเลือกแล้ว ขั้นนี้คือให้ AI คิดต่อเป็นหัวข้อบทความจาก keyword ที่เลือก เพื่อให้ลูกค้าเลือกหัวข้อก่อนเริ่ม research"}
-                  </p>
-                  <div className={styles.sectionLead}>
-                    <div className={styles.quickStats}>
-                      <div>
-                        <span className={styles.label}>{inKeywordVariantPhase ? "Seed" : "Selected keyword"}</span>
-                        <strong>{job.seedKeyword}</strong>
-                      </div>
-                      <div>
-                        <span className={styles.label}>{inKeywordVariantPhase ? "Next step" : "Selected topic"}</span>
-                        <strong>
-                          {inKeywordVariantPhase ? "Choose 1 keyword" : activeIdea?.title ?? "Not selected"}
-                        </strong>
-                      </div>
-                      <div>
-                        <span className={styles.label}>{inKeywordVariantPhase ? "Provider" : "Intent mix"}</span>
-                        <strong>
-                          {inKeywordVariantPhase
-                            ? "DataForSEO"
-                            : job.ideas
-                                .map((idea) => idea.searchIntent)
-                                .filter((value, index, array) => array.indexOf(value) === index)
-                                .join(" · ")}
-                        </strong>
-                      </div>
-                    </div>
-                  </div>
-                  {!inKeywordVariantPhase && activeIdea ? (
-                    <section className={styles.selectedIdeaEditor}>
-                      <div className={styles.selectedIdeaHead}>
-                        <div>
-                          <span className={styles.label}>Selected Topic</span>
-                          <h3>Refine before research</h3>
-                        </div>
-                        <button
-                          className={styles.secondaryButton}
-                          disabled={Boolean(pendingAction)}
-                          onClick={() => void saveSelectedKeyword()}
-                          type="button"
-                        >
-                          {pendingAction === "save-keyword" ? "Saving..." : "Save keyword"}
-                        </button>
-                      </div>
-                      <div className={styles.selectedIdeaFields}>
-                        <label className={styles.editorField}>
-                          <span>Topic title</span>
-                          <small>แก้ wording ของหัวข้อบทความที่เลือกก่อนนำไปรีเสิร์ช</small>
-                          <input value={selectedIdeaTitle} onChange={(event) => setSelectedIdeaTitle(event.target.value)} />
-                        </label>
-                        <label className={styles.editorField}>
-                          <span>Angle</span>
-                          <small>ระบุมุมหรือประเด็นที่อยากให้ research เน้น</small>
-                          <textarea rows={3} value={selectedIdeaAngle} onChange={(event) => setSelectedIdeaAngle(event.target.value)} />
-                        </label>
-                      </div>
-                    </section>
-                  ) : null}
-                  <div className={styles.keywordGrid}>
-                    {job.ideas.map((idea) => (
-                      <article
-                        key={idea.id}
-                        className={`${styles.keywordCard} ${
-                          !inKeywordVariantPhase && job.selectedIdeaId === idea.id ? styles.keywordCardActive : ""
-                        }`}
-                      >
-                        <strong>{idea.title}</strong>
-                        {!inKeywordVariantPhase ? <p>{idea.angle}</p> : null}
-                        <button
-                          className={styles.primaryButton}
-                          disabled={Boolean(pendingAction)}
-                          onClick={() => void selectKeyword(idea)}
-                          type="button"
-                        >
-                          {pendingAction === "select-keyword" && (!inKeywordVariantPhase && job.selectedIdeaId !== idea.id)
-                            ? "Selecting..."
-                            : !inKeywordVariantPhase && job.selectedIdeaId === idea.id
-                              ? "Selected"
-                              : inKeywordVariantPhase
-                                ? "Use this keyword"
-                                : "Select topic"}
-                        </button>
-                      </article>
-                    ))}
-                  </div>
-                </section>
+                <KeywordExpansionTab
+                  inKeywordVariantPhase={inKeywordVariantPhase}
+                  job={job}
+                  activeIdea={activeIdea ?? null}
+                  pendingAction={pendingAction}
+                  selectKeyword={selectKeyword}
+                  saveSelectedKeyword={saveSelectedKeyword}
+                  selectedIdeaTitle={selectedIdeaTitle}
+                  setSelectedIdeaTitle={setSelectedIdeaTitle}
+                  selectedIdeaAngle={selectedIdeaAngle}
+                  setSelectedIdeaAngle={setSelectedIdeaAngle}
+                />
               ) : null}
 
               {tab === "research" ? (
-                <section className={`${styles.panel} ${styles.motionScene}`}>
-                  <div className={styles.sectionHead}>
-                    <div>
-                      <span className={styles.label}>Step 3</span>
-                      <h2>Research Summary</h2>
-                    </div>
-                    <div className={styles.researchActions}>
-                      <button
-                        className={styles.secondaryButton}
-                        disabled={!hasSelectedIdea || Boolean(pendingAction)}
-                        onClick={() => void runResearch()}
-                        type="button"
-                      >
-                        {pendingAction === "run-research" ? "Running Research..." : "Run Research"}
-                      </button>
-                      <button
-                        className={styles.primaryButton}
-                        disabled={!hasResearch || Boolean(pendingAction)}
-                        onClick={() => void createArticle()}
-                        type="button"
-                      >
-                        {pendingAction === "create-article" ? "Creating Article..." : "Create Article"}
-                      </button>
-                    </div>
-                  </div>
-                  <div className={styles.exportRow}>
-                    <button className={styles.ghostButton} onClick={() => downloadResearchReport("doc")} type="button">
-                      Research DOC
-                    </button>
-                    <button className={styles.ghostButton} onClick={() => downloadResearchReport("html")} type="button">
-                      Research HTML
-                    </button>
-                  </div>
-                  <div className={styles.researchLayout}>
-                    <article className={styles.researchMain}>
-                      <h3>{activeIdea?.title ?? "Select an article topic first"}</h3>
-                      <div className={styles.researchIntro}>
-                        <span className={styles.focusPill}>Keyword: {selectedKeywordLabel || "Waiting for keyword"}</span>
-                        <span className={styles.focusPill}>Sources: {job.research.sources.length}</span>
-                        <span className={styles.focusPill}>Gaps: {job.research.gaps.length}</span>
-                        <span className={styles.focusPill}>Audience: {job.research.audience || "Waiting for synthesis"}</span>
-                      </div>
-                      <p className={styles.sectionText}>{researchSummary || "ยังไม่มีข้อมูลรีเสิร์ชในงานนี้"}</p>
-                    </article>
-                    <aside className={styles.researchSide}>
-                      <div className={styles.sourcePanel}>
-                        <span className={styles.label}>Sources</span>
-                        {job.research.sources.map((source) => (
-                          <div key={`${source.region}-${source.title}`} className={styles.sourceItem}>
-                            <strong>{source.title}</strong>
-                            <p>{source.source}</p>
-                            <small>{source.insight}</small>
-                          </div>
-                        ))}
-                      </div>
-                      <div className={styles.sourcePanel}>
-                        <span className={styles.label}>Research gaps</span>
-                        <ul className={styles.simpleList}>
-                          {job.research.gaps.map((gap) => (
-                            <li key={gap}>{gap}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </aside>
-                  </div>
-                </section>
+                <ResearchTab
+                  job={job}
+                  activeIdea={activeIdea ?? null}
+                  hasSelectedIdea={hasSelectedIdea}
+                  pendingAction={pendingAction}
+                  runResearch={runResearch as any}
+                  hasResearch={hasResearch}
+                  createArticle={createArticle as any}
+                  downloadResearchReport={downloadResearchReport}
+                  selectedKeywordLabel={selectedKeywordLabel}
+                  researchSummary={researchSummary}
+                />
               ) : null}
 
               {tab === "queue" ? (
-                <section className={`${styles.panel} ${styles.motionScene}`}>
-                  <div className={styles.sectionHead}>
-                    <div>
-                      <span className={styles.label}>Step 4</span>
-                      <h2>Queue & Logs</h2>
-                    </div>
-                    <span className={styles.statusChip}>{queueCount} active jobs</span>
-                  </div>
-
-                  <div className={styles.queueTable}>
-                    <div className={styles.queueHead}>
-                      <span>Action</span>
-                      <span>Status</span>
-                      <span>Source</span>
-                      <span>Updated</span>
-                    </div>
-                    {queueEvents.length > 0 ? (
-                      queueEvents.map((event) => (
-                        <div key={event.id} className={styles.queueRow}>
-                          <strong>{event.type}</strong>
-                          <span>{automationLabels[event.status]}</span>
-                          <span>{event.source.toUpperCase()}</span>
-                          <span>{new Date(event.updatedAt).toLocaleString("th-TH")}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className={styles.eventEmpty}>ยังไม่มี queue event ในโปรเจกต์นี้</div>
-                    )}
-                  </div>
-
-                  <div className={styles.eventList}>
-                    {queueEvents.slice(0, 4).map((event) => (
-                      <article key={`${event.id}-log`} className={styles.eventItem}>
-                        <div className={styles.eventTop}>
-                          <strong>{event.type}</strong>
-                          <span className={styles.eventStatus}>{automationLabels[event.status]}</span>
-                        </div>
-                        <p>{event.message || "ระบบยังไม่มีข้อความอธิบายเพิ่มเติมสำหรับงานนี้"}</p>
-                      </article>
-                    ))}
-                  </div>
-                  <div className={styles.exportRow}>
-                    <button className={styles.ghostButton} onClick={() => downloadDeliverable("markdown")} type="button">
-                      Export MD
-                    </button>
-                    <button className={styles.ghostButton} onClick={() => downloadDeliverable("json")} type="button">
-                      Export JSON
-                    </button>
-                  </div>
-                </section>
+                <QueueTab
+                  queueCount={queueCount}
+                  queueEvents={queueEvents}
+                  automationLabels={automationLabels}
+                  downloadDeliverable={downloadDeliverable}
+                />
               ) : null}
 
               {tab === "article" ? (
-                <section className={`${styles.articleWorkspace} ${styles.motionScene}`}>
-                  <section className={`${styles.panel} ${styles.editorPanel}`}>
-                    <div className={styles.sectionHead}>
-                      <div>
-                        <span className={styles.label}>Step 4</span>
-                        <h2>Article Studio</h2>
-                        {editorialPattern ? <p>{editorialPattern.description}</p> : null}
-                      </div>
-                      <button
-                        className={styles.primaryButton}
-                        disabled={Boolean(pendingAction)}
-                        onClick={() => void saveBrief()}
-                        type="button"
-                      >
-                        {pendingAction === "save-brief" ? "Saving Brief..." : "Save Brief"}
-                      </button>
-                    </div>
-                    <div className={styles.editorFields}>
-                      <label className={styles.editorField}>
-                        <span>Title</span>
-                        <small>หัวข้อหลักของบทความ</small>
-                        <input value={briefTitle} onChange={(event) => setBriefTitle(event.target.value)} />
-                      </label>
-                      <label className={styles.editorField}>
-                        <span>Meta Title</span>
-                        <small>ใช้ใน SEO title</small>
-                        <input value={briefMetaTitle} onChange={(event) => setBriefMetaTitle(event.target.value)} />
-                      </label>
-                      <label className={styles.editorField}>
-                        <span>Meta Description</span>
-                        <small>ข้อความสรุปสำหรับ search</small>
-                        <textarea rows={4} value={briefMetaDescription} onChange={(event) => setBriefMetaDescription(event.target.value)} />
-                      </label>
-                      <label className={styles.editorField}>
-                        <span>Slug</span>
-                        <small>URL ของโพสต์</small>
-                        <input value={briefSlug} onChange={(event) => setBriefSlug(event.target.value)} />
-                      </label>
-                      <label className={styles.editorField}>
-                        <span>Featured Image URL</span>
-                        <small>ถ้าไม่ใส่จะใช้รูปแรกจาก AI image set</small>
-                        <input value={briefFeaturedImageUrl} onChange={(event) => setBriefFeaturedImageUrl(event.target.value)} />
-                      </label>
-                      <label className={styles.editorField}>
-                        <span>Intro</span>
-                        <small>บทนำของบทความ</small>
-                        <textarea rows={5} value={draftIntro} onChange={(event) => setDraftIntro(event.target.value)} />
-                      </label>
-                      <label className={styles.editorField}>
-                        <span>Conclusion</span>
-                        <small>สรุปท้ายบทความ</small>
-                        <textarea rows={5} value={draftConclusion} onChange={(event) => setDraftConclusion(event.target.value)} />
-                      </label>
-                      <div className={styles.editorGroup}>
-                        <div className={styles.editorGroupHead}>
-                          <strong>Article Sections</strong>
-                          <small>แก้ไขหัวข้อและเนื้อหาแต่ละส่วนได้ก่อน publish</small>
-                        </div>
-                        {draftSections.map((section, index) => (
-                          <div className={styles.editorSection} key={`section-editor-${index + 1}`}>
-                            <div className={styles.editorSectionHead}>
-                              <strong>Section {index + 1}</strong>
-                            </div>
-                            <label className={styles.editorField}>
-                              <span>Heading</span>
-                              <input
-                                value={section.heading}
-                                onChange={(event) => updateDraftSection(index, "heading", event.target.value)}
-                              />
-                            </label>
-                            <label className={styles.editorField}>
-                              <span>Body</span>
-                              <textarea
-                                rows={10}
-                                value={section.body}
-                                onChange={(event) => updateDraftSection(index, "body", event.target.value)}
-                              />
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                      <button
-                        className={styles.secondaryButton}
-                        disabled={Boolean(pendingAction)}
-                        onClick={() => void saveDraft()}
-                        type="button"
-                      >
-                        {pendingAction === "save-draft" ? "Saving Draft..." : "Save Draft"}
-                      </button>
-                      <button
-                        className={styles.secondaryButton}
-                        disabled={Boolean(pendingAction) || !hasResearch}
-                        onClick={() => void regenerateArticleWithAnotherPattern()}
-                        type="button"
-                      >
-                        {pendingAction === "regenerate-pattern"
-                          ? "Regenerating Pattern..."
-                          : "Regenerate With Another Pattern"}
-                      </button>
-                    </div>
-                  </section>
-
-                  <article className={`${styles.articleLayout} ${styles.articlePreview}`}>
-                    <div className={styles.heroImage}>
-                      <Image alt={articleImages[0]?.alt ?? "Featured article image"} height={900} src={featuredImageSrc} unoptimized width={1600} />
-                    </div>
-                    <div className={styles.articleMeta}>
-                      <span>Keyword: {selectedKeywordLabel}</span>
-                      <span>Status: {stageLabels[job.stage]}</span>
-                      <span>Words before image: {articleLength}</span>
-                      <span>Image count: {imageCount}</span>
-                    </div>
-                    <div className={styles.articleBody}>
-                      <h2 className={styles.previewTitle}>{briefTitle || activeIdea?.title || "Untitled article"}</h2>
-                      <p className={styles.previewMeta}>{briefMetaDescription}</p>
-                      {splitParagraphs(draftIntro).map((paragraph) => (
-                        <p key={`intro-${paragraph.slice(0, 36)}`} className={styles.articleIntro}>
-                          {paragraph}
-                        </p>
-                      ))}
-                      {articleSections.map((section, index) => {
-                        const image = articleImages[index + 1];
-                        return (
-                          <section key={`${section.heading}-${index}`} className={styles.articleSection}>
-                            <h3>{section.heading}</h3>
-                            {splitParagraphs(section.body).map((paragraph) => (
-                              <p key={`${section.heading}-${paragraph.slice(0, 36)}`}>{paragraph}</p>
-                            ))}
-                            {image?.src.trim() ? (
-                              <figure className={styles.inlineFigure}>
-                                <div className={styles.inlineImage}>
-                                  <Image alt={image.alt} height={760} src={image.src} unoptimized width={1320} />
-                                </div>
-                                <figcaption>
-                                  <span>{image.caption}</span>
-                                  <small>{image.placement}</small>
-                                </figcaption>
-                              </figure>
-                            ) : null}
-                          </section>
-                        );
-                      })}
-                      {splitParagraphs(draftConclusion).map((paragraph) => (
-                        <p key={`conclusion-${paragraph.slice(0, 36)}`} className={styles.articleConclusion}>
-                          {paragraph}
-                        </p>
-                      ))}
-                    </div>
-                  </article>
-                </section>
+                <ArticleStudioTab
+                  job={job as any}
+                  activeIdea={activeIdea ?? null}
+                  pendingAction={pendingAction}
+                  hasDraft={hasDraft}
+                  hasResearch={hasResearch}
+                  briefTitle={briefTitle}
+                  setBriefTitle={setBriefTitle}
+                  briefMetaTitle={briefMetaTitle}
+                  setBriefMetaTitle={setBriefMetaTitle}
+                  briefMetaDescription={briefMetaDescription}
+                  setBriefMetaDescription={setBriefMetaDescription}
+                  briefSlug={briefSlug}
+                  setBriefSlug={setBriefSlug}
+                  briefFeaturedImageUrl={briefFeaturedImageUrl}
+                  setBriefFeaturedImageUrl={setBriefFeaturedImageUrl}
+                  draftIntro={draftIntro}
+                  setDraftIntro={setDraftIntro}
+                  draftConclusion={draftConclusion}
+                  setDraftConclusion={setDraftConclusion}
+                  draftSections={draftSections}
+                  updateDraftSection={updateDraftSection}
+                  articleSections={articleSections as any}
+                  articleImages={articleImages}
+                  saveDraft={saveDraft as any}
+                  regenerateArticleWithAnotherPattern={regenerateArticleWithAnotherPattern as any}
+                  featuredImageSrc={featuredImageSrc as any}
+                  selectedKeywordLabel={selectedKeywordLabel}
+                  imageCount={imageCount}
+                  articleLength={articleLength}
+                  stageLabels={stageLabels}
+                />
               ) : null}
 
               {tab === "images" ? (
-                <section className={`${styles.panel} ${styles.motionScene}`}>
-                  <div className={styles.sectionHead}>
-                    <div>
-                      <span className={styles.label}>Visual Layer</span>
-                      <h2>AI Article Images</h2>
-                    </div>
-                    <span className={styles.statusChipMuted}>
-                      {imageStatusLabel}
-                      {imageErrorCount > 0 ? ` · ${imageErrorCount} issues` : ""}
-                    </span>
-                    <button
-                      className={styles.primaryButton}
-                      disabled={!hasDraft || Boolean(pendingAction)}
-                      onClick={() => void runPrimaryAction("images")}
-                      type="button"
-                    >
-                      {pendingAction === "generate-images" ? "Generating Images..." : "Generate Images"}
-                    </button>
-                    <button
-                      className={styles.secondaryButton}
-                      disabled={!hasDraft || Boolean(pendingAction)}
-                      onClick={() => void saveImages()}
-                      type="button"
-                    >
-                      {pendingAction === "save-images" ? "Saving Images..." : "Save Image Edits"}
-                    </button>
-                    <button
-                      className={styles.ghostButton}
-                      disabled={Boolean(pendingAction)}
-                      onClick={() => void refreshActiveJob()}
-                      type="button"
-                    >
-                      Refresh
-                    </button>
-                  </div>
-                  <div className={styles.imageShowcase}>
-                    {articleImages.map((image, index) => (
-                      <article key={image.id} className={styles.imageCard}>
-                        <div className={styles.imageThumbLarge}>
-                          {image.src.trim() ? (
-                            <Image alt={image.alt} height={840} src={image.src} unoptimized width={1400} />
-                          ) : (
-                            <div className={styles.imageEmpty}>Image removed from this slot</div>
-                          )}
-                        </div>
-                        <div className={styles.imageEditorFields}>
-                          <label className={styles.editorField}>
-                            <span>Caption / text under image</span>
-                            <input
-                              value={image.caption}
-                              onChange={(event) => updateImageAsset(index, "caption", event.target.value)}
-                            />
-                          </label>
-                          <label className={styles.editorField}>
-                            <span>Alt text</span>
-                            <textarea
-                              rows={3}
-                              value={image.alt}
-                              onChange={(event) => updateImageAsset(index, "alt", event.target.value)}
-                            />
-                          </label>
-                          <label className={styles.editorField}>
-                            <span>Placement note</span>
-                            <input
-                              value={image.placement}
-                              onChange={(event) => updateImageAsset(index, "placement", event.target.value)}
-                            />
-                          </label>
-                          <label className={styles.editorField}>
-                            <span>Image source URL</span>
-                            <input
-                              value={image.src}
-                              onChange={(event) => updateImageAsset(index, "src", event.target.value)}
-                            />
-                          </label>
-                          <label className={styles.uploadField}>
-                            <span>Replace image file</span>
-                            <input
-                              accept="image/*"
-                              type="file"
-                              onChange={(event) => {
-                                const file = event.target.files?.[0];
-                                if (file) {
-                                  void replaceImageFromFile(index, file);
-                                }
-                              }}
-                            />
-                          </label>
-                          <div className={styles.imageEditorActions}>
-                            <button
-                              className={styles.ghostButton}
-                              disabled={!image.src.trim() || Boolean(pendingAction)}
-                              onClick={() => void downloadImageAsset(image, index)}
-                              type="button"
-                            >
-                              Download image
-                            </button>
-                            <button className={styles.ghostButton} onClick={() => removeImageAsset(index)} type="button">
-                              Remove image
-                            </button>
-                            <button className={styles.secondaryButton} onClick={() => restoreImageAsset(index)} type="button">
-                              Restore saved image
-                            </button>
-                            <button
-                              className={styles.primaryButton}
-                              disabled={Boolean(pendingAction)}
-                              onClick={() => void regenerateSingleImage(index)}
-                              type="button"
-                            >
-                              {pendingAction === "regenerate-image" ? "Generating..." : "Generate this image again"}
-                            </button>
-                          </div>
-                          <code>{image.prompt}</code>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </section>
+                <ArticleImagesTab
+                  hasDraft={hasDraft}
+                  pendingAction={pendingAction}
+                  runPrimaryAction={runPrimaryAction as any}
+                  saveImages={saveImages as any}
+                  refreshActiveJob={refreshActiveJob as any}
+                  articleImages={articleImages}
+                  imageStatusLabel={imageStatusLabel}
+                  imageErrorCount={imageErrorCount}
+                  updateImageAsset={updateImageAsset}
+                  replaceImageFromFile={replaceImageFromFile as any}
+                  downloadImageAsset={downloadImageAsset as any}
+                  removeImageAsset={removeImageAsset}
+                  restoreImageAsset={restoreImageAsset}
+                  regenerateSingleImage={regenerateSingleImage as any}
+                />
               ) : null}
             </section>
           </section>
