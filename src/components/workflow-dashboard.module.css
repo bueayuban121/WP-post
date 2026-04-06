@@ -352,25 +352,25 @@
 }
 
 .systemReady {
-  background: rgba(57, 131, 93, 0.12);
-  color: #2f6f4d;
+  background: rgba(57, 131, 93, 0.16);
+  color: #8fe0b6;
 }
 
 .systemRunning {
-  background: rgba(164, 77, 36, 0.12);
-  color: #9a4d26;
+  background: rgba(164, 77, 36, 0.16);
+  color: #f5c28f;
 }
 
 .systemMuted {
-  background: rgba(86, 73, 59, 0.08);
-  color: #6f665d;
+  background: rgba(123, 153, 185, 0.1);
+  color: #a9b8c8;
 }
 
 .settingsList > div {
   padding: 14px 16px;
   border-radius: 16px;
-  background: rgba(255, 251, 245, 0.72);
-  border: 1px solid rgba(55, 46, 35, 0.08);
+  background: rgba(18, 26, 36, 0.78);
+  border: 1px solid rgba(123, 153, 185, 0.12);
 }
 
 .settingsList strong {
@@ -452,7 +452,7 @@
 .projectCard span,
 .projectCard small {
   display: block;
-  color: #6d645c;
+  color: #94a6b8;
 }
 
 .projectCardActive {
@@ -503,8 +503,8 @@
 
 .stepRowActive {
   border-color: rgba(15, 118, 110, 0.24);
-  background: linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(255, 255, 255, 0.6));
-  box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.08), 0 16px 28px rgba(56, 39, 19, 0.08);
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.18), rgba(15, 23, 34, 0.92));
+  box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.12), 0 16px 28px rgba(5, 10, 18, 0.22);
 }
 
 .stepRowComplete {
@@ -575,20 +575,20 @@
   gap: 18px;
   padding: 20px 22px;
   background:
-    linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(164, 77, 36, 0.06) 40%, rgba(255, 255, 255, 0.58) 100%),
-    rgba(255, 251, 245, 0.92);
+    linear-gradient(135deg, rgba(15, 118, 110, 0.14), rgba(164, 77, 36, 0.06) 40%, rgba(15, 23, 34, 0.94) 100%),
+    rgba(16, 24, 34, 0.94);
 }
 
 .shellKeywords .focusPanel {
   background:
-    linear-gradient(135deg, rgba(34, 94, 168, 0.1), rgba(15, 118, 110, 0.06) 42%, rgba(255, 255, 255, 0.62) 100%),
-    rgba(246, 250, 255, 0.94);
+    linear-gradient(135deg, rgba(34, 94, 168, 0.16), rgba(15, 118, 110, 0.08) 42%, rgba(15, 23, 34, 0.94) 100%),
+    rgba(16, 24, 34, 0.95);
 }
 
 .shellArticles .focusPanel {
   background:
-    linear-gradient(135deg, rgba(164, 77, 36, 0.1), rgba(121, 85, 43, 0.06) 42%, rgba(255, 255, 255, 0.62) 100%),
-    rgba(255, 249, 241, 0.94);
+    linear-gradient(135deg, rgba(164, 77, 36, 0.16), rgba(121, 85, 43, 0.07) 42%, rgba(15, 23, 34, 0.94) 100%),
+    rgba(16, 24, 34, 0.95);
 }
 
 .focusCopy {
@@ -674,8 +674,8 @@
   margin-top: 18px;
   padding: 18px;
   border-radius: 26px;
-  border: 1px solid rgba(55, 46, 35, 0.08);
-  background: linear-gradient(180deg, rgba(255, 251, 245, 0.9), rgba(246, 238, 229, 0.92));
+  border: 1px solid rgba(123, 153, 185, 0.14);
+  background: linear-gradient(180deg, rgba(18, 26, 36, 0.94), rgba(15, 22, 31, 0.92));
 }
 
 .selectedIdeaHead {
@@ -736,8 +736,8 @@
 
 .shellKeywords .keywordCard {
   background:
-    linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(238, 245, 253, 0.95)),
-    rgba(248, 251, 255, 0.94);
+    linear-gradient(180deg, rgba(18, 27, 40, 0.98), rgba(13, 20, 31, 0.95)),
+    rgba(13, 20, 31, 0.94);
 }
 
 .shellKeywords .keywordCard:hover,
@@ -817,8 +817,8 @@
 .researchMain {
   padding: 22px;
   border-radius: 30px;
-  border: 1px solid rgba(55, 46, 35, 0.08);
-  background: linear-gradient(180deg, rgba(255, 251, 245, 0.96), rgba(246, 238, 229, 0.92));
+  border: 1px solid rgba(123, 153, 185, 0.14);
+  background: linear-gradient(180deg, rgba(18, 26, 36, 0.96), rgba(15, 22, 31, 0.92));
   min-width: 0;
 }
 
@@ -851,15 +851,15 @@
   gap: 12px;
   padding: 16px;
   border-radius: 24px;
-  border: 1px solid rgba(55, 46, 35, 0.08);
-  background: rgba(255, 251, 245, 0.72);
+  border: 1px solid rgba(123, 153, 185, 0.14);
+  background: rgba(18, 26, 36, 0.82);
   max-height: 380px;
   overflow: auto;
 }
 
 .sourceItem {
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(55, 46, 35, 0.08);
+  border-bottom: 1px solid rgba(123, 153, 185, 0.1);
 }
 
 .sourceItem:last-child {
@@ -870,7 +870,7 @@
 .sourceItem p,
 .sourceItem small {
   display: block;
-  color: #665e56;
+  color: #96a8b8;
   margin-top: 4px;
   line-height: 1.55;
 }
@@ -879,12 +879,13 @@
   display: block;
   line-height: 1.45;
   font-size: 0.92rem;
+  color: #edf3f8;
 }
 
 .articlePreview {
   background:
-    linear-gradient(180deg, rgba(255, 251, 245, 0.96), rgba(246, 238, 229, 0.94)),
-    rgba(255, 251, 245, 0.94);
+    linear-gradient(180deg, rgba(18, 26, 36, 0.96), rgba(15, 22, 31, 0.94)),
+    rgba(18, 26, 36, 0.94);
 }
 
 .imageShowcase {
@@ -909,7 +910,7 @@
 
 .queueHead {
   padding: 14px 16px;
-  color: #8a7d73;
+  color: #91a3b4;
   font-size: 0.76rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -917,9 +918,9 @@
 
 .queueRow {
   border: 0;
-  border-top: 1px solid rgba(55, 46, 35, 0.08);
+  border-top: 1px solid rgba(123, 153, 185, 0.1);
   background: transparent;
-  color: #1a1613;
+  color: #e7eef6;
   padding: 16px;
   cursor: pointer;
   text-align: left;
@@ -928,7 +929,7 @@
 
 .queueRow:hover,
 .queueRowActive {
-  background: rgba(15, 118, 110, 0.06);
+  background: rgba(15, 118, 110, 0.12);
 }
 
 .eventItem {
@@ -944,15 +945,15 @@
 }
 
 .eventStatus {
-  color: #9a4d26;
+  color: #f5c28f;
   font-size: 0.82rem;
 }
 
 .eventEmpty {
   padding: 16px;
   border-radius: 16px;
-  background: rgba(255, 251, 245, 0.72);
-  color: #665e56;
+  background: rgba(18, 26, 36, 0.78);
+  color: #9caec0;
 }
 
 .shell,
@@ -994,27 +995,27 @@
 .topbar,
 .panel,
 .articleLayout {
-  border: 1px solid rgba(55, 46, 35, 0.08);
+  border: 1px solid rgba(123, 153, 185, 0.14);
   background:
-    linear-gradient(180deg, rgba(255, 251, 245, 0.94), rgba(249, 243, 235, 0.9)),
-    rgba(255, 251, 245, 0.9);
-  box-shadow: 0 24px 68px rgba(56, 38, 18, 0.1);
+    linear-gradient(180deg, rgba(16, 24, 34, 0.96), rgba(22, 31, 43, 0.9)),
+    rgba(16, 24, 34, 0.9);
+  box-shadow: 0 24px 68px rgba(5, 10, 18, 0.28);
 }
 
 .shellKeywords .topbar,
 .shellKeywords .panel,
 .shellKeywords .articleLayout {
   background:
-    linear-gradient(180deg, rgba(248, 251, 255, 0.95), rgba(239, 245, 253, 0.92)),
-    rgba(248, 251, 255, 0.92);
+    linear-gradient(180deg, rgba(16, 24, 34, 0.96), rgba(22, 31, 43, 0.9)),
+    rgba(16, 24, 34, 0.9);
 }
 
 .shellArticles .topbar,
 .shellArticles .panel,
 .shellArticles .articleLayout {
   background:
-    linear-gradient(180deg, rgba(255, 250, 244, 0.96), rgba(248, 239, 229, 0.94)),
-    rgba(255, 250, 244, 0.92);
+    linear-gradient(180deg, rgba(16, 24, 34, 0.96), rgba(22, 31, 43, 0.9)),
+    rgba(16, 24, 34, 0.9);
 }
 
 .topbar,
@@ -1047,7 +1048,7 @@
 
 .kicker,
 .label {
-  color: #8f6442;
+  color: #f0b487;
   font-size: 0.73rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1058,7 +1059,7 @@
   margin: 6px 0 0;
   font-size: clamp(1.9rem, 3vw, 2.8rem);
   letter-spacing: -0.05em;
-  color: #171411;
+  color: #edf3f8;
   line-height: 1.02;
 }
 
@@ -1076,7 +1077,7 @@
 
 .statusChip {
   background: rgba(164, 77, 36, 0.12);
-  color: #9a4d26;
+  color: #f5c28f;
 }
 
 .statusChipMuted,
@@ -1111,15 +1112,15 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  color: #706860;
+  color: #b9c7d5;
   font-size: 0.9rem;
 }
 
 .createForm input {
   width: 100%;
-  border: 1px solid rgba(55, 46, 35, 0.1);
-  background: rgba(255, 251, 245, 0.86);
-  color: #171411;
+  border: 1px solid rgba(123, 153, 185, 0.14);
+  background: rgba(18, 26, 36, 0.82);
+  color: #edf3f8;
   border-radius: 18px;
   padding: 13px 15px;
 }
@@ -1193,8 +1194,8 @@
   flex: 1 1 120px;
   padding: 12px 14px;
   border-radius: 20px;
-  background: rgba(255, 251, 245, 0.72);
-  border: 1px solid rgba(55, 46, 35, 0.08);
+  background: rgba(18, 26, 36, 0.78);
+  border: 1px solid rgba(123, 153, 185, 0.12);
 }
 
 .miniStats strong,
@@ -1204,8 +1205,8 @@
 }
 
 .keywordChip {
-  background: rgba(164, 77, 36, 0.1);
-  color: #8b4724;
+  background: rgba(34, 94, 168, 0.18);
+  color: #d8e8ff;
 }
 
 .topicTabs {

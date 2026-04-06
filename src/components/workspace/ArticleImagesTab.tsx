@@ -84,7 +84,7 @@ export function ArticleImagesTab({
       <div className="grid grid-cols-1 gap-8 mt-4">
         {articleImages.map((image, index) => (
           <article key={image.id} className="flex flex-col lg:flex-row gap-6 p-4 rounded-xl bg-background/30 border border-white/5 overflow-hidden relative group">
-            <div className="lg:w-1/2 rounded-lg bg-background/50 border border-white/5 overflow-hidden relative min-h-[300px] flex items-center justify-center">
+            <div className="lg:w-1/2 rounded-lg bg-background/50 border border-white/5 overflow-hidden relative aspect-[16/9] min-h-0 flex items-center justify-center">
               {image.src.trim() ? (
                 <Image 
                   alt={image.alt} 

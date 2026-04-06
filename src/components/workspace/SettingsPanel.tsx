@@ -24,6 +24,9 @@ interface SettingsPanelProps {
   setImageCount: (val: string) => void
 }
 
+const selectClassName =
+  "flex h-11 w-full rounded-[18px] border border-white/10 bg-[#0f1722]/88 px-4 py-2 text-sm text-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_16px_34px_rgba(2,6,23,0.18)] backdrop-blur-md transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45 focus-visible:ring-offset-0"
+
 export function SettingsPanel({
   tone,
   setTone,
@@ -34,73 +37,81 @@ export function SettingsPanel({
   imageCount,
   setImageCount
 }: SettingsPanelProps) {
-  const isCustomTone = !tonePresets.includes(tone as any)
+  const isCustomTone = !tonePresets.includes(tone as (typeof tonePresets)[number])
 
   return (
     <GlassPanel id="settings-section" className="flex flex-col gap-6">
       <div>
         <span className="text-xs font-semibold uppercase tracking-wider text-accent">Core Settings</span>
-        <h2 className="text-2xl font-bold tracking-tight text-foreground mt-1">Content Defaults</h2>
+        <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Content Defaults</h2>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <label className="flex flex-col gap-2">
           <span className="font-medium text-foreground">Tone</span>
-          <small className="text-muted text-xs">โทนหลักของบทความ</small>
+          <small className="text-xs text-muted">Main editorial tone for the article.</small>
           <select
-            className="flex h-10 w-full rounded-md border border-input bg-background/50 backdrop-blur-sm px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className={selectClassName}
+            style={{ colorScheme: "dark" }}
             value={isCustomTone ? "__custom__" : tone}
             onChange={(event) => setTone(event.target.value === "__custom__" ? "" : event.target.value)}
           >
             {tonePresets.map((preset) => (
-              <option key={preset} value={preset} className="bg-background text-foreground">
+              <option key={preset} value={preset} className="bg-slate-950 text-slate-100">
                 {preset}
               </option>
             ))}
-            <option value="__custom__" className="bg-background text-foreground">Custom tone</option>
+            <option value="__custom__" className="bg-slate-950 text-slate-100">
+              Custom tone
+            </option>
           </select>
-          {isCustomTone && (
-            <Input 
-              placeholder="Define a custom tone for this client" 
-              value={tone} 
-              onChange={(event) => setTone(event.target.value)} 
+          {isCustomTone ? (
+            <Input
+              placeholder="Define a custom tone for this client"
+              value={tone}
+              onChange={(event) => setTone(event.target.value)}
               className="mt-2 bg-background/50"
             />
-          )}
+          ) : null}
         </label>
 
         <label className="flex flex-col gap-2">
           <span className="font-medium text-foreground">Restricted words</span>
-          <small className="text-muted text-xs">คำต้องห้ามหรือคำที่ไม่ต้องการให้ใช้</small>
-          <Input 
-            value={bannedWords} 
-            onChange={(event) => setBannedWords(event.target.value)} 
-            className="bg-background/50"
-          />
+          <small className="text-xs text-muted">Words or phrases the article should avoid.</small>
+          <Input value={bannedWords} onChange={(event) => setBannedWords(event.target.value)} className="bg-background/50" />
         </label>
 
         <label className="flex flex-col gap-2">
           <span className="font-medium text-foreground">Target length</span>
-          <small className="text-muted text-xs">จำนวนคำเป้าหมายของบทความ</small>
-          <Input 
-            value={articleLength} 
-            onChange={(event) => setArticleLength(event.target.value)} 
+          <small className="text-xs text-muted">Target word count for each article.</small>
+          <Input
+            value={articleLength}
+            onChange={(event) => setArticleLength(event.target.value)}
             className="bg-background/50"
           />
         </label>
 
         <label className="flex flex-col gap-2">
           <span className="font-medium text-foreground">Image count</span>
-          <small className="text-muted text-xs">จำนวนรูปทั้งหมดในบทความ (รวม featured image)</small>
-          <select 
-            value={imageCount} 
+          <small className="text-xs text-muted">Total images inside the article, including the featured image.</small>
+          <select
+            value={imageCount}
             onChange={(event) => setImageCount(event.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-background/50 backdrop-blur-sm px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className={selectClassName}
+            style={{ colorScheme: "dark" }}
           >
-            <option value="1" className="bg-background">1 image</option>
-            <option value="2" className="bg-background">2 images</option>
-            <option value="3" className="bg-background">3 images</option>
-            <option value="4" className="bg-background">4 images</option>
+            <option value="1" className="bg-slate-950 text-slate-100">
+              1 image
+            </option>
+            <option value="2" className="bg-slate-950 text-slate-100">
+              2 images
+            </option>
+            <option value="3" className="bg-slate-950 text-slate-100">
+              3 images
+            </option>
+            <option value="4" className="bg-slate-950 text-slate-100">
+              4 images
+            </option>
           </select>
         </label>
       </div>

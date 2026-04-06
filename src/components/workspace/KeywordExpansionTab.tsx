@@ -1,30 +1,30 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import { motion } from "framer-motion";
-import { GlassPanel } from "@/components/ui/glass-panel";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import type { TopicIdea, WorkflowJob } from "@/types/workflow";
+import * as React from "react"
+import { motion } from "framer-motion"
+import { GlassPanel } from "@/components/ui/glass-panel"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import type { TopicIdea, WorkflowJob } from "@/types/workflow"
 
 interface KeywordExpansionTabProps {
-  inKeywordVariantPhase: boolean;
-  job: WorkflowJob;
-  activeIdea: TopicIdea | null;
-  pendingAction: string;
-  selectKeyword: (idea: TopicIdea) => void;
-  saveSelectedKeyword: () => void;
-  selectedIdeaTitle: string;
-  setSelectedIdeaTitle: (val: string) => void;
-  selectedIdeaAngle: string;
-  setSelectedIdeaAngle: (val: string) => void;
+  inKeywordVariantPhase: boolean
+  job: WorkflowJob
+  activeIdea: TopicIdea | null
+  pendingAction: string
+  selectKeyword: (idea: TopicIdea) => void
+  saveSelectedKeyword: () => void
+  selectedIdeaTitle: string
+  setSelectedIdeaTitle: (val: string) => void
+  selectedIdeaAngle: string
+  setSelectedIdeaAngle: (val: string) => void
 }
 
 function uniqueSearchIntents(job: WorkflowJob) {
   return job.ideas
     .map((idea) => idea.searchIntent)
     .filter((value, index, array) => array.indexOf(value) === index)
-    .filter(Boolean);
+    .filter(Boolean)
 }
 
 export function KeywordExpansionTab({
@@ -39,7 +39,7 @@ export function KeywordExpansionTab({
   selectedIdeaAngle,
   setSelectedIdeaAngle
 }: KeywordExpansionTabProps) {
-  const intentMix = uniqueSearchIntents(job);
+  const intentMix = uniqueSearchIntents(job)
 
   return (
     <GlassPanel className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,20,28,0.98),rgba(10,16,24,0.94))] p-0 shadow-[0_28px_80px_rgba(5,10,18,0.38)]">
@@ -157,7 +157,7 @@ export function KeywordExpansionTab({
 
         <div className="grid grid-cols-1 gap-4">
           {job.ideas.map((idea, index) => {
-            const isActive = !inKeywordVariantPhase && job.selectedIdeaId === idea.id;
+            const isActive = !inKeywordVariantPhase && job.selectedIdeaId === idea.id
             const buttonLabel =
               pendingAction === "select-keyword" && (!inKeywordVariantPhase && job.selectedIdeaId !== idea.id)
                 ? "Selecting..."
@@ -165,7 +165,7 @@ export function KeywordExpansionTab({
                   ? "Selected"
                   : inKeywordVariantPhase
                     ? "Use this keyword"
-                    : "Select topic";
+                    : "Select topic"
 
             return (
               <motion.article
@@ -235,10 +235,10 @@ export function KeywordExpansionTab({
                   </div>
                 </div>
               </motion.article>
-            );
+            )
           })}
         </div>
       </div>
     </GlassPanel>
-  );
+  )
 }
