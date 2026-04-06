@@ -317,7 +317,7 @@ export function ArticleStudioTab({
             </div>
           </div>
 
-          <div className="custom-scroll max-h-[calc(100vh-14rem)] overflow-y-auto px-6 pb-10 pt-6 md:px-8">
+          <div className="px-6 pb-10 pt-6 md:px-8">
             <motion.div
               initial="hidden"
               animate="visible"
