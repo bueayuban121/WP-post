@@ -119,6 +119,7 @@ export function SettingsPage({
     Object.fromEntries(managedUsers.map((user) => [user.id, createAccountDraft(user)]))
   );
   const [newAccount, setNewAccount] = useState<NewAccountState>(emptyNewAccount);
+  const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
 
   function update<K extends keyof SavedSettings>(key: K, value: SavedSettings[K]) {
     setSaved(false);
@@ -568,7 +569,28 @@ export function SettingsPage({
                 </div>
                 {account.role === "client" ? (
                   <>
-                    <div className={styles.form}>
+                    <div 
+                      style={{ 
+                        marginTop: 16, 
+                        borderTop: "1px solid rgba(255,255,255,0.05)", 
+                        paddingTop: 16, 
+                        display: "flex", 
+                        justifyContent: "space-between", 
+                        alignItems: "center",
+                        cursor: "pointer",
+                        userSelect: "none"
+                      }}
+                      onClick={() => setExpandedAccount(expandedAccount === account.id ? null : account.id)}
+                    >
+                      <strong style={{ margin: 0, fontSize: "0.85rem", color: "#c2cedd" }}>Client Configuration</strong>
+                      <span style={{ color: "#8fa0b3", fontSize: "0.8rem" }}>
+                         {expandedAccount === account.id ? "▲ Collapse" : "▼ Expand"}
+                      </span>
+                    </div>
+                    
+                    {expandedAccount === account.id && (
+                      <>
+                        <div className={styles.form} style={{ marginTop: 16 }}>
                       <label>
                         Access status
                         <select
@@ -709,6 +731,8 @@ export function SettingsPage({
                         Save account settings
                       </button>
                     </div>
+                      </>
+                    )}
                   </>
                 ) : null}
               </article>
