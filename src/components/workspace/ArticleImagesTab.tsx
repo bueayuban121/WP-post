@@ -39,7 +39,7 @@ export function ArticleImagesTab({
   regenerateSingleImage
 }: ArticleImagesTabProps) {
   return (
-    <GlassPanel className="flex flex-col gap-6">
+    <GlassPanel className="flex flex-col gap-6 overflow-hidden">
       <div className="flex flex-col xl:flex-row xl:justify-between xl:items-start gap-4">
         <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-accent">Visual Layer</span>
@@ -81,10 +81,13 @@ export function ArticleImagesTab({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 mt-4">
+      <div className="mt-2 grid grid-cols-1 gap-8">
         {articleImages.map((image, index) => (
-          <article key={image.id} className="flex flex-col lg:flex-row gap-6 p-4 rounded-xl bg-background/30 border border-white/5 overflow-hidden relative group">
-            <div className="lg:w-1/2 rounded-lg bg-background/50 border border-white/5 overflow-hidden relative aspect-[16/9] min-h-0 flex items-center justify-center">
+          <article
+            key={image.id}
+            className="group relative grid grid-cols-1 gap-6 overflow-hidden rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(17,25,35,0.96),rgba(12,19,27,0.94))] p-5 shadow-[0_22px_48px_rgba(5,10,18,0.22)] xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.65fr)]"
+          >
+            <div className="relative flex min-h-0 items-center justify-center overflow-hidden rounded-[24px] border border-white/6 bg-background/50 aspect-[16/9] xl:sticky xl:top-6">
               {image.src.trim() ? (
                 <Image 
                   alt={image.alt} 
@@ -101,7 +104,19 @@ export function ArticleImagesTab({
               )}
             </div>
             
-            <div className="lg:w-1/2 flex flex-col gap-4">
+            <div className="flex flex-col gap-4">
+              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200">Frame {index + 1}</span>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-slate-300">
+                    16:9 canvas
+                  </span>
+                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-slate-300">
+                    Horizontal preview
+                  </span>
+                </div>
+              </div>
+
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-foreground">Caption / text under image</span>
                 <Input
@@ -121,7 +136,7 @@ export function ArticleImagesTab({
                 />
               </label>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium text-foreground">Placement note</span>
                   <Input
@@ -163,11 +178,11 @@ export function ArticleImagesTab({
                 </div>
               )}
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-2 pt-4 border-t border-white/5">
+              <div className="mt-2 grid grid-cols-2 gap-2 border-t border-white/5 pt-4 sm:grid-cols-4">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-xs whitespace-nowrap px-2"
+                  className="px-2 text-xs whitespace-nowrap"
                   disabled={!image.src.trim() || Boolean(pendingAction)}
                   onClick={() => downloadImageAsset(image, index)}
                 >
@@ -176,7 +191,7 @@ export function ArticleImagesTab({
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="text-xs text-destructive hover:bg-destructive/10 hover:text-destructive whitespace-nowrap px-2"
+                  className="px-2 text-xs text-destructive whitespace-nowrap hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => removeImageAsset(index)} 
                 >
                   Remove
@@ -184,7 +199,7 @@ export function ArticleImagesTab({
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="text-xs whitespace-nowrap px-2"
+                  className="px-2 text-xs whitespace-nowrap"
                   onClick={() => restoreImageAsset(index)} 
                 >
                   Restore
@@ -192,7 +207,7 @@ export function ArticleImagesTab({
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="text-xs whitespace-nowrap px-2"
+                  className="px-2 text-xs whitespace-nowrap"
                   disabled={Boolean(pendingAction)}
                   onClick={() => regenerateSingleImage(index)}
                 >

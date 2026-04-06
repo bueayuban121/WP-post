@@ -98,7 +98,7 @@ export function ArticleStudioTab({
   }
 
   return (
-    <div className="grid w-full grid-cols-1 gap-6 xl:grid-cols-[minmax(360px,0.88fr)_minmax(0,1.12fr)] xl:items-start">
+    <div className="grid w-full grid-cols-1 gap-6 xl:grid-cols-[minmax(440px,0.98fr)_minmax(0,1.02fr)] xl:items-start">
       <motion.div
         className="order-2 xl:order-1"
         initial="hidden"
@@ -106,7 +106,7 @@ export function ArticleStudioTab({
         variants={reveal}
         transition={{ duration: 0.38, ease: "easeOut" }}
       >
-        <GlassPanel className="flex max-h-[84vh] flex-col gap-6 overflow-hidden xl:sticky xl:top-24">
+        <GlassPanel className="flex min-h-[calc(100vh-12rem)] flex-col gap-6 overflow-hidden xl:sticky xl:top-24">
           <div className="sticky top-0 z-20 -mx-6 -mt-6 border-b border-white/8 bg-[linear-gradient(180deg,rgba(10,16,24,0.98),rgba(10,16,24,0.84))] px-6 pb-4 pt-6 backdrop-blur-xl">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
@@ -114,7 +114,7 @@ export function ArticleStudioTab({
                   Editorial Control
                 </span>
                 <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground">Draft Studio</h2>
-                <p className="mt-2 max-w-xl text-sm leading-7 text-slate-300">
+                <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-300">
                   Review the article structure, tune metadata, and edit every section before publish.
                 </p>
               </div>
@@ -138,7 +138,7 @@ export function ArticleStudioTab({
             </div>
           </div>
 
-          <div className="custom-scroll flex flex-col gap-6 overflow-y-auto pr-1">
+          <div className="custom-scroll flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pr-1">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-[22px] border border-white/8 bg-white/[0.04] px-4 py-4">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Status</span>
@@ -329,7 +329,7 @@ export function ArticleStudioTab({
                   }
                 }
               }}
-              className="mx-auto max-w-4xl"
+              className="mx-auto max-w-[52rem]"
             >
               <motion.section
                 id="intro"
