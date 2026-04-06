@@ -39,11 +39,11 @@
 .queueTable,
 .eventItem,
 .emptyState {
-  border: 1px solid rgba(55, 46, 35, 0.08);
+  border: 1px solid rgba(123, 153, 185, 0.16);
   background:
-    linear-gradient(180deg, rgba(255, 251, 245, 0.94), rgba(249, 243, 235, 0.88)),
-    rgba(255, 251, 245, 0.9);
-  box-shadow: 0 24px 68px rgba(56, 38, 18, 0.1);
+    linear-gradient(180deg, rgba(16, 24, 34, 0.96), rgba(22, 31, 43, 0.9)),
+    rgba(16, 24, 34, 0.9);
+  box-shadow: 0 28px 80px rgba(5, 10, 18, 0.34);
   backdrop-filter: blur(18px);
 }
 
@@ -77,7 +77,7 @@
 
 .navBrand strong {
   font-size: 0.96rem;
-  color: #171411;
+  color: #edf3f8;
   text-shadow: none;
 }
 
@@ -89,8 +89,8 @@
 
 .navLinks button {
   border: 0;
-  background: transparent;
-  color: #6a625c;
+  background: rgba(255, 255, 255, 0.02);
+  color: #9fb1c0;
   cursor: pointer;
   padding: 9px 12px;
   border-radius: 999px;
@@ -99,8 +99,8 @@
 }
 
 .navLinks button:hover {
-  background: rgba(15, 118, 110, 0.08);
-  color: #114a45;
+  background: rgba(15, 118, 110, 0.14);
+  color: #f2fbfb;
 }
 
 .navLinks .navLinkActive {
@@ -152,7 +152,7 @@
 .heroText {
   max-width: 720px;
   margin: 16px 0 0;
-  color: #5f574f;
+  color: #aeb8c5;
   font-size: 1.02rem;
   line-height: 1.8;
 }
@@ -198,8 +198,8 @@
 .stepCard {
   padding: 16px 18px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.54), rgba(250, 244, 236, 0.8)),
-    rgba(255, 251, 245, 0.94);
+    linear-gradient(180deg, rgba(23, 33, 45, 0.92), rgba(18, 26, 36, 0.92)),
+    rgba(18, 26, 36, 0.94);
 }
 
 .stepCard strong {
@@ -211,7 +211,7 @@
 .summaryCard p,
 .eventItem p,
 .loadingText {
-  color: #655d56;
+  color: #97a7b6;
   line-height: 1.65;
 }
 
@@ -222,10 +222,10 @@
   width: 30px;
   height: 30px;
   border-radius: 999px;
-  background: rgba(164, 77, 36, 0.12);
-  color: #9a4d26;
+  background: rgba(212, 122, 69, 0.18);
+  color: #f5c8a6;
   font-weight: 700;
-  box-shadow: 0 0 22px rgba(15, 118, 110, 0.12);
+  box-shadow: 0 0 22px rgba(15, 118, 110, 0.18);
 }
 
 .overviewGrid {
@@ -310,9 +310,9 @@
 .compactCard {
   padding: 14px 16px;
   border-radius: 22px;
-  border: 1px solid rgba(55, 46, 35, 0.08);
-  background: linear-gradient(180deg, rgba(255, 249, 241, 0.96), rgba(247, 239, 229, 0.92));
-  box-shadow: 0 14px 34px rgba(56, 39, 19, 0.08);
+  border: 1px solid rgba(123, 153, 185, 0.14);
+  background: linear-gradient(180deg, rgba(22, 31, 43, 0.98), rgba(17, 25, 35, 0.92));
+  box-shadow: 0 18px 42px rgba(5, 10, 18, 0.28);
 }
 
 .compactCard strong {
@@ -330,8 +330,8 @@
 .compactProjects span {
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(15, 118, 110, 0.08);
-  color: #0f5e58;
+  background: rgba(15, 118, 110, 0.14);
+  color: #8fe0d8;
   font-size: 0.78rem;
 }
 
@@ -480,8 +480,8 @@
   gap: 10px;
   padding: 12px 14px;
   border-radius: 20px;
-  background: rgba(255, 251, 245, 0.7);
-  border: 1px solid rgba(55, 46, 35, 0.08);
+  background: rgba(18, 26, 36, 0.76);
+  border: 1px solid rgba(123, 153, 185, 0.12);
   width: 100%;
   text-align: left;
   color: inherit;
@@ -498,7 +498,7 @@
 }
 
 .stepRow small {
-  color: #6a625b;
+  color: #8ea0b0;
 }
 
 .stepRowActive {
@@ -516,22 +516,22 @@
 }
 
 .navTab {
-  border: 1px solid rgba(55, 46, 35, 0.08);
-  background: rgba(255, 251, 245, 0.72);
-  color: #4c433b;
+  border: 1px solid rgba(123, 153, 185, 0.12);
+  background: rgba(18, 26, 36, 0.74);
+  color: #b8c6d3;
   border-radius: 20px;
   padding: 13px 14px;
   text-align: left;
   cursor: pointer;
-  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), border-color 220ms ease, background-color 220ms ease, box-shadow 220ms ease;
 }
 
 .navTab:hover,
 .navTabActive {
-  transform: translateY(-1px);
+  transform: translateY(-3px);
   border-color: rgba(15, 118, 110, 0.26);
-  background: rgba(15, 118, 110, 0.08);
-  box-shadow: 0 0 26px rgba(15, 118, 110, 0.08);
+  background: rgba(15, 118, 110, 0.14);
+  box-shadow: 0 18px 32px rgba(5, 10, 18, 0.28), 0 0 26px rgba(15, 118, 110, 0.12);
 }
 
 .shellKeywords .navTab:hover,
@@ -603,7 +603,7 @@
 .focusText {
   margin: 0;
   max-width: 760px;
-  color: #5f574f;
+  color: #aeb8c5;
   line-height: 1.75;
 }
 
@@ -625,14 +625,14 @@
   min-height: 38px;
   padding: 8px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(55, 46, 35, 0.08);
-  background: rgba(255, 251, 245, 0.72);
-  color: #4d443d;
+  border: 1px solid rgba(123, 153, 185, 0.12);
+  background: rgba(18, 26, 36, 0.78);
+  color: #d6e0e9;
   font-size: 0.82rem;
 }
 
 .sectionText {
-  color: #5f574f;
+  color: #aeb8c5;
   line-height: 1.8;
   white-space: pre-line;
 }
@@ -659,8 +659,8 @@
   flex: 1 1 180px;
   padding: 14px 16px;
   border-radius: 22px;
-  border: 1px solid rgba(55, 46, 35, 0.08);
-  background: rgba(255, 251, 245, 0.72);
+  border: 1px solid rgba(123, 153, 185, 0.12);
+  background: rgba(18, 26, 36, 0.78);
 }
 
 .quickStats strong {
@@ -696,21 +696,42 @@
 }
 
 .keywordCard {
+  position: relative;
+  overflow: hidden;
   padding: 18px;
   border-radius: 28px;
-  border: 1px solid rgba(55, 46, 35, 0.08);
+  border: 1px solid rgba(123, 153, 185, 0.14);
   background:
-    linear-gradient(180deg, rgba(255, 251, 245, 0.96), rgba(245, 237, 228, 0.94)),
-    rgba(255, 251, 245, 0.94);
+    linear-gradient(180deg, rgba(17, 25, 35, 0.98), rgba(12, 19, 27, 0.95)),
+    rgba(12, 19, 27, 0.94);
   transform: translateZ(0);
-  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), border-color 220ms ease, box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.keywordCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(15, 118, 110, 0.14), transparent 34%),
+    linear-gradient(120deg, transparent 22%, rgba(255, 255, 255, 0.05) 50%, transparent 78%);
+  opacity: 0.9;
+  transform: translateX(-18%);
+  transition: transform 360ms ease, opacity 260ms ease;
+  pointer-events: none;
 }
 
 .keywordCard:hover,
 .keywordCardActive {
-  transform: translateY(-4px);
+  transform: translateY(-8px) scale(1.012);
   border-color: rgba(15, 118, 110, 0.24);
-  box-shadow: 0 20px 45px rgba(56, 39, 19, 0.12), 0 0 0 1px rgba(15, 118, 110, 0.08);
+  box-shadow: 0 26px 50px rgba(5, 10, 18, 0.34), 0 0 0 1px rgba(15, 118, 110, 0.1);
+}
+
+.keywordCard:hover::before,
+.keywordCardActive::before {
+  transform: translateX(0);
+  opacity: 1;
 }
 
 .shellKeywords .keywordCard {
@@ -741,7 +762,7 @@
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  color: #0f766e;
+  color: #79d2c7;
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -754,7 +775,7 @@
 }
 
 .keywordCard p {
-  color: #665e56;
+  color: #9cafbf;
   line-height: 1.7;
   min-height: 88px;
 }
@@ -768,8 +789,8 @@
 .keywordTags span {
   padding: 7px 10px;
   border-radius: 999px;
-  background: rgba(15, 118, 110, 0.08);
-  color: #0f5e58;
+  background: rgba(15, 118, 110, 0.14);
+  color: #96e7dd;
   font-size: 0.78rem;
 }
 
@@ -1124,21 +1145,23 @@
 
 .primaryButton {
   border: 0;
-  background: linear-gradient(135deg, #0f766e 0%, #15847b 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #1ba092 100%);
   color: #fffdf8;
-  box-shadow: 0 16px 34px rgba(15, 118, 110, 0.18);
+  box-shadow: 0 20px 38px rgba(15, 118, 110, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .secondaryButton {
-  border: 1px solid rgba(55, 46, 35, 0.1);
-  background: rgba(255, 251, 245, 0.8);
-  color: #171411;
+  border: 1px solid rgba(123, 153, 185, 0.16);
+  background: rgba(18, 26, 36, 0.82);
+  color: #d8e2eb;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .ghostButton {
-  border: 1px solid rgba(164, 77, 36, 0.16);
-  background: rgba(164, 77, 36, 0.06);
-  color: #8b4724;
+  border: 1px solid rgba(212, 122, 69, 0.22);
+  background: rgba(212, 122, 69, 0.08);
+  color: #f2c19e;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .primaryButton:hover,
@@ -1147,7 +1170,7 @@
 .contentTab:hover,
 .jobChip:hover,
 .topicTab:hover {
-  transform: translateY(-1px);
+  transform: translateY(-3px);
 }
 
 .jobRow {
@@ -1193,9 +1216,9 @@
   padding: 14px 15px;
   text-align: left;
   border-radius: 22px;
-  border: 1px solid rgba(55, 46, 35, 0.08);
-  background: rgba(255, 251, 245, 0.76);
-  color: #171411;
+  border: 1px solid rgba(123, 153, 185, 0.14);
+  background: rgba(18, 26, 36, 0.8);
+  color: #edf3f8;
   cursor: pointer;
 }
 
@@ -1206,7 +1229,7 @@
 }
 
 .topicTab span {
-  color: #6d645c;
+  color: #96a7b6;
   line-height: 1.55;
   font-size: 0.86rem;
 }
