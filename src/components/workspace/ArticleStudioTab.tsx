@@ -1,5 +1,6 @@
 import * as React from "react"
 import Image from "next/image"
+import { motion } from "framer-motion"
 import { GlassPanel } from "@/components/ui/glass-panel"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,6 +45,11 @@ const splitParagraphs = (text: string) =>
     .map((s) => s.trim())
     .filter(Boolean)
 
+const reveal = {
+  hidden: { opacity: 0, y: 18 },
+  visible: { opacity: 1, y: 0 }
+}
+
 export function ArticleStudioTab({
   job,
   activeIdea,
@@ -76,188 +82,325 @@ export function ArticleStudioTab({
   articleLength,
   stageLabels
 }: ArticleStudioTabProps) {
+  const previewTitle = briefTitle || activeIdea?.title || "Untitled article"
+  const sectionAnchors = [
+    { id: "intro", label: "Intro" },
+    ...articleSections.map((section, index) => ({
+      id: `section-${index + 1}`,
+      label: section.heading || `Section ${index + 1}`
+    })),
+    { id: "outro", label: "Outro" }
+  ]
+
+  const scrollToAnchor = (anchorId: string) => {
+    if (typeof document === "undefined") return
+    document.getElementById(anchorId)?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full items-start">
-      <GlassPanel className="flex flex-col gap-6 w-full xl:sticky xl:top-24 max-h-[85vh] overflow-y-auto custom-scroll">
-        <div className="flex flex-row justify-between items-start sticky top-0 bg-background/80 backdrop-blur pb-4 pt-2 z-10 border-b border-white/5">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-accent">Editorial Control</span>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground mt-1">Article Studio</h2>
-          </div>
-          <Button
-            variant="default"
-            disabled={Boolean(pendingAction)}
-            onClick={() => saveDraft()}
-          >
-            {pendingAction === "save-brief" ? "Saving Brief..." : pendingAction === "save-draft" ? "Saving Draft..." : "Save Draft"}
-          </Button>
-        </div>
+    <div className="grid w-full grid-cols-1 gap-6 xl:grid-cols-[minmax(360px,0.88fr)_minmax(0,1.12fr)] xl:items-start">
+      <motion.div
+        className="order-2 xl:order-1"
+        initial="hidden"
+        animate="visible"
+        variants={reveal}
+        transition={{ duration: 0.38, ease: "easeOut" }}
+      >
+        <GlassPanel className="flex max-h-[84vh] flex-col gap-6 overflow-hidden xl:sticky xl:top-24">
+          <div className="sticky top-0 z-20 -mx-6 -mt-6 border-b border-white/8 bg-[linear-gradient(180deg,rgba(10,16,24,0.98),rgba(10,16,24,0.84))] px-6 pb-4 pt-6 backdrop-blur-xl">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <span className="inline-flex rounded-full border border-cyan-400/15 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200">
+                  Editorial Control
+                </span>
+                <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground">Draft Studio</h2>
+                <p className="mt-2 max-w-xl text-sm leading-7 text-slate-300">
+                  Review the article structure, tune metadata, and edit every section before publish.
+                </p>
+              </div>
 
-        <div className="flex flex-col gap-5 pb-4">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">Title</span>
-            <small className="text-xs text-muted">หัวข้อหลักของบทความ</small>
-            <Input value={briefTitle} onChange={(event) => setBriefTitle(event.target.value)} className="bg-background/40" />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">Meta Title</span>
-            <small className="text-xs text-muted">ใช้ใน SEO title</small>
-            <Input value={briefMetaTitle} onChange={(event) => setBriefMetaTitle(event.target.value)} className="bg-background/40" />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">Meta Description</span>
-            <small className="text-xs text-muted">ข้อความสรุปสำหรับ search</small>
-            <textarea
-              rows={4}
-              className="flex w-full rounded-md border border-input bg-background/40 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              value={briefMetaDescription}
-              onChange={(event) => setBriefMetaDescription(event.target.value)}
-            />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">Slug</span>
-            <small className="text-xs text-muted">URL ของโพสต์</small>
-            <Input value={briefSlug} onChange={(event) => setBriefSlug(event.target.value)} className="bg-background/40" />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">Featured Image URL</span>
-            <small className="text-xs text-muted">ถ้าไม่ใส่จะใช้รูปแรกจาก AI image set</small>
-            <Input value={briefFeaturedImageUrl} onChange={(event) => setBriefFeaturedImageUrl(event.target.value)} className="bg-background/40" />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">Intro</span>
-            <small className="text-xs text-muted">บทนำของบทความ</small>
-            <textarea
-              rows={5}
-              className="flex w-full rounded-md border border-input bg-background/40 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              value={draftIntro}
-              onChange={(event) => setDraftIntro(event.target.value)}
-            />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">Conclusion</span>
-            <small className="text-xs text-muted">สรุปท้ายบทความ</small>
-            <textarea
-              rows={5}
-              className="flex w-full rounded-md border border-input bg-background/40 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              value={draftConclusion}
-              onChange={(event) => setDraftConclusion(event.target.value)}
-            />
-          </label>
-
-          <div className="flex flex-col gap-4 mt-4 border-t border-white/10 pt-6">
-            <div className="flex flex-col gap-1 mb-2">
-              <strong className="text-lg text-foreground">Article Sections</strong>
-              <small className="text-muted-foreground">แก้ไขหัวข้อและเนื้อหาแต่ละส่วนได้ก่อน publish</small>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="default" disabled={Boolean(pendingAction)} onClick={() => saveDraft()}>
+                  {pendingAction === "save-brief"
+                    ? "Saving Brief..."
+                    : pendingAction === "save-draft"
+                      ? "Saving Draft..."
+                      : "Save Draft"}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={Boolean(pendingAction) || !hasResearch}
+                  onClick={() => regenerateArticleWithAnotherPattern()}
+                >
+                  {pendingAction === "regenerate-pattern" ? "Regenerating..." : "New Pattern"}
+                </Button>
+              </div>
             </div>
-            {draftSections.map((section, index) => (
-              <div key={`section-editor-${index + 1}`} className="flex flex-col gap-3 p-4 rounded-md bg-background/50 border border-white/5 relative group">
-                <div className="absolute top-0 right-0 left-0 w-full h-1 bg-gradient-to-r from-accent/0 via-accent/40 to-accent/0 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-md"></div>
-                <strong className="text-[13px] uppercase tracking-wider text-accent">Section {index + 1}</strong>
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-foreground">Heading</span>
+          </div>
+
+          <div className="custom-scroll flex flex-col gap-6 overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-[22px] border border-white/8 bg-white/[0.04] px-4 py-4">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Status</span>
+                <strong className="mt-2 block text-sm text-slate-50">{stageLabels[job.stage]}</strong>
+              </div>
+              <div className="rounded-[22px] border border-white/8 bg-white/[0.04] px-4 py-4">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Keyword</span>
+                <strong className="mt-2 block text-sm text-slate-50">{selectedKeywordLabel || "Not selected"}</strong>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5">
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-foreground">Title</span>
+                <small className="text-xs text-slate-400">Main title used in the article body.</small>
+                <Input value={briefTitle} onChange={(event) => setBriefTitle(event.target.value)} className="bg-background/50" />
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-foreground">Meta Title</span>
+                <small className="text-xs text-slate-400">SEO title shown on search and browser tabs.</small>
+                <Input value={briefMetaTitle} onChange={(event) => setBriefMetaTitle(event.target.value)} className="bg-background/50" />
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-foreground">Meta Description</span>
+                <small className="text-xs text-slate-400">Short summary for search snippets and social previews.</small>
+                <textarea
+                  rows={4}
+                  className="custom-scroll flex w-full rounded-[18px] border border-white/10 bg-background/50 px-4 py-3 text-sm text-slate-50 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45"
+                  value={briefMetaDescription}
+                  onChange={(event) => setBriefMetaDescription(event.target.value)}
+                />
+              </label>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-foreground">Slug</span>
+                  <small className="text-xs text-slate-400">Final URL path for WordPress.</small>
+                  <Input value={briefSlug} onChange={(event) => setBriefSlug(event.target.value)} className="bg-background/50" />
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-foreground">Featured Image URL</span>
+                  <small className="text-xs text-slate-400">Leave blank to use the first image from the AI set.</small>
                   <Input
-                    value={section.heading}
-                    onChange={(event) => updateDraftSection(index, "heading", event.target.value)}
-                    className="bg-background/60 font-semibold"
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-foreground">Body</span>
-                  <textarea
-                    rows={10}
-                    className="flex w-full rounded-md border border-input bg-background/60 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 custom-scroll"
-                    value={section.body}
-                    onChange={(event) => updateDraftSection(index, "body", event.target.value)}
+                    value={briefFeaturedImageUrl}
+                    onChange={(event) => setBriefFeaturedImageUrl(event.target.value)}
+                    className="bg-background/50"
                   />
                 </label>
               </div>
-            ))}
-          </div>
 
-          <div className="flex flex-col gap-3 mt-6">
-            <Button
-              variant="outline"
-              disabled={Boolean(pendingAction) || !hasResearch}
-              onClick={() => regenerateArticleWithAnotherPattern()}
-              className="w-full"
-            >
-              {pendingAction === "regenerate-pattern"
-                ? "Regenerating Pattern..."
-                : "Regenerate With Another Editorial Pattern"}
-            </Button>
-          </div>
-        </div>
-      </GlassPanel>
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-foreground">Intro</span>
+                <small className="text-xs text-slate-400">Opening paragraphs that frame the article.</small>
+                <textarea
+                  rows={7}
+                  className="custom-scroll flex w-full rounded-[20px] border border-white/10 bg-background/50 px-4 py-3 text-sm text-slate-50 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45"
+                  value={draftIntro}
+                  onChange={(event) => setDraftIntro(event.target.value)}
+                />
+              </label>
 
-      <GlassPanel className="hidden xl:flex flex-col gap-0 p-0 overflow-hidden bg-background">
-        <div className="relative w-full aspect-[16/9] bg-muted overflow-hidden">
-          {featuredImageSrc ? (
-            <Image 
-              alt={articleImages[0]?.alt ?? "Featured article image"} 
-              fill
-              src={featuredImageSrc} 
-              unoptimized 
-              className="object-cover"
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/50">
-              <span className="text-muted-foreground/50 text-sm">No featured image</span>
-            </div>
-          )}
-          <div className="absolute inset-x-0 bottom-0 top-1/2 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none"></div>
-        </div>
-        
-        <div className="flex flex-wrap gap-2 px-8 py-4 border-b border-white/5 bg-background/80 relative z-20">
-          <span className="inline-flex items-center rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">Keyword: {selectedKeywordLabel}</span>
-          <span className="inline-flex items-center rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">Status: {stageLabels[job.stage]}</span>
-          <span className="inline-flex items-center rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">Length target: {articleLength} words</span>
-          <span className="inline-flex items-center rounded-full bg-white/5 border border-white/10 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">Images: {imageCount}</span>
-        </div>
+              <div className="flex flex-col gap-4 border-t border-white/8 pt-5">
+                <div className="flex flex-col gap-1">
+                  <strong className="text-lg text-foreground">Article Sections</strong>
+                  <small className="text-xs text-slate-400">Edit the heading and body of each section before publish.</small>
+                </div>
 
-        <div className="p-8 prose prose-invert prose-p:text-[#A1A1AA] prose-headings:text-foreground prose-h2:text-3xl prose-h2:font-bold prose-h3:text-xl prose-h3:font-semibold max-w-none w-full bg-background relative z-20 overflow-y-auto custom-scroll" style={{maxHeight: 'calc(85vh - 400px)'}}>
-          <h2>{briefTitle || activeIdea?.title || "Untitled article"}</h2>
-          <p className="text-lg text-muted-foreground italic border-l-2 border-accent pl-4 py-1 my-6">{briefMetaDescription}</p>
-          
-          {splitParagraphs(draftIntro).map((paragraph) => (
-            <p key={`intro-${paragraph.slice(0, 36)}`} className="text-lg leading-relaxed">
-              {paragraph}
-            </p>
-          ))}
-          
-          {articleSections.map((section, index) => {
-            const image = articleImages[index + 1];
-            return (
-              <div key={`${section.heading}-${index}`} className="mt-10">
-                <h3>{section.heading}</h3>
-                {splitParagraphs(section.body).map((paragraph) => (
-                  <p key={`${section.heading}-${paragraph.slice(0, 36)}`}>{paragraph}</p>
+                {draftSections.map((section, index) => (
+                  <motion.div
+                    key={`section-editor-${index + 1}`}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.28, delay: index * 0.05 }}
+                    className="group relative flex flex-col gap-3 overflow-hidden rounded-[22px] border border-white/8 bg-white/[0.04] p-4 shadow-[0_18px_34px_rgba(5,10,18,0.16)]"
+                  >
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                    <strong className="text-[12px] uppercase tracking-[0.2em] text-cyan-200">Section {index + 1}</strong>
+
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-medium text-foreground">Heading</span>
+                      <Input
+                        value={section.heading}
+                        onChange={(event) => updateDraftSection(index, "heading", event.target.value)}
+                        className="bg-background/60 font-semibold"
+                      />
+                    </label>
+
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-medium text-foreground">Body</span>
+                      <textarea
+                        rows={9}
+                        className="custom-scroll flex w-full rounded-[18px] border border-white/10 bg-background/60 px-4 py-3 text-sm text-slate-50 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45"
+                        value={section.body}
+                        onChange={(event) => updateDraftSection(index, "body", event.target.value)}
+                      />
+                    </label>
+                  </motion.div>
                 ))}
-                
-                {image?.src.trim() ? (
-                  <figure className="my-8 rounded-lg overflow-hidden border border-white/10 bg-background/50">
-                    <div className="relative w-full aspect-[16/9]">
-                      <Image alt={image.alt} fill src={image.src} unoptimized className="object-cover" />
-                    </div>
-                    <figcaption className="p-3 px-4 flex flex-col gap-1 bg-white/5">
-                      <span className="text-sm text-foreground">{image.caption}</span>
-                      <small className="text-xs text-muted-foreground uppercase opacity-70">{image.placement}</small>
-                    </figcaption>
-                  </figure>
-                ) : null}
               </div>
-            );
-          })}
-          
-          <div className="mt-10 pt-6 border-t border-white/10">
-            {splitParagraphs(draftConclusion).map((paragraph) => (
-              <p key={`conclusion-${paragraph.slice(0, 36)}`}>
-                {paragraph}
-              </p>
-            ))}
+
+              <label className="flex flex-col gap-2 border-t border-white/8 pt-5">
+                <span className="text-sm font-medium text-foreground">Conclusion</span>
+                <small className="text-xs text-slate-400">Closing section that wraps the article clearly.</small>
+                <textarea
+                  rows={6}
+                  className="custom-scroll flex w-full rounded-[20px] border border-white/10 bg-background/50 px-4 py-3 text-sm text-slate-50 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45"
+                  value={draftConclusion}
+                  onChange={(event) => setDraftConclusion(event.target.value)}
+                />
+              </label>
+            </div>
           </div>
-        </div>
-      </GlassPanel>
+        </GlassPanel>
+      </motion.div>
+
+      <motion.div
+        className="order-1 xl:order-2"
+        initial="hidden"
+        animate="visible"
+        variants={reveal}
+        transition={{ duration: 0.42, ease: "easeOut", delay: 0.06 }}
+      >
+        <GlassPanel className="overflow-hidden p-0">
+          <div className="relative aspect-[16/8] w-full overflow-hidden border-b border-white/6 bg-muted">
+            {featuredImageSrc ? (
+              <Image alt={articleImages[0]?.alt ?? "Featured article image"} fill src={featuredImageSrc} unoptimized className="object-cover" />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+                <span className="text-sm text-muted-foreground/60">No featured image</span>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#070b10] via-[#070b10]/30 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 z-10 px-6 pb-6 md:px-8">
+              <span className="inline-flex rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200 backdrop-blur-md">
+                Draft Preview
+              </span>
+              <h2 className="mt-4 max-w-4xl text-2xl font-semibold tracking-[-0.04em] text-slate-50 md:text-[2.35rem]">
+                {previewTitle}
+              </h2>
+              {briefMetaDescription ? (
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300 md:text-[15px]">{briefMetaDescription}</p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="sticky top-0 z-20 border-b border-white/6 bg-[linear-gradient(180deg,rgba(8,12,18,0.96),rgba(8,12,18,0.82))] px-6 py-4 backdrop-blur-xl md:px-8">
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center rounded-full border border-cyan-400/15 bg-cyan-400/10 px-3 py-2 text-xs font-medium text-cyan-200">
+                Keyword: {selectedKeywordLabel || "Waiting"}
+              </span>
+              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-medium text-slate-300">
+                Status: {stageLabels[job.stage]}
+              </span>
+              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-medium text-slate-300">
+                Length: {articleLength} words
+              </span>
+              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-medium text-slate-300">
+                Images: {imageCount}
+              </span>
+            </div>
+
+            <div className="custom-scroll mt-4 flex gap-2 overflow-x-auto pb-1">
+              {sectionAnchors.map((anchor) => (
+                <button
+                  key={anchor.id}
+                  type="button"
+                  onClick={() => scrollToAnchor(anchor.id)}
+                  className="inline-flex shrink-0 items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/25 hover:bg-cyan-300/10 hover:text-cyan-100"
+                >
+                  {anchor.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="custom-scroll max-h-[calc(100vh-14rem)] overflow-y-auto px-6 pb-10 pt-6 md:px-8">
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: {},
+                visible: {
+                  transition: {
+                    staggerChildren: 0.06
+                  }
+                }
+              }}
+              className="mx-auto max-w-4xl"
+            >
+              <motion.section
+                id="intro"
+                variants={reveal}
+                transition={{ duration: 0.3 }}
+                className="scroll-mt-36 rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-6 shadow-[0_22px_48px_rgba(5,10,18,0.18)]"
+              >
+                <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200">Intro</span>
+                <div className="mt-4 space-y-5 text-[1.02rem] leading-8 text-slate-200">
+                  {splitParagraphs(draftIntro).map((paragraph) => (
+                    <p key={`intro-${paragraph.slice(0, 36)}`}>{paragraph}</p>
+                  ))}
+                </div>
+              </motion.section>
+
+              {articleSections.map((section, index) => {
+                const image = articleImages[index + 1]
+
+                return (
+                  <motion.section
+                    key={`${section.heading}-${index}`}
+                    id={`section-${index + 1}`}
+                    variants={reveal}
+                    transition={{ duration: 0.3 }}
+                    className="scroll-mt-36 mt-8 rounded-[30px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))] p-6 shadow-[0_22px_48px_rgba(5,10,18,0.18)]"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex rounded-full border border-amber-300/15 bg-amber-300/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-200">
+                        Section {index + 1}
+                      </span>
+                    </div>
+
+                    <h3 className="mt-4 text-2xl font-semibold tracking-[-0.03em] text-slate-50">{section.heading}</h3>
+                    <div className="mt-5 space-y-5 text-[1rem] leading-8 text-slate-200">
+                      {splitParagraphs(section.body).map((paragraph) => (
+                        <p key={`${section.heading}-${paragraph.slice(0, 36)}`}>{paragraph}</p>
+                      ))}
+                    </div>
+
+                    {image?.src.trim() ? (
+                      <figure className="mt-8 overflow-hidden rounded-[24px] border border-white/8 bg-white/[0.03]">
+                        <div className="relative aspect-[16/9] w-full">
+                          <Image alt={image.alt} fill src={image.src} unoptimized className="object-cover" />
+                        </div>
+                        <figcaption className="flex flex-col gap-1 border-t border-white/8 bg-white/[0.04] px-5 py-4">
+                          <span className="text-sm text-slate-100">{image.caption}</span>
+                          <small className="text-[11px] uppercase tracking-[0.16em] text-slate-400">{image.placement}</small>
+                        </figcaption>
+                      </figure>
+                    ) : null}
+                  </motion.section>
+                )
+              })}
+
+              <motion.section
+                id="outro"
+                variants={reveal}
+                transition={{ duration: 0.3 }}
+                className="scroll-mt-36 mt-8 rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-6 shadow-[0_22px_48px_rgba(5,10,18,0.18)]"
+              >
+                <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200">Conclusion</span>
+                <div className="mt-4 space-y-5 text-[1rem] leading-8 text-slate-200">
+                  {splitParagraphs(draftConclusion).map((paragraph) => (
+                    <p key={`conclusion-${paragraph.slice(0, 36)}`}>{paragraph}</p>
+                  ))}
+                </div>
+              </motion.section>
+            </motion.div>
+          </div>
+        </GlassPanel>
+      </motion.div>
     </div>
   )
 }
