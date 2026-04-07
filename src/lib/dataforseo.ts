@@ -53,6 +53,22 @@ type GoogleAdsResponse = {
   tasks?: GoogleAdsTask[];
 };
 
+export type DataForSeoKeywordVariantResult = {
+  seedKeyword: string;
+  generatedAt: string;
+  provider: "dataforseo";
+  locationCode: number;
+  languageCode: string;
+  suggestions: Array<{
+    keyword: string;
+    competition?: string;
+    competitionIndex?: number;
+    searchVolume?: number;
+    cpc?: number;
+  }>;
+  rawResponse: GoogleAdsResponse;
+};
+
 function getAuthHeader() {
   return `Basic ${Buffer.from(`${DATAFORSEO_LOGIN}:${DATAFORSEO_PASSWORD}`).toString("base64")}`;
 }
@@ -280,31 +296,62 @@ async function callDataForSeoKeywordVariants(seedKeyword: string) {
   return (await response.json()) as GoogleAdsResponse;
 }
 
+export async function getDataForSeoKeywordVariantResult(
+  seedKeyword: string
+): Promise<DataForSeoKeywordVariantResult> {
+  if (!isDataForSeoConfigured()) {
+    throw new Error("DataForSEO credentials are not configured.");
+  }
+
+  const rawResponse = await callDataForSeoKeywordVariants(seedKeyword);
+  const suggestions = extractGoogleAdsSuggestions(rawResponse)
+    .filter((item) => item.keyword)
+    .map((item) => ({
+      keyword: String(item.keyword ?? "").trim(),
+      competition: item.competition,
+      competitionIndex: item.competition_index,
+      searchVolume: item.search_volume,
+      cpc: item.cpc
+    }))
+    .filter((item) => item.keyword);
+
+  return {
+    seedKeyword,
+    generatedAt: new Date().toISOString(),
+    provider: "dataforseo",
+    locationCode: DATAFORSEO_LOCATION_CODE,
+    languageCode: DATAFORSEO_LANGUAGE_CODE,
+    suggestions,
+    rawResponse
+  };
+}
+
 export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<TopicIdea[] | null> {
   if (!isDataForSeoConfigured()) {
     return buildKeywordVariantFallback(seedKeyword);
   }
 
   try {
-    const response = await callDataForSeoKeywordVariants(seedKeyword);
-    const suggestions = extractGoogleAdsSuggestions(response).filter((item) => item.keyword).slice(0, 30);
+    const variantResult = await getDataForSeoKeywordVariantResult(seedKeyword);
+    const suggestions = variantResult.suggestions.slice(0, 30);
 
     if (suggestions.length === 0) {
       return buildKeywordVariantFallback(seedKeyword);
     }
 
-    const directKeywords = dedupe([seedKeyword, ...suggestions.map((item) => String(item.keyword ?? ""))]).filter(
+    const directKeywords = dedupe([seedKeyword, ...suggestions.map((item) => item.keyword)]).filter(
       (keyword) => isDirectKeywordVariant(seedKeyword, keyword)
     );
     const dedupedKeywords =
       directKeywords.length > 0
         ? directKeywords
-        : dedupe([seedKeyword, ...suggestions.map((item) => String(item.keyword ?? ""))]);
+        : dedupe([seedKeyword, ...suggestions.map((item) => item.keyword)]);
 
     return dedupedKeywords.slice(0, 15).map((keyword, index) => {
-      const matchedItem =
-        suggestions.find((item) => trimSentence(String(item.keyword ?? "")).toLowerCase() === keyword.toLowerCase()) ?? {};
-      const searchVolume = matchedItem.search_volume;
+      const matchedItem:
+        | DataForSeoKeywordVariantResult["suggestions"][number]
+        | undefined = suggestions.find((item) => trimSentence(item.keyword).toLowerCase() === keyword.toLowerCase());
+      const searchVolume = matchedItem?.searchVolume;
       const confidenceBase = typeof searchVolume === "number" && searchVolume > 0 ? 90 : 82;
 
       return {
@@ -312,7 +359,7 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
         title: keyword,
         angle: `Use "${keyword}" as the selected keyword for the next research step while keeping the broader intent of "${seedKeyword}".`,
         searchIntent: inferIntentFromKeyword(keyword),
-        difficulty: inferDifficultyFromCompetitionIndex(matchedItem.competition_index),
+        difficulty: inferDifficultyFromCompetitionIndex(matchedItem?.competitionIndex),
         confidence: Math.max(68, Math.min(97, confidenceBase - index)),
         whyItMatters:
           typeof searchVolume === "number" && searchVolume > 0
@@ -321,10 +368,10 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
         thaiSignal: `Keyword variant related to "${seedKeyword}" surfaced from DataForSEO keyword ideas.`,
         globalSignal: `DataForSEO metrics: ${[
           typeof searchVolume === "number" ? `search volume ${searchVolume.toLocaleString()}` : "",
-          typeof matchedItem.competition_index === "number"
-            ? `competition index ${matchedItem.competition_index}`
+          typeof matchedItem?.competitionIndex === "number"
+            ? `competition index ${matchedItem.competitionIndex}`
             : "",
-          typeof matchedItem.cpc === "number" ? `CPC $${matchedItem.cpc.toFixed(2)}` : ""
+          typeof matchedItem?.cpc === "number" ? `CPC $${matchedItem.cpc.toFixed(2)}` : ""
         ]
           .filter(Boolean)
           .join(", ") || "keyword variant from DataForSEO"}`,
