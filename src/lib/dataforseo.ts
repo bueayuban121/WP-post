@@ -85,6 +85,19 @@ function dedupe(values: string[]) {
   return [...new Set(values.map((value) => trimSentence(value)).filter(Boolean))];
 }
 
+function normalizeKeywordForMatch(value: string) {
+  return trimSentence(value).toLowerCase().replace(/[\s_-]+/g, "");
+}
+
+function containsThai(value: string) {
+  return /[\u0E00-\u0E7F]/.test(value);
+}
+
+function isSuspiciousSplitKeyword(keyword: string) {
+  const parts = trimSentence(keyword).split(/\s+/);
+  return parts.some((part) => part.length <= 1);
+}
+
 function extractItems(response: DataForSeoResponse) {
   return response.tasks?.flatMap((task) => task.result?.flatMap((result) => result.items ?? []) ?? []) ?? [];
 }
@@ -173,8 +186,6 @@ function buildKeywordVariantFallback(seedKeyword: string): TopicIdea[] {
 
 function isDirectKeywordVariant(seedKeyword: string, keyword: string) {
   const normalized = trimSentence(keyword);
-  const normalizedLower = normalized.toLowerCase();
-  const seedLower = seedKeyword.trim().toLowerCase();
   const tokenCount = normalized.split(/\s+/).length;
 
   if (!normalized) {
@@ -198,6 +209,100 @@ function isDirectKeywordVariant(seedKeyword: string, keyword: string) {
   }
 
   return true;
+}
+
+function scoreKeywordRelevance(seedKeyword: string, keyword: string) {
+  const seedNormalized = normalizeKeywordForMatch(seedKeyword);
+  const keywordNormalized = normalizeKeywordForMatch(keyword);
+
+  if (!seedNormalized || !keywordNormalized) {
+    return 0;
+  }
+
+  if (seedNormalized === keywordNormalized) {
+    return 100;
+  }
+
+  if (keywordNormalized.includes(seedNormalized)) {
+    return 92;
+  }
+
+  if (seedNormalized.includes(keywordNormalized)) {
+    return 74;
+  }
+
+  const seedTokens = new Set(trimSentence(seedKeyword).toLowerCase().split(/\s+/).filter(Boolean));
+  const keywordTokens = trimSentence(keyword).toLowerCase().split(/\s+/).filter(Boolean);
+  const overlapCount = keywordTokens.filter((token) => seedTokens.has(token)).length;
+
+  if (overlapCount === 0) {
+    return 30;
+  }
+
+  return Math.min(88, 48 + overlapCount * 14);
+}
+
+function scoreKeywordDemand(searchVolume: number | undefined, maxSearchVolume: number) {
+  if (typeof searchVolume !== "number" || searchVolume <= 0) {
+    return 38;
+  }
+
+  if (maxSearchVolume <= 0) {
+    return 72;
+  }
+
+  const normalized = Math.log10(searchVolume + 1) / Math.log10(maxSearchVolume + 1);
+  return Math.round(45 + normalized * 55);
+}
+
+function scoreKeywordOpportunity(competitionIndex: number | undefined) {
+  if (typeof competitionIndex !== "number") {
+    return 56;
+  }
+
+  return Math.round(100 - Math.min(100, competitionIndex));
+}
+
+function scoreKeywordLanguageFit(seedKeyword: string, keyword: string) {
+  const seedHasThai = containsThai(seedKeyword);
+  const keywordHasThai = containsThai(keyword);
+
+  if (seedHasThai && keywordHasThai) return 96;
+  if (!seedHasThai && !keywordHasThai) return 92;
+  if (seedHasThai && !keywordHasThai) return 76;
+  return 80;
+}
+
+function scoreKeywordCleanliness(seedKeyword: string, keyword: string) {
+  let score = isDirectKeywordVariant(seedKeyword, keyword) ? 92 : 48;
+  const tokenCount = trimSentence(keyword).split(/\s+/).filter(Boolean).length;
+
+  if (tokenCount === 1) score += 6;
+  if (tokenCount >= 4) score -= 10;
+  if (isSuspiciousSplitKeyword(keyword)) score -= 24;
+  if (/\b(png|jpg|jpeg|gif|svg)\b/i.test(keyword)) score -= 28;
+
+  return Math.max(0, Math.min(100, score));
+}
+
+function buildKeywordRankingSummary(input: {
+  relevanceScore: number;
+  demandScore: number;
+  opportunityScore: number;
+  languageFitScore: number;
+  cleanlinessScore: number;
+}) {
+  const reasons: string[] = [];
+
+  if (input.relevanceScore >= 90) reasons.push("strong direct match to the seed keyword");
+  else if (input.relevanceScore >= 75) reasons.push("close semantic match to the seed keyword");
+
+  if (input.demandScore >= 75) reasons.push("solid search demand");
+  if (input.opportunityScore >= 70) reasons.push("competition is still manageable");
+  if (input.languageFitScore >= 90) reasons.push("fits Thai search behavior well");
+  if (input.cleanlinessScore >= 85) reasons.push("clean keyword format suitable for expansion");
+
+  return reasons.length > 0 ? reasons.join(", ") : "balanced keyword signal across relevance and opportunity";
 }
 
 function buildInsightLine(item: DataForSeoKeywordIdeaItem) {
@@ -333,39 +438,88 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
 
   try {
     const variantResult = await getDataForSeoKeywordVariantResult(seedKeyword);
-    const suggestions = variantResult.suggestions.slice(0, 30);
+    const suggestions = variantResult.suggestions;
 
     if (suggestions.length === 0) {
       return buildKeywordVariantFallback(seedKeyword);
     }
 
-    const directKeywords = dedupe([seedKeyword, ...suggestions.map((item) => item.keyword)]).filter(
-      (keyword) => isDirectKeywordVariant(seedKeyword, keyword)
-    );
-    const dedupedKeywords =
-      directKeywords.length > 0
-        ? directKeywords
-        : dedupe([seedKeyword, ...suggestions.map((item) => item.keyword)]);
+    const maxSearchVolume = suggestions.reduce((max, item) => {
+      return typeof item.searchVolume === "number" ? Math.max(max, item.searchVolume) : max;
+    }, 0);
 
-    return dedupedKeywords.slice(0, 15).map((keyword, index) => {
-      const matchedItem:
-        | DataForSeoKeywordVariantResult["suggestions"][number]
-        | undefined = suggestions.find((item) => trimSentence(item.keyword).toLowerCase() === keyword.toLowerCase());
-      const searchVolume = matchedItem?.searchVolume;
-      const confidenceBase = typeof searchVolume === "number" && searchVolume > 0 ? 90 : 82;
+    const uniqueKeywords = dedupe([seedKeyword, ...suggestions.map((item) => item.keyword)]);
+    const directKeywords = uniqueKeywords.filter((keyword) => isDirectKeywordVariant(seedKeyword, keyword));
+    const candidateKeywords = directKeywords.length > 0 ? directKeywords : uniqueKeywords;
+
+    const rankedKeywords = candidateKeywords
+      .map((keyword) => {
+        const matchedItem:
+          | DataForSeoKeywordVariantResult["suggestions"][number]
+          | undefined = suggestions.find(
+          (item) => trimSentence(item.keyword).toLowerCase() === keyword.toLowerCase()
+        );
+        const searchVolume = matchedItem?.searchVolume;
+        const relevanceScore = scoreKeywordRelevance(seedKeyword, keyword);
+        const demandScore = scoreKeywordDemand(searchVolume, maxSearchVolume);
+        const opportunityScore = scoreKeywordOpportunity(matchedItem?.competitionIndex);
+        const languageFitScore = scoreKeywordLanguageFit(seedKeyword, keyword);
+        const cleanlinessScore = scoreKeywordCleanliness(seedKeyword, keyword);
+        const finalScore = Math.round(
+          relevanceScore * 0.35 +
+            demandScore * 0.25 +
+            opportunityScore * 0.15 +
+            languageFitScore * 0.15 +
+            cleanlinessScore * 0.1
+        );
+
+        return {
+          keyword,
+          matchedItem,
+          searchVolume,
+          finalScore,
+          relevanceScore,
+          demandScore,
+          opportunityScore,
+          languageFitScore,
+          cleanlinessScore
+        };
+      })
+      .sort((left, right) => {
+        if (right.finalScore !== left.finalScore) {
+          return right.finalScore - left.finalScore;
+        }
+
+        const rightVolume = right.searchVolume ?? -1;
+        const leftVolume = left.searchVolume ?? -1;
+
+        if (rightVolume !== leftVolume) {
+          return rightVolume - leftVolume;
+        }
+
+        return left.keyword.localeCompare(right.keyword);
+      })
+      .slice(0, 15);
+
+    return rankedKeywords.map((ranked, index) => {
+      const matchedItem = ranked.matchedItem;
+      const searchVolume = ranked.searchVolume;
 
       return {
         id: crypto.randomUUID(),
-        title: keyword,
-        angle: `Use "${keyword}" as the selected keyword for the next research step while keeping the broader intent of "${seedKeyword}".`,
-        searchIntent: inferIntentFromKeyword(keyword),
+        title: ranked.keyword,
+        angle: `Use "${ranked.keyword}" as the selected keyword for the next research step while keeping the broader intent of "${seedKeyword}".`,
+        searchIntent: inferIntentFromKeyword(ranked.keyword),
         difficulty: inferDifficultyFromCompetitionIndex(matchedItem?.competitionIndex),
-        confidence: Math.max(68, Math.min(97, confidenceBase - index)),
-        whyItMatters:
-          typeof searchVolume === "number" && searchVolume > 0
-            ? `Estimated search volume around ${searchVolume.toLocaleString()} suggests this variant is worth researching next.`
-            : "This keyword variant appears in DataForSEO results and is suitable for the next step.",
-        thaiSignal: `Keyword variant related to "${seedKeyword}" surfaced from DataForSEO keyword ideas.`,
+        confidence: Math.max(68, Math.min(99, ranked.finalScore - Math.floor(index / 2))),
+        whyItMatters: `Selected with score ${ranked.finalScore}/100 because it shows ${buildKeywordRankingSummary({
+          relevanceScore: ranked.relevanceScore,
+          demandScore: ranked.demandScore,
+          opportunityScore: ranked.opportunityScore,
+          languageFitScore: ranked.languageFitScore,
+          cleanlinessScore: ranked.cleanlinessScore
+        })}.`,
+        thaiSignal: `Keyword variant related to "${seedKeyword}" surfaced from DataForSEO and ranked for Thai keyword expansion.`,
         globalSignal: `DataForSEO metrics: ${[
           typeof searchVolume === "number" ? `search volume ${searchVolume.toLocaleString()}` : "",
           typeof matchedItem?.competitionIndex === "number"
@@ -374,8 +528,8 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
           typeof matchedItem?.cpc === "number" ? `CPC $${matchedItem.cpc.toFixed(2)}` : ""
         ]
           .filter(Boolean)
-          .join(", ") || "keyword variant from DataForSEO"}`,
-        relatedKeywords: makeRelatedKeywords(seedKeyword, keyword)
+          .join(", ") || "keyword variant from DataForSEO"} | score ${ranked.finalScore}/100`,
+        relatedKeywords: makeRelatedKeywords(seedKeyword, ranked.keyword)
       };
     });
   } catch {
