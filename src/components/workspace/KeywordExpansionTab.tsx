@@ -39,6 +39,22 @@ function downloadBlob(filename: string, content: string, mimeType: string) {
   URL.revokeObjectURL(url)
 }
 
+function scoreTone(score: number) {
+  if (score >= 90) {
+    return "border-emerald-300/20 bg-emerald-400/12 text-emerald-100"
+  }
+
+  if (score >= 80) {
+    return "border-cyan-300/20 bg-cyan-300/12 text-cyan-100"
+  }
+
+  if (score >= 72) {
+    return "border-amber-300/20 bg-amber-300/12 text-amber-100"
+  }
+
+  return "border-white/10 bg-white/[0.06] text-slate-200"
+}
+
 export function KeywordExpansionTab({
   inKeywordVariantPhase,
   job,
@@ -52,6 +68,7 @@ export function KeywordExpansionTab({
   setSelectedIdeaAngle
 }: KeywordExpansionTabProps) {
   const intentMix = uniqueSearchIntents(job)
+  const [showAllRecommendations, setShowAllRecommendations] = React.useState(false)
   const exportBaseName = `${job.seedKeyword || "keyword-expansion"}`
     .trim()
     .replace(/[\\/:*?"<>|]/g, "-")
@@ -92,6 +109,13 @@ export function KeywordExpansionTab({
     downloadBlob(`${exportBaseName}-variants.csv`, csv, "text/csv;charset=utf-8")
   }, [exportBaseName, job.ideas, job.seedKeyword])
 
+  const visibleIdeas = inKeywordVariantPhase
+    ? showAllRecommendations
+      ? job.ideas
+      : job.ideas.slice(0, 15)
+    : job.ideas
+  const hiddenRecommendationCount = inKeywordVariantPhase ? Math.max(job.ideas.length - 15, 0) : 0
+
   return (
     <GlassPanel className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,20,28,0.98),rgba(10,16,24,0.94))] p-0 shadow-[0_28px_80px_rgba(5,10,18,0.38)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(58,115,201,0.18),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(15,118,110,0.16),transparent_28%)]" />
@@ -104,18 +128,18 @@ export function KeywordExpansionTab({
                 {inKeywordVariantPhase ? "Discovery" : "Topics"}
               </span>
               <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-slate-50 md:text-[2.2rem]">
-                {inKeywordVariantPhase ? "Choose the cleanest keyword path." : "Turn the chosen keyword into a sharper angle."}
+                {inKeywordVariantPhase ? "Recommended keywords, ranked and ready." : "Turn the chosen keyword into a sharper angle."}
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300 md:text-[15px]">
                 {inKeywordVariantPhase
-                  ? "Start with direct keyword variants from DataForSEO, then pick the one that best fits the ranking direction before expanding into article topics."
+                  ? "Start with the top-ranked keyword variants from DataForSEO. We surface the strongest 15 first, then let you expand to the full top 30 if you want more options."
                   : "The keyword is already chosen. Now we shape it into article-ready directions and prepare the strongest topic before research begins."}
               </p>
             </div>
 
             <div className="flex shrink-0 flex-wrap gap-2">
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                {job.ideas.length} {inKeywordVariantPhase ? "variants" : "topics"}
+                {job.ideas.length} {inKeywordVariantPhase ? "ranked variants" : "topics"}
               </span>
               {inKeywordVariantPhase && job.ideas.length > 0 ? (
                 <>
@@ -147,6 +171,15 @@ export function KeywordExpansionTab({
                   >
                     <a href={`/api/jobs/${job.id}/keyword-report?format=json`}>Raw JSON</a>
                   </Button>
+                  {hiddenRecommendationCount > 0 ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAllRecommendations((value) => !value)}
+                      className="h-10 rounded-full border-white/10 bg-white/[0.05] px-4 text-xs font-medium text-slate-100 hover:-translate-y-0.5 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-100"
+                    >
+                      {showAllRecommendations ? "Show top 15" : `Show more (${hiddenRecommendationCount})`}
+                    </Button>
+                  ) : null}
                 </>
               ) : null}
               {intentMix.length > 0 && !inKeywordVariantPhase ? (
@@ -170,7 +203,7 @@ export function KeywordExpansionTab({
                 {inKeywordVariantPhase ? "Next" : "Topic"}
               </span>
               <strong className="mt-2 block text-base font-semibold text-slate-50">
-                {inKeywordVariantPhase ? "Pick one variant" : activeIdea?.title ?? "Waiting"}
+                {inKeywordVariantPhase ? "Pick one recommended keyword" : activeIdea?.title ?? "Waiting"}
               </strong>
             </div>
 
@@ -179,7 +212,7 @@ export function KeywordExpansionTab({
                 {inKeywordVariantPhase ? "Source" : "Intent"}
               </span>
               <strong className="mt-2 block text-base font-semibold text-slate-50">
-                {inKeywordVariantPhase ? "DataForSEO" : intentMix.join(" · ") || "Balanced mix"}
+                {inKeywordVariantPhase ? "Ranked by DataForSEO + app scoring" : intentMix.join(" · ") || "Balanced mix"}
               </strong>
             </div>
           </div>
@@ -238,13 +271,33 @@ export function KeywordExpansionTab({
           </motion.div>
         ) : null}
 
+        {inKeywordVariantPhase ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200">Top 15 recommended</p>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                The first set is ranked for direct relevance, demand, opportunity, Thai market fit, and keyword cleanliness.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-medium text-slate-200">
+                Showing {visibleIdeas.length}/{job.ideas.length}
+              </span>
+              <span className="inline-flex items-center rounded-full border border-cyan-300/15 bg-cyan-300/10 px-3 py-2 text-xs font-medium text-cyan-100">
+                Ranked keywords
+              </span>
+            </div>
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-1 gap-4">
-          {job.ideas.map((idea, index) => {
-            const isActive = !inKeywordVariantPhase && job.selectedIdeaId === idea.id
+          {visibleIdeas.map((idea, index) => {
+            const isSelectedTopic = !inKeywordVariantPhase && job.selectedIdeaId === idea.id
+            const isRecommendedKeyword = inKeywordVariantPhase && index < 15
             const buttonLabel =
               pendingAction === "select-keyword" && (!inKeywordVariantPhase && job.selectedIdeaId !== idea.id)
                 ? "Selecting..."
-                : isActive
+                : isSelectedTopic
                   ? "Selected"
                   : inKeywordVariantPhase
                     ? "Use this keyword"
@@ -255,9 +308,9 @@ export function KeywordExpansionTab({
                 key={idea.id}
                 initial={{ opacity: 0, y: 16, scale: 0.985 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.34, delay: index * 0.06 }}
+                transition={{ duration: 0.34, delay: index * 0.05 }}
                 className={`group relative overflow-hidden rounded-[28px] border p-5 shadow-[0_22px_48px_rgba(5,10,18,0.24)] transition-all duration-300 ${
-                  isActive
+                  isSelectedTopic
                     ? "border-cyan-400/30 bg-[linear-gradient(135deg,rgba(15,118,110,0.18),rgba(18,26,36,0.92))]"
                     : "border-white/10 bg-[linear-gradient(180deg,rgba(17,25,35,0.96),rgba(12,19,27,0.94))] hover:-translate-y-1.5 hover:border-white/20 hover:shadow-[0_28px_56px_rgba(5,10,18,0.34)]"
                 }`}
@@ -266,39 +319,55 @@ export function KeywordExpansionTab({
                   <div className="absolute inset-y-0 -left-1/4 w-1/2 rotate-12 bg-gradient-to-r from-transparent via-white/8 to-transparent" />
                 </div>
 
-                <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="relative flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="max-w-3xl">
                     <div className="mb-3 flex flex-wrap gap-2">
                       <span className="inline-flex rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">
                         {inKeywordVariantPhase ? "Variant" : "Topic"}
                       </span>
-                      {!inKeywordVariantPhase ? (
+                      {inKeywordVariantPhase ? (
+                        <>
+                          <span
+                            className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${scoreTone(
+                              idea.confidence
+                            )}`}
+                          >
+                            Score {idea.confidence}
+                          </span>
+                          {isRecommendedKeyword ? (
+                            <span className="inline-flex rounded-full border border-fuchsia-300/15 bg-fuchsia-300/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-fuchsia-100">
+                              Recommended
+                            </span>
+                          ) : null}
+                        </>
+                      ) : (
                         <span className="inline-flex rounded-full border border-cyan-400/15 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200">
                           {idea.searchIntent}
                         </span>
-                      ) : null}
+                      )}
                     </div>
 
                     <strong className="block text-lg font-semibold tracking-[-0.025em] text-slate-50 md:text-[1.15rem]">
                       {idea.title}
                     </strong>
 
-                    {!inKeywordVariantPhase ? (
-                      <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">{idea.angle}</p>
+                    {inKeywordVariantPhase ? (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-sm leading-7 text-slate-300">{idea.whyItMatters}</p>
+                        <p className="text-xs leading-6 text-slate-400">{idea.globalSignal}</p>
+                      </div>
                     ) : (
-                      <p className="mt-3 text-sm leading-7 text-slate-400">
-                        Direct keyword variant suggested from the selected seed keyword. Choose the cleanest version before expanding into topics.
-                      </p>
+                      <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">{idea.angle}</p>
                     )}
                   </div>
 
-                  <div className="flex shrink-0 flex-col items-stretch gap-3 md:min-w-[180px]">
+                  <div className="flex shrink-0 flex-col items-stretch gap-3 md:min-w-[210px]">
                     <Button
-                      variant={isActive ? "outline" : "default"}
+                      variant={isSelectedTopic ? "outline" : "default"}
                       disabled={Boolean(pendingAction)}
                       onClick={() => selectKeyword(idea)}
                       className={`h-12 rounded-full px-5 text-sm font-semibold transition-all duration-200 ${
-                        isActive
+                        isSelectedTopic
                           ? "border-cyan-300/25 bg-cyan-300/10 text-cyan-100 hover:bg-cyan-300/14"
                           : "bg-[linear-gradient(135deg,#0f766e,#1ba092)] text-white shadow-[0_18px_36px_rgba(15,118,110,0.22)] hover:-translate-y-0.5 hover:shadow-[0_22px_44px_rgba(15,118,110,0.28)]"
                       }`}
@@ -306,15 +375,11 @@ export function KeywordExpansionTab({
                       {buttonLabel}
                     </Button>
 
-                    {!inKeywordVariantPhase ? (
-                      <span className="text-center text-xs leading-6 text-slate-400">
-                        The next step runs research and drafting.
-                      </span>
-                    ) : (
-                      <span className="text-center text-xs leading-6 text-slate-400">
-                        After choosing the keyword, the system expands topics next.
-                      </span>
-                    )}
+                    <span className="text-center text-xs leading-6 text-slate-400">
+                      {inKeywordVariantPhase
+                        ? "Choose one keyword first, then the system expands article topics next."
+                        : "The next step runs research and drafting."}
+                    </span>
                   </div>
                 </div>
               </motion.article>

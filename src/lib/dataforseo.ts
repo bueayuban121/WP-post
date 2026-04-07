@@ -499,7 +499,7 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
 
         return left.keyword.localeCompare(right.keyword);
       })
-      .slice(0, 15);
+      .slice(0, 30);
 
     return rankedKeywords.map((ranked, index) => {
       const matchedItem = ranked.matchedItem;
