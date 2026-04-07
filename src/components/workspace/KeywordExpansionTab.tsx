@@ -27,6 +27,18 @@ function uniqueSearchIntents(job: WorkflowJob) {
     .filter(Boolean)
 }
 
+function downloadBlob(filename: string, content: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
 export function KeywordExpansionTab({
   inKeywordVariantPhase,
   job,
@@ -40,6 +52,45 @@ export function KeywordExpansionTab({
   setSelectedIdeaAngle
 }: KeywordExpansionTabProps) {
   const intentMix = uniqueSearchIntents(job)
+  const exportBaseName = `${job.seedKeyword || "keyword-expansion"}`
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-")
+    .toLowerCase()
+
+  const exportKeywordVariantsAsTxt = React.useCallback(() => {
+    const lines = [
+      `Seed keyword: ${job.seedKeyword}`,
+      "",
+      "Expanded keyword variants:",
+      ...job.ideas.map((idea, index) => `${index + 1}. ${idea.title}`)
+    ]
+
+    downloadBlob(`${exportBaseName}-variants.txt`, lines.join("\n"), "text/plain;charset=utf-8")
+  }, [exportBaseName, job.ideas, job.seedKeyword])
+
+  const exportKeywordVariantsAsCsv = React.useCallback(() => {
+    const rows = [
+      ["seed_keyword", "variant_keyword", "difficulty", "confidence", "search_intent"],
+      ...job.ideas.map((idea) => [
+        job.seedKeyword,
+        idea.title,
+        idea.difficulty,
+        String(idea.confidence),
+        idea.searchIntent
+      ])
+    ]
+
+    const csv = rows
+      .map((row) =>
+        row
+          .map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n")
+
+    downloadBlob(`${exportBaseName}-variants.csv`, csv, "text/csv;charset=utf-8")
+  }, [exportBaseName, job.ideas, job.seedKeyword])
 
   return (
     <GlassPanel className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,20,28,0.98),rgba(10,16,24,0.94))] p-0 shadow-[0_28px_80px_rgba(5,10,18,0.38)]">
@@ -66,6 +117,24 @@ export function KeywordExpansionTab({
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                 {job.ideas.length} {inKeywordVariantPhase ? "variants" : "topics"}
               </span>
+              {inKeywordVariantPhase && job.ideas.length > 0 ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={exportKeywordVariantsAsTxt}
+                    className="h-10 rounded-full border-white/10 bg-white/[0.05] px-4 text-xs font-medium text-slate-100 hover:-translate-y-0.5 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-100"
+                  >
+                    Download TXT
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={exportKeywordVariantsAsCsv}
+                    className="h-10 rounded-full border-white/10 bg-white/[0.05] px-4 text-xs font-medium text-slate-100 hover:-translate-y-0.5 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-100"
+                  >
+                    Download CSV
+                  </Button>
+                </>
+              ) : null}
               {intentMix.length > 0 && !inKeywordVariantPhase ? (
                 <span className="inline-flex items-center rounded-full border border-emerald-400/15 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-200">
                   {intentMix.join(" · ")}
