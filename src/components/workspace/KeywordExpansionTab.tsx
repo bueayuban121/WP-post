@@ -92,6 +92,113 @@ export function KeywordExpansionTab({
     downloadBlob(`${exportBaseName}-variants.csv`, csv, "text/csv;charset=utf-8")
   }, [exportBaseName, job.ideas, job.seedKeyword])
 
+  const exportKeywordVariantsAsDoc = React.useCallback(() => {
+    const generatedAt = new Intl.DateTimeFormat("th-TH", {
+      dateStyle: "long",
+      timeStyle: "short"
+    }).format(new Date())
+
+    const rows = job.ideas
+      .map(
+        (idea, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${idea.title}</td>
+            <td>${idea.difficulty || "-"}</td>
+            <td>${idea.confidence ? `${Math.round(idea.confidence * 100)}%` : "-"}</td>
+            <td>${idea.searchIntent || "-"}</td>
+          </tr>
+        `
+      )
+      .join("")
+
+    const html = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office"
+            xmlns:w="urn:schemas-microsoft-com:office:word"
+            xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8" />
+          <title>Keyword Expansion Report</title>
+          <style>
+            body {
+              font-family: Arial, Tahoma, sans-serif;
+              color: #0f172a;
+              margin: 32px;
+              line-height: 1.6;
+            }
+            h1 {
+              margin: 0 0 8px;
+              font-size: 26px;
+            }
+            h2 {
+              margin: 28px 0 10px;
+              font-size: 18px;
+            }
+            p {
+              margin: 6px 0;
+            }
+            .meta {
+              color: #475569;
+              font-size: 12px;
+            }
+            .seed {
+              margin-top: 16px;
+              padding: 14px 16px;
+              border: 1px solid #cbd5e1;
+              border-radius: 12px;
+              background: #f8fafc;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 14px;
+            }
+            th, td {
+              border: 1px solid #cbd5e1;
+              padding: 10px 12px;
+              text-align: left;
+              vertical-align: top;
+            }
+            th {
+              background: #e2e8f0;
+              font-weight: 700;
+            }
+            tr:nth-child(even) td {
+              background: #f8fafc;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Keyword Expansion Report</h1>
+          <p class="meta">Generated from DataForSEO keyword expansion</p>
+          <p class="meta">Created at: ${generatedAt}</p>
+
+          <div class="seed">
+            <strong>Seed keyword:</strong> ${job.seedKeyword}
+          </div>
+
+          <h2>Expanded keyword variants</h2>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 56px;">#</th>
+                <th>Keyword variant</th>
+                <th style="width: 120px;">Difficulty</th>
+                <th style="width: 120px;">Confidence</th>
+                <th style="width: 140px;">Intent</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    downloadBlob(`${exportBaseName}-variants.doc`, html, "application/msword;charset=utf-8")
+  }, [exportBaseName, job.ideas, job.seedKeyword])
+
   return (
     <GlassPanel className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,20,28,0.98),rgba(10,16,24,0.94))] p-0 shadow-[0_28px_80px_rgba(5,10,18,0.38)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(58,115,201,0.18),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(15,118,110,0.16),transparent_28%)]" />
@@ -132,6 +239,13 @@ export function KeywordExpansionTab({
                     className="h-10 rounded-full border-white/10 bg-white/[0.05] px-4 text-xs font-medium text-slate-100 hover:-translate-y-0.5 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-100"
                   >
                     Download CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={exportKeywordVariantsAsDoc}
+                    className="h-10 rounded-full border-white/10 bg-white/[0.05] px-4 text-xs font-medium text-slate-100 hover:-translate-y-0.5 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-100"
+                  >
+                    Download DOC
                   </Button>
                 </>
               ) : null}
