@@ -1,4 +1,4 @@
-import { synthesizeResearchWithOpenAi } from "@/lib/openai";
+import { generateKeywordIdeasWithOpenAi, synthesizeResearchWithOpenAi } from "@/lib/openai";
 import type { ResearchProvider } from "@/lib/research-provider-config";
 import type { ResearchPack, TopicIdea } from "@/types/workflow";
 
@@ -534,6 +534,70 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
     });
   } catch {
     return buildKeywordVariantFallback(seedKeyword);
+  }
+}
+
+export async function generateTopicIdeasFromDataForSeo(seedKeyword: string): Promise<TopicIdea[] | null> {
+  if (!isDataForSeoConfigured()) {
+    return null;
+  }
+
+  try {
+    const response = await callDataForSeoKeywordIdeas([seedKeyword], 12);
+    const items = extractItems(response).slice(0, 12);
+
+    if (items.length < 4) {
+      return null;
+    }
+
+    const keywordTitles = dedupe(
+      items
+        .map((item) => trimSentence(String(item.keyword ?? "")))
+        .filter(Boolean)
+    ).slice(0, 12);
+
+    const summaryHooks = items
+      .slice(0, 8)
+      .map((item) => `${item.keyword}: ${buildInsightLine(item)}`)
+      .join(" ");
+
+    const aiIdeas = await generateKeywordIdeasWithOpenAi({
+      seedKeyword,
+      thaiSummary: summaryHooks,
+      globalSummary: summaryHooks,
+      thaiTitles: keywordTitles,
+      globalTitles: keywordTitles
+    }).catch(() => []);
+
+    if (aiIdeas.length >= 8) {
+      return aiIdeas.map((idea, index) => ({
+        id: crypto.randomUUID(),
+        title: trimSentence(idea.title),
+        angle: trimSentence(idea.angle),
+        searchIntent: idea.searchIntent,
+        difficulty: idea.difficulty,
+        confidence: Math.max(70, Math.min(98, Math.round(idea.confidence || 86) - index)),
+        whyItMatters: trimSentence(idea.whyItMatters),
+        thaiSignal: trimSentence(idea.thaiSignal),
+        globalSignal: trimSentence(idea.globalSignal),
+        relatedKeywords: dedupe(idea.relatedKeywords).slice(0, 6)
+      }));
+    }
+
+    return keywordTitles.slice(0, 12).map((keyword, index) => ({
+      id: crypto.randomUUID(),
+      title: keyword,
+      angle: `Build an article angle around "${keyword}" while keeping the broader intent of "${seedKeyword}".`,
+      searchIntent: inferIntentFromKeyword(keyword),
+      difficulty: inferDifficulty(items[index]?.keyword_properties?.keyword_difficulty),
+      confidence: Math.max(68, 88 - index),
+      whyItMatters: `This topic candidate comes from DataForSEO keyword ideas for "${seedKeyword}".`,
+      thaiSignal: `Related Thai keyword signal surfaced for "${seedKeyword}".`,
+      globalSignal: buildInsightLine(items[index] ?? {}),
+      relatedKeywords: makeRelatedKeywords(seedKeyword, keyword)
+    }));
+  } catch {
+    return null;
   }
 }
 

@@ -632,7 +632,7 @@ export async function selectIdea(jobId: string, ideaId: string) {
 
   if (isKeywordVariantPhase(job)) {
     const nextKeyword = selectedIdea.title.trim();
-    const topicIdeas = await generateTopicIdeas(nextKeyword);
+    const topicIdeas = await generateTopicIdeas(nextKeyword, job.researchProvider);
 
     if (!isDatabaseConfigured()) {
       job.seedKeyword = nextKeyword;

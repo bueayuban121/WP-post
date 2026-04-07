@@ -1,5 +1,5 @@
 import { mockWorkflowJob } from "@/data/mock-workflow";
-import { generateIdeasFromDataForSeo } from "@/lib/dataforseo";
+import { generateIdeasFromDataForSeo, generateTopicIdeasFromDataForSeo } from "@/lib/dataforseo";
 import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import { generateKeywordIdeasWithOpenAi } from "@/lib/openai";
 import type { ResearchProvider } from "@/lib/research-provider-config";
@@ -506,8 +506,14 @@ export async function generateIdeas(
     }));
 }
 
-export async function generateTopicIdeas(seedKeyword: string): Promise<TopicIdea[]> {
-  const aiIdeas = await generateIdeasFromTavily(seedKeyword);
+export async function generateTopicIdeas(
+  seedKeyword: string,
+  provider: ResearchProvider = "tavily"
+): Promise<TopicIdea[]> {
+  const aiIdeas =
+    provider === "dataforseo"
+      ? await generateTopicIdeasFromDataForSeo(seedKeyword)
+      : await generateIdeasFromTavily(seedKeyword);
 
   if (aiIdeas && aiIdeas.length > 0) {
     return aiIdeas;
