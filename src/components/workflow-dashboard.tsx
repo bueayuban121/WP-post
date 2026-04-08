@@ -25,6 +25,7 @@ import {
   buildArticleImagePrompt,
   inferArticleImageOverlayText,
   inferArticleImageTextMode,
+  suggestArticleImageOverlayText,
   type ArticleImageTextMode
 } from "@/lib/article-images";
 import styles from "./workflow-dashboard.module.css";
@@ -896,7 +897,17 @@ export function WorkflowDashboard({
       intro: draftIntro || job.draft.intro,
       conclusion: draftConclusion || job.draft.conclusion,
       textMode: overrides?.textMode ?? inferArticleImageTextMode(image.prompt),
-      overlayText: overrides?.overlayText ?? inferArticleImageOverlayText(image.prompt)
+      overlayText: (
+        overrides?.overlayText ??
+        inferArticleImageOverlayText(image.prompt) ??
+        suggestArticleImageOverlayText({
+          seedKeyword: job.seedKeyword,
+          title: briefTitle || job.brief.title || job.seedKeyword,
+          placement: image.placement,
+          sectionHeading: image.sectionHeading,
+          angle: job.brief.angle
+        })
+      )
     });
   }
 
@@ -908,7 +919,17 @@ export function WorkflowDashboard({
               ...image,
               prompt: rebuildImagePrompt(image, {
                 textMode: mode,
-                overlayText: mode === "no_text" ? "" : inferArticleImageOverlayText(image.prompt)
+                overlayText:
+                  mode === "no_text"
+                    ? ""
+                    : inferArticleImageOverlayText(image.prompt) ||
+                      suggestArticleImageOverlayText({
+                        seedKeyword: job.seedKeyword,
+                        title: briefTitle || job.brief.title || job.seedKeyword,
+                        placement: image.placement,
+                        sectionHeading: image.sectionHeading,
+                        angle: job.brief.angle
+                      })
               })
             }
           : image

@@ -36,6 +36,54 @@ function extractVisualCue(value?: string, fallback?: string) {
   return cleaned.slice(0, 180);
 }
 
+function shortenHeadline(value: string, fallback: string) {
+  const cleaned = trimSentence(value);
+  if (!cleaned) {
+    return fallback;
+  }
+
+  const withoutPunctuation = cleaned.replace(/[!?]+$/g, "");
+  if (withoutPunctuation.length <= 52) {
+    return withoutPunctuation;
+  }
+
+  const segments = withoutPunctuation.split(/[:|,-]/).map((segment) => segment.trim()).filter(Boolean);
+  const candidate = segments[0] || withoutPunctuation;
+  return candidate.length <= 52 ? candidate : `${candidate.slice(0, 49).trim()}...`;
+}
+
+function buildSupportLine(value: string, fallback: string) {
+  const cleaned = trimSentence(value);
+  if (!cleaned) {
+    return fallback;
+  }
+
+  return cleaned.length <= 42 ? cleaned : `${cleaned.slice(0, 39).trim()}...`;
+}
+
+export function suggestArticleImageOverlayText(input: {
+  seedKeyword: string;
+  title: string;
+  placement: string;
+  sectionHeading?: string;
+  angle?: string;
+}) {
+  const headlineBase =
+    input.placement === "Hero"
+      ? input.title
+      : input.sectionHeading || input.title || input.seedKeyword;
+
+  const supportBase =
+    input.placement === "Hero"
+      ? input.seedKeyword
+      : input.angle || input.seedKeyword;
+
+  const headline = shortenHeadline(headlineBase, input.seedKeyword);
+  const support = buildSupportLine(supportBase, input.seedKeyword);
+
+  return support && support !== headline ? `${headline} | ${support}` : headline;
+}
+
 export function buildArticleImagePrompt(input: {
   seedKeyword: string;
   title: string;
@@ -59,7 +107,16 @@ export function buildArticleImagePrompt(input: {
         : input.title
   );
   const textMode = input.textMode ?? "no_text";
-  const overlayText = trimSentence(input.overlayText ?? "");
+  const overlayText = trimSentence(
+    input.overlayText ??
+      suggestArticleImageOverlayText({
+        seedKeyword: input.seedKeyword,
+        title: input.title,
+        placement: input.placement,
+        sectionHeading: input.sectionHeading,
+        angle: input.angle
+      })
+  );
   const shotDirection =
     input.placement === "Hero"
       ? "hero image, striking focal subject, premium editorial cover composition"
@@ -80,8 +137,8 @@ export function buildArticleImagePrompt(input: {
       "Keep the scene modern, realistic, visually clear, commercially polished, and tightly aligned with the article.",
       textMode === "text_overlay"
         ? overlayText
-          ? `Add exact overlay text: "${overlayText}". Use clean premium typography. Thai and English text are allowed when requested.`
-          : "Add a short, high-impact text overlay that matches the article. Keep typography clean, premium, and highly readable. Thai and English text are allowed."
+          ? `Add exact overlay text: "${overlayText}". Compose it beautifully as premium editorial typography, with strong hierarchy, balanced spacing, and clear readability. Use elegant Thai and English text when requested, and leave clean negative space around the wording.`
+          : "Add a short, high-impact text overlay that matches the article. Compose it with premium editorial typography, strong hierarchy, and clear readability."
         : "Do not include any text, letters, typography, logo, watermark, or UI overlay anywhere in the image."
     ].join(" ")
   );
