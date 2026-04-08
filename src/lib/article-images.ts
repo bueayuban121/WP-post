@@ -183,7 +183,6 @@ function toAlt(title: string, placement: string, sectionHeading?: string) {
 function buildAsset(
   input: BuildImageInput,
   placement: string,
-  sortKey: string,
   sectionBody?: string,
   sectionHeading?: string,
   kind: "featured" | "inline" = "inline"
@@ -201,7 +200,7 @@ function buildAsset(
   });
 
   return {
-    id: `image-${sortKey}`,
+    id: crypto.randomUUID(),
     kind,
     src: "",
     alt: toAlt(input.title, placement, sectionHeading),
@@ -220,12 +219,11 @@ export function generateArticleImages(input: BuildImageInput): ArticleImageAsset
   const sections = input.draft.sections.slice(0, inlineCount);
 
   return [
-    buildAsset(input, "Hero", "hero", undefined, undefined, "featured"),
+    buildAsset(input, "Hero", undefined, undefined, "featured"),
     ...sections.map((section, index) =>
       buildAsset(
         input,
         index === sections.length - 1 ? "Conclusion" : `Section ${index + 1}`,
-        `section-${index + 1}`,
         section.body,
         section.heading,
         "inline"

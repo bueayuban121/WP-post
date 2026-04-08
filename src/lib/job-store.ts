@@ -260,7 +260,6 @@ function toStoredJob(job: WorkflowJob) {
     },
     articleImages: {
       create: job.images.map((image, index) => ({
-        id: image.id,
         kind: image.kind,
         src: image.src,
         alt: image.alt,
@@ -512,7 +511,6 @@ async function updateStoredWorkflow(
             articleImages: {
               deleteMany: {},
               create: payload.images.map((image, index) => ({
-                id: image.id,
                 kind: image.kind,
                 src: image.src,
                 alt: image.alt,
