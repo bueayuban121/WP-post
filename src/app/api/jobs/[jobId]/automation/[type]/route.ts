@@ -119,12 +119,13 @@ export async function POST(
         };
       }
 
-      const updatedJob = await publishJob(jobId);
+      await publishJob(jobId);
       const updatedEvent = await updateWorkflowEvent(event.id, {
         status: "succeeded",
         message: "Article published through the direct app pipeline.",
         payload
       });
+      const updatedJob = await getJob(jobId, getJobScopeForUser(session.user));
 
       return NextResponse.json({
         job: updatedJob,
@@ -141,11 +142,12 @@ export async function POST(
         status: "failed",
         message: error instanceof Error ? error.message : "Publish failed."
       });
+      const updatedJob = await getJob(jobId, getJobScopeForUser(session.user));
 
       return NextResponse.json(
         {
           error: error instanceof Error ? error.message : "Publish failed.",
-          job: await getJob(jobId, getJobScopeForUser(session.user)),
+          job: updatedJob,
           event: updatedEvent ?? event
         },
         { status: 502 }
