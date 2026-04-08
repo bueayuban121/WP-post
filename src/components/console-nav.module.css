@@ -84,7 +84,7 @@
   background:
     linear-gradient(135deg, #ffd4b6, #f2a777 48%, #df7e4c 100%),
     #f6c39f;
-  color: #261003 !important;
+  color: #d7641d !important;
   transform: translateY(-1px);
   box-shadow:
     0 18px 38px rgba(157, 87, 44, 0.32),
@@ -98,7 +98,7 @@
   background:
     linear-gradient(135deg, #ffd9bc, #f4ae80 48%, #e48451 100%),
     #f6c39f;
-  color: #1f0b01 !important;
+  color: #c95c19 !important;
 }
 
 .logoutButton {
