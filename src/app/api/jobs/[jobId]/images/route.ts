@@ -1,7 +1,7 @@
 import { getJobScopeForUser, requireRouteSession } from "@/lib/auth";
 import { normalizeGenerationSettings } from "@/lib/generation-settings";
+import { getImagePipelineEventLabel } from "@/lib/image-provider";
 import { getJob, regenerateJobImageAt, regenerateJobImages, saveJobImages } from "@/lib/job-store";
-import { isPhayaConfigured } from "@/lib/phaya";
 import { createWorkflowEvent, updateWorkflowEvent } from "@/lib/workflow-events";
 import type { ArticleImageAsset, WorkflowGenerationSettings } from "@/types/workflow";
 import { NextResponse } from "next/server";
@@ -52,7 +52,7 @@ export async function POST(
   }
 
   const generationSettings = normalizeGenerationSettings(body?.generationSettings);
-  const provider = isPhayaConfigured() ? "phaya-nano-banana" : "prompt-fallback";
+  const provider = getImagePipelineEventLabel();
   const imageIndex =
     typeof body?.imageIndex === "number" && Number.isInteger(body.imageIndex) ? body.imageIndex : undefined;
   const event = await createWorkflowEvent({

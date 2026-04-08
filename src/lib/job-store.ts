@@ -3,7 +3,7 @@ import { generateArticleImages } from "@/lib/article-images";
 import { buildResearchPackFromDataForSeo, getDataForSeoSerpSnapshot } from "@/lib/dataforseo";
 import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import { generateBriefWithOpenAi, generateDraftWithOpenAi, polishDraftWithOpenAi } from "@/lib/openai";
-import { generateImageWithPhaya, isPhayaConfigured } from "@/lib/phaya";
+import { generateManagedImage, isManagedImageGenerationConfigured } from "@/lib/image-provider";
 import { getPromptConfig } from "@/lib/prompt-config";
 import { resolveResearchProviderByClientId, resolveResearchProviderByClientName } from "@/lib/research-provider-config";
 import { buildNewJob, generateBrief, generateDraft, generateResearch, generateTopicIdeas } from "@/lib/workflow-generators";
@@ -1034,12 +1034,12 @@ export async function regenerateJobImages(jobId: string, options?: Partial<Workf
     imageCount: settings.imageCount
   });
   const images: ArticleImageAsset[] = [];
-  const phayaEnabled = isPhayaConfigured();
+  const imageGenerationEnabled = isManagedImageGenerationConfigured();
 
   for (const [index, image] of promptImages.entries()) {
-    if (phayaEnabled) {
+    if (imageGenerationEnabled) {
       try {
-        const generated = await generateImageWithPhaya({
+        const generated = await generateManagedImage({
           prompt: image.prompt,
           width: image.kind === "featured" ? 1600 : 1400,
           height: image.kind === "featured" ? 900 : 840
@@ -1118,8 +1118,8 @@ export async function regenerateJobImageAt(
 
   const targetImage = promptImages[imageIndex];
 
-  if (isPhayaConfigured()) {
-    const generated = await generateImageWithPhaya({
+  if (isManagedImageGenerationConfigured()) {
+    const generated = await generateManagedImage({
       prompt: targetImage.prompt,
       width: targetImage.kind === "featured" ? 1600 : 1400,
       height: targetImage.kind === "featured" ? 900 : 840

@@ -5,8 +5,8 @@ import {
 } from "@/lib/openai";
 import { generateArticleImages } from "@/lib/article-images";
 import { buildResearchPackFromDataForSeo } from "@/lib/dataforseo";
+import { generateManagedImage, getPreferredImageProvider, isManagedImageGenerationConfigured } from "@/lib/image-provider";
 import { resolveResearchProviderByClientName } from "@/lib/research-provider-config";
-import { generateImageWithPhaya, isPhayaConfigured } from "@/lib/phaya";
 import { tavilySearch } from "@/lib/tavily";
 import { generateBrief, generateDraft, generateResearch } from "@/lib/workflow-generators";
 import type { N8nCallbackPayload } from "@/types/n8n";
@@ -213,13 +213,13 @@ export async function buildRunnerCallback(input: {
       brief: job.brief,
       draft: job.draft
     });
-    const phayaEnabled = isPhayaConfigured();
+    const imageGenerationEnabled = isManagedImageGenerationConfigured();
     const imageResults = [];
 
-    if (phayaEnabled) {
+    if (imageGenerationEnabled) {
       for (const [index, image] of images.entries()) {
         try {
-          const generated = await generateImageWithPhaya({
+          const generated = await generateManagedImage({
             prompt: image.prompt,
             width: image.kind === "featured" ? 1600 : 1400,
             height: image.kind === "featured" ? 900 : 840
@@ -256,11 +256,11 @@ export async function buildRunnerCallback(input: {
     }
 
     const resolvedImages = imageResults.map((result) => result.image);
-    const usedPhayaCount = imageResults.filter((result) => result.usedPhaya).length;
+    const usedProviderCount = imageResults.filter((result) => result.usedPhaya).length;
     const imageErrors = imageResults
       .map((result) => result.error)
       .filter((error): error is string => Boolean(error));
-    const fullyGenerated = phayaEnabled && usedPhayaCount === images.length;
+    const fullyGenerated = imageGenerationEnabled && usedProviderCount === images.length;
 
     return {
       eventId,
@@ -272,9 +272,9 @@ export async function buildRunnerCallback(input: {
       stage: job.stage,
         payload: {
           provider: fullyGenerated
-            ? "phaya-nano-banana"
-            : usedPhayaCount > 0
-              ? "phaya-nano-banana-mixed"
+            ? getPreferredImageProvider()
+            : usedProviderCount > 0
+              ? `${getPreferredImageProvider()}-mixed`
               : "app-image-runner",
         imageStatus: "ready",
         usedFallback: !fullyGenerated,
