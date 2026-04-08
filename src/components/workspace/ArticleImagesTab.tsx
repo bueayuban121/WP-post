@@ -3,6 +3,7 @@ import Image from "next/image"
 import { GlassPanel } from "@/components/ui/glass-panel"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import type { ArticleImageTextMode } from "@/lib/article-images"
 import type { ArticleImageAsset } from "@/types/workflow"
 
 interface ArticleImagesTabProps {
@@ -15,6 +16,10 @@ interface ArticleImagesTabProps {
   imageStatusLabel: string
   imageErrorCount: number
   updateImageAsset: (index: number, field: "caption" | "alt" | "placement" | "src" | "prompt", value: string) => void
+  inferImageTextMode: (image: ArticleImageAsset) => ArticleImageTextMode
+  inferImageOverlayText: (image: ArticleImageAsset) => string
+  applyImageTextMode: (index: number, mode: ArticleImageTextMode) => void
+  applyImageOverlayText: (index: number, text: string) => void
   replaceImageFromFile: (index: number, file: File) => Promise<void>
   downloadImageAsset: (image: ArticleImageAsset, index: number) => Promise<void>
   removeImageAsset: (index: number) => void
@@ -32,6 +37,10 @@ export function ArticleImagesTab({
   imageStatusLabel,
   imageErrorCount,
   updateImageAsset,
+  inferImageTextMode,
+  inferImageOverlayText,
+  applyImageTextMode,
+  applyImageOverlayText,
   replaceImageFromFile,
   downloadImageAsset,
   removeImageAsset,
@@ -83,6 +92,10 @@ export function ArticleImagesTab({
 
       <div className="mt-2 grid grid-cols-1 gap-8">
         {articleImages.map((image, index) => (
+          (() => {
+            const textMode = inferImageTextMode(image)
+            const overlayText = inferImageOverlayText(image)
+            return (
           <article
             key={image.id}
             className="group relative grid grid-cols-1 gap-6 overflow-hidden rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(17,25,35,0.96),rgba(12,19,27,0.94))] p-5 shadow-[0_22px_48px_rgba(5,10,18,0.22)] xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.65fr)]"
@@ -145,6 +158,18 @@ export function ArticleImagesTab({
                     className="bg-background/50 text-xs"
                   />
                 </label>
+
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium text-foreground">Text style</span>
+                  <select
+                    value={textMode}
+                    onChange={(event) => applyImageTextMode(index, event.target.value as ArticleImageTextMode)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="no_text">No text</option>
+                    <option value="text_overlay">Text overlay</option>
+                  </select>
+                </label>
                 
                 <label className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium text-foreground">Upload Manual Image</span>
@@ -161,6 +186,18 @@ export function ArticleImagesTab({
                   />
                 </label>
               </div>
+
+              {textMode === "text_overlay" ? (
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium text-foreground">Overlay text</span>
+                  <Input
+                    value={overlayText}
+                    onChange={(event) => applyImageOverlayText(index, event.target.value)}
+                    className="bg-background/50 text-sm"
+                    placeholder="เช่น โปรตีนถั่วเหลือง | Soy Protein"
+                  />
+                </label>
+              ) : null}
 
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium text-foreground">Image source URL</span>
@@ -223,6 +260,8 @@ export function ArticleImagesTab({
               </div>
             </div>
           </article>
+            )
+          })()
         ))}
       </div>
     </GlassPanel>

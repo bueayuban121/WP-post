@@ -1,6 +1,8 @@
 import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import type { ArticleDraft, ArticleImageAsset, ContentBrief } from "@/types/workflow";
 
+export type ArticleImageTextMode = "no_text" | "text_overlay";
+
 type BuildImageInput = {
   seedKeyword: string;
   title: string;
@@ -34,7 +36,7 @@ function extractVisualCue(value?: string, fallback?: string) {
   return cleaned.slice(0, 180);
 }
 
-function buildPrompt(input: {
+export function buildArticleImagePrompt(input: {
   seedKeyword: string;
   title: string;
   angle: string;
@@ -44,6 +46,8 @@ function buildPrompt(input: {
   sectionBody?: string;
   intro?: string;
   conclusion?: string;
+  textMode?: ArticleImageTextMode;
+  overlayText?: string;
 }) {
   const subject = input.sectionHeading ? `${input.title} - ${input.sectionHeading}` : input.title;
   const visualCue = extractVisualCue(
@@ -54,6 +58,8 @@ function buildPrompt(input: {
         ? extractVisualCue(input.conclusion, input.title)
         : input.title
   );
+  const textMode = input.textMode ?? "no_text";
+  const overlayText = trimSentence(input.overlayText ?? "");
   const shotDirection =
     input.placement === "Hero"
       ? "hero image, striking focal subject, premium editorial cover composition"
@@ -72,9 +78,23 @@ function buildPrompt(input: {
       `Visual cue: ${visualCue}.`,
       `Placement: ${input.placement}.`,
       "Keep the scene modern, realistic, visually clear, commercially polished, and tightly aligned with the article.",
-      "Default rule: no text, no logo, no watermark, no UI overlay, unless the prompt is manually edited to request specific wording."
+      textMode === "text_overlay"
+        ? overlayText
+          ? `Add exact overlay text: "${overlayText}". Use clean premium typography. Thai and English text are allowed when requested.`
+          : "Add a short, high-impact text overlay that matches the article. Keep typography clean, premium, and highly readable. Thai and English text are allowed."
+        : "Do not include any text, letters, typography, logo, watermark, or UI overlay anywhere in the image."
     ].join(" ")
   );
+}
+
+export function inferArticleImageTextMode(prompt: string): ArticleImageTextMode {
+  const value = prompt.toLowerCase();
+  return value.includes("overlay text") || value.includes("typography") ? "text_overlay" : "no_text";
+}
+
+export function inferArticleImageOverlayText(prompt: string) {
+  const match = prompt.match(/Add exact overlay text:\s*"([^"]+)"/i);
+  return match?.[1]?.trim() ?? "";
 }
 
 function buildImageUrl(prompt: string, seed: number, width: number, height: number) {
@@ -119,7 +139,7 @@ function buildAsset(
   sectionHeading?: string,
   kind: "featured" | "inline" = "inline"
 ): ArticleImageAsset {
-  const prompt = buildPrompt({
+  const prompt = buildArticleImagePrompt({
     seedKeyword: input.seedKeyword,
     title: input.title,
     angle: input.brief.angle,

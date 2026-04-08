@@ -21,6 +21,12 @@ import { QueueTab } from "@/components/workspace/QueueTab";
 import { ArticleStudioTab } from "@/components/workspace/ArticleStudioTab";
 import { ArticleImagesTab } from "@/components/workspace/ArticleImagesTab";
 import { buildLongResearchSummary } from "@/lib/research-copy";
+import {
+  buildArticleImagePrompt,
+  inferArticleImageOverlayText,
+  inferArticleImageTextMode,
+  type ArticleImageTextMode
+} from "@/lib/article-images";
 import styles from "./workflow-dashboard.module.css";
 
 type WorkspaceTab = "expand" | "research" | "queue" | "article" | "images";
@@ -862,6 +868,70 @@ export function WorkflowDashboard({
     );
   }
 
+  function getSectionBodyForImage(image: ArticleImageAsset) {
+    if (!image.sectionHeading) {
+      return "";
+    }
+
+    const matchedSection = draftSections.find((section) => section.heading === image.sectionHeading);
+    return matchedSection?.body ?? "";
+  }
+
+  function rebuildImagePrompt(image: ArticleImageAsset, overrides?: {
+    textMode?: ArticleImageTextMode;
+    overlayText?: string;
+  }) {
+    if (!job) {
+      return image.prompt;
+    }
+
+    return buildArticleImagePrompt({
+      seedKeyword: job.seedKeyword,
+      title: briefTitle || job.brief.title || job.seedKeyword,
+      angle: job.brief.angle,
+      audience: job.brief.audience,
+      placement: image.placement,
+      sectionHeading: image.sectionHeading,
+      sectionBody: getSectionBodyForImage(image),
+      intro: draftIntro || job.draft.intro,
+      conclusion: draftConclusion || job.draft.conclusion,
+      textMode: overrides?.textMode ?? inferArticleImageTextMode(image.prompt),
+      overlayText: overrides?.overlayText ?? inferArticleImageOverlayText(image.prompt)
+    });
+  }
+
+  function applyImageTextMode(index: number, mode: ArticleImageTextMode) {
+    setEditableImages((current) =>
+      current.map((image, imageIndex) =>
+        imageIndex === index
+          ? {
+              ...image,
+              prompt: rebuildImagePrompt(image, {
+                textMode: mode,
+                overlayText: mode === "no_text" ? "" : inferArticleImageOverlayText(image.prompt)
+              })
+            }
+          : image
+      )
+    );
+  }
+
+  function applyImageOverlayText(index: number, text: string) {
+    setEditableImages((current) =>
+      current.map((image, imageIndex) =>
+        imageIndex === index
+          ? {
+              ...image,
+              prompt: rebuildImagePrompt(image, {
+                textMode: "text_overlay",
+                overlayText: text
+              })
+            }
+          : image
+      )
+    );
+  }
+
   function removeImageAsset(index: number) {
     setEditableImages((current) =>
       current.map((image, imageIndex) =>
@@ -1500,6 +1570,10 @@ export function WorkflowDashboard({
                   imageStatusLabel={imageStatusLabel}
                   imageErrorCount={imageErrorCount}
                   updateImageAsset={updateImageAsset}
+                  inferImageTextMode={(image) => inferArticleImageTextMode(image.prompt)}
+                  inferImageOverlayText={(image) => inferArticleImageOverlayText(image.prompt)}
+                  applyImageTextMode={applyImageTextMode}
+                  applyImageOverlayText={applyImageOverlayText}
                   replaceImageFromFile={replaceImageFromFile as any}
                   downloadImageAsset={downloadImageAsset as any}
                   removeImageAsset={removeImageAsset}
