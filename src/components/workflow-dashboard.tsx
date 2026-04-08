@@ -1789,6 +1789,7 @@ export function WorkflowDashboard({
                   updateDraftSection={updateDraftSection}
                   articleSections={articleSections as any}
                   articleImages={articleImages}
+                  saveBrief={saveBrief as any}
                   saveDraft={saveDraft as any}
                   regenerateArticleWithAnotherPattern={regenerateArticleWithAnotherPattern as any}
                   featuredImageSrc={featuredImageSrc as any}

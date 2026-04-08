@@ -30,6 +30,7 @@ interface ArticleStudioTabProps {
   updateDraftSection: (index: number, field: "heading" | "body", value: string) => void
   articleSections: Array<{ heading: string; body: string }>
   articleImages: ArticleImageAsset[]
+  saveBrief: () => void
   saveDraft: () => void
   regenerateArticleWithAnotherPattern: () => void
   featuredImageSrc: string
@@ -74,6 +75,7 @@ export function ArticleStudioTab({
   updateDraftSection,
   articleSections,
   articleImages,
+  saveBrief,
   saveDraft,
   regenerateArticleWithAnotherPattern,
   featuredImageSrc,
@@ -83,9 +85,10 @@ export function ArticleStudioTab({
   stageLabels
 }: ArticleStudioTabProps) {
   const previewTitle = briefTitle || activeIdea?.title || "Untitled article"
+  const previewSections = draftSections.length > 0 ? draftSections : articleSections
   const sectionAnchors = [
     { id: "intro", label: "Intro" },
-    ...articleSections.map((section, index) => ({
+    ...previewSections.map((section, index) => ({
       id: `section-${index + 1}`,
       label: section.heading || `Section ${index + 1}`
     })),
@@ -120,12 +123,11 @@ export function ArticleStudioTab({
               </div>
 
               <div className="flex flex-wrap gap-2">
+                <Button variant="outline" disabled={Boolean(pendingAction)} onClick={() => saveBrief()}>
+                  {pendingAction === "save-brief" ? "Saving Details..." : "Save Details"}
+                </Button>
                 <Button variant="default" disabled={Boolean(pendingAction)} onClick={() => saveDraft()}>
-                  {pendingAction === "save-brief"
-                    ? "Saving Brief..."
-                    : pendingAction === "save-draft"
-                      ? "Saving Draft..."
-                      : "Save Draft"}
+                  {pendingAction === "save-draft" ? "Saving Draft..." : "Save Draft"}
                 </Button>
                 <Button
                   variant="outline"
@@ -345,7 +347,7 @@ export function ArticleStudioTab({
                 </div>
               </motion.section>
 
-              {articleSections.map((section, index) => {
+              {previewSections.map((section, index) => {
                 const image = articleImages[index + 1]
 
                 return (
