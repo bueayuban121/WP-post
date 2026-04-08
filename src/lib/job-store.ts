@@ -147,6 +147,23 @@ function mapStoredAutomationEvent(event: StoredJob["workflowEvents"][number]): W
   };
 }
 
+function sanitizePlannedImageSrc(src: string) {
+  const value = src.trim();
+
+  if (!value) {
+    return "";
+  }
+
+  if (
+    value.includes("image.pollinations.ai/prompt") ||
+    value.includes("/article-images/goldfish-water-1.svg")
+  ) {
+    return "";
+  }
+
+  return value;
+}
+
 async function withResolvedProvider(job: WorkflowJob): Promise<WorkflowJob> {
   const provider = await resolveResearchProviderByClientName(job.client);
   return {
@@ -314,7 +331,7 @@ function fromStoredJob(job: StoredJob): WorkflowJob {
     images: job.articleImages.map((image) => ({
       id: image.id,
       kind: image.kind as ArticleImageAsset["kind"],
-      src: image.src,
+      src: sanitizePlannedImageSrc(image.src),
       alt: image.alt,
       caption: image.caption,
       placement: image.placement,

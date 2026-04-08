@@ -11,20 +11,12 @@ type BuildImageInput = {
   imageCount?: number;
 };
 
-const IMAGE_BASE_URL = "https://image.pollinations.ai/prompt";
-
-function hashSeed(value: string) {
-  let hash = 0;
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  }
-
-  return hash || 1;
-}
-
 function trimSentence(value: string) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function containsThai(value: string) {
+  return /[\u0E00-\u0E7F]/.test(value);
 }
 
 function extractVisualCue(value?: string, fallback?: string) {
@@ -128,6 +120,12 @@ export function buildArticleImagePrompt(input: {
       : input.placement === "Conclusion"
         ? "closing visual, calm polished composition, summary mood"
         : "supporting article visual, realistic context, informative scene";
+  const exactTextInstruction =
+    textMode === "text_overlay" && overlayText
+      ? containsThai(overlayText)
+        ? `Render this Thai text exactly as written, preserving Thai script, spacing, and meaning without paraphrasing, translating, or replacing characters: "${overlayText}". Keep it short and highly legible.`
+        : `Render this text exactly as written without paraphrasing or replacing characters: "${overlayText}".`
+      : "";
 
   return trimSentence(
     [
@@ -141,11 +139,12 @@ export function buildArticleImagePrompt(input: {
       `Placement: ${input.placement}.`,
       input.layoutHint ? `Typography layout hint: ${input.layoutHint}.` : "",
       input.styleNote ? `Design note: ${input.styleNote}.` : "",
+      exactTextInstruction,
       "Keep the scene modern, realistic, visually clear, commercially polished, and tightly aligned with the article.",
       textMode === "text_overlay"
         ? overlayText
-          ? `Add exact overlay text: "${overlayText}". Compose it beautifully as premium editorial typography, with strong hierarchy, balanced spacing, and clear readability. Use elegant Thai and English text when requested, and leave clean negative space around the wording.`
-          : "Add a short, high-impact text overlay that matches the article. Compose it with premium editorial typography, strong hierarchy, and clear readability."
+          ? `Add exact overlay text: "${overlayText}". First decide the text layout, then generate the image around that wording. Compose it as premium editorial typography with strong hierarchy, balanced spacing, clean negative space, and high readability. Use elegant Thai and English text when requested, with short lines and clear contrast.`
+          : "Add a short, high-impact text overlay that matches the article. First decide the wording and text layout, then generate the image around that typography with strong hierarchy and clear readability."
         : "Do not include any text, letters, typography, logo, watermark, or UI overlay anywhere in the image."
     ].join(" ")
   );
@@ -159,20 +158,6 @@ export function inferArticleImageTextMode(prompt: string): ArticleImageTextMode 
 export function inferArticleImageOverlayText(prompt: string) {
   const match = prompt.match(/Add exact overlay text:\s*"([^"]+)"/i);
   return match?.[1]?.trim() ?? "";
-}
-
-function buildImageUrl(prompt: string, seed: number, width: number, height: number) {
-  const params = new URLSearchParams({
-    width: String(width),
-    height: String(height),
-    seed: String(seed),
-    model: "flux",
-    nologo: "true",
-    enhance: "true",
-    private: "true"
-  });
-
-  return `${IMAGE_BASE_URL}/${encodeURIComponent(prompt)}?${params.toString()}`;
 }
 
 function toCaption(title: string, seedKeyword: string, placement: string, sectionHeading?: string) {
@@ -214,12 +199,11 @@ function buildAsset(
     intro: input.draft.intro,
     conclusion: input.draft.conclusion
   });
-  const seed = hashSeed(`${input.seedKeyword}:${input.title}:${sortKey}:${sectionHeading ?? ""}`);
 
   return {
-    id: `image-${sortKey}-${seed}`,
+    id: `image-${sortKey}`,
     kind,
-    src: buildImageUrl(prompt, seed, kind === "featured" ? 1600 : 1400, kind === "featured" ? 900 : 840),
+    src: "",
     alt: toAlt(input.title, placement, sectionHeading),
     caption: toCaption(input.title, input.seedKeyword, placement, sectionHeading),
     placement,

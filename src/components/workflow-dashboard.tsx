@@ -407,8 +407,7 @@ export function WorkflowDashboard({
         editorialPatternOverride
       )
     : null;
-  const featuredImageSrc =
-    briefFeaturedImageUrl.trim() || articleImages[0]?.src || "/article-images/goldfish-water-1.svg";
+  const featuredImageSrc = briefFeaturedImageUrl.trim() || articleImages[0]?.src || "";
   const researchSummary = buildResearchSummary(job?.seedKeyword ?? "", activeIdea, job);
   const hasSelectedIdea = Boolean(activeIdea);
   const selectedKeywordLabel = job?.seedKeyword ?? "";

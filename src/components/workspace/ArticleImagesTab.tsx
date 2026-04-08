@@ -48,6 +48,9 @@ export function ArticleImagesTab({
   restoreImageAsset,
   regenerateSingleImage
 }: ArticleImagesTabProps) {
+  const selectClassName =
+    "flex h-10 w-full rounded-[16px] border border-white/10 bg-[linear-gradient(180deg,rgba(23,31,43,0.96),rgba(14,20,30,0.92))] px-3 py-2 text-sm text-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_14px_28px_rgba(2,6,23,0.16)] ring-offset-background transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/45 focus-visible:ring-offset-0";
+
   return (
     <GlassPanel className="flex flex-col gap-6 overflow-hidden">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -101,7 +104,7 @@ export function ArticleImagesTab({
                 {image.src.trim() ? (
                   <Image alt={image.alt} fill src={image.src} unoptimized className="object-cover" />
                 ) : (
-                  <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground/50">
+                  <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground/65">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -118,14 +121,15 @@ export function ArticleImagesTab({
                       <circle cx="9" cy="9" r="2" />
                       <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
                     </svg>
-                    <span>Image removed from this slot</span>
+                    <span>ยังไม่มีภาพในช่องนี้</span>
+                    <span className="text-xs text-muted-foreground/50">กด Generate Images หรือ Regenerate เพื่อสร้างภาพจริง</span>
                   </div>
                 )}
               </div>
 
               <div className="flex flex-col gap-4">
                 <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-200">
                     Frame {index + 1}
                   </span>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -172,7 +176,7 @@ export function ArticleImagesTab({
                     <select
                       value={textMode}
                       onChange={(event) => applyImageTextMode(index, event.target.value as ArticleImageTextMode)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className={selectClassName}
                     >
                       <option value="no_text">No text</option>
                       <option value="text_overlay">Text overlay</option>

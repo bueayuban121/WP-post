@@ -24,7 +24,7 @@ interface ProjectCreateFormProps {
 }
 
 const selectClassName =
-  "flex h-11 w-full rounded-[18px] border border-white/10 bg-[#0f1722]/88 px-4 py-2 text-sm text-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_16px_34px_rgba(2,6,23,0.18)] backdrop-blur-md transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45 focus-visible:ring-offset-0"
+  "flex h-11 w-full rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(23,31,43,0.96),rgba(14,20,30,0.92))] px-4 py-2 text-sm text-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_18px_34px_rgba(2,6,23,0.2)] backdrop-blur-md transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/45 focus-visible:ring-offset-0"
 
 export function ProjectCreateForm({
   createProject,
