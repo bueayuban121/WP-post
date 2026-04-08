@@ -61,11 +61,11 @@ export function ArticleImagesTab({
             <span className="mr-2 inline-flex items-center rounded-full border border-white/10 bg-background/50 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
               {imageStatusLabel}
             </span>
-            {imageErrorCount > 0 && (
+            {imageErrorCount > 0 ? (
               <span className="inline-flex items-center rounded-full border border-destructive/20 bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">
                 {imageErrorCount} issues
               </span>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -91,6 +91,15 @@ export function ArticleImagesTab({
       </div>
 
       <div className="mt-2 grid grid-cols-1 gap-8">
+        {articleImages.length === 0 ? (
+          <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.03] px-6 py-12 text-center">
+            <strong className="block text-base text-slate-100">No image slots yet</strong>
+            <p className="mt-2 text-sm leading-7 text-slate-400">
+              Generate the article first, then create the image set for each section here.
+            </p>
+          </div>
+        ) : null}
+
         {articleImages.map((image, index) => {
           const textMode = inferImageTextMode(image);
           const overlayText = inferImageOverlayText(image);
@@ -104,7 +113,7 @@ export function ArticleImagesTab({
                 {image.src.trim() ? (
                   <Image alt={image.alt} fill src={image.src} unoptimized className="object-cover" />
                 ) : (
-                  <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground/65">
+                  <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground/65">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -121,8 +130,10 @@ export function ArticleImagesTab({
                       <circle cx="9" cy="9" r="2" />
                       <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
                     </svg>
-                    <span>ยังไม่มีภาพในช่องนี้</span>
-                    <span className="text-xs text-muted-foreground/50">กด Generate Images หรือ Regenerate เพื่อสร้างภาพจริง</span>
+                    <span>No image in this slot yet</span>
+                    <span className="text-xs text-muted-foreground/50">
+                      Use Generate Images or Regenerate to create the real image.
+                    </span>
                   </div>
                 )}
               </div>
@@ -206,7 +217,7 @@ export function ArticleImagesTab({
                       value={overlayText}
                       onChange={(event) => applyImageOverlayText(index, event.target.value)}
                       className="bg-background/50 text-sm"
-                      placeholder="เช่น โปรตีนถั่วเหลือง | Soy Protein"
+                      placeholder="Example: โปรตีนถั่วเหลือง | Soy Protein"
                     />
                     <div className="flex justify-end">
                       <Button

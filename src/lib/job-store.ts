@@ -835,6 +835,9 @@ export async function generateJobBrief(jobId: string, options?: Partial<Workflow
   const selectedIdea = job.ideas.find((idea) => idea.id === job.selectedIdeaId);
   if (!selectedIdea) return null;
   const settings = normalizeGenerationSettings(options);
+  const fallbackBrief = generateBrief(job.seedKeyword, selectedIdea, job.research, {
+    sectionCount: settings.sectionCount
+  });
   const prisma = getPrismaClient();
   const clientRows =
     prisma && job.client
@@ -855,16 +858,24 @@ export async function generateJobBrief(jobId: string, options?: Partial<Workflow
   }).catch(() => null);
   const brief = aiBrief
     ? {
+        ...fallbackBrief,
         ...job.brief,
         ...aiBrief,
+        title: aiBrief.title.trim() || fallbackBrief.title,
+        slug: aiBrief.slug.trim() || fallbackBrief.slug,
+        metaTitle: aiBrief.metaTitle.trim() || fallbackBrief.metaTitle,
+        metaDescription: aiBrief.metaDescription.trim() || fallbackBrief.metaDescription,
+        audience: aiBrief.audience.trim() || fallbackBrief.audience,
+        angle: aiBrief.angle.trim() || fallbackBrief.angle,
+        outline: aiBrief.outline.length > 0 ? aiBrief.outline : fallbackBrief.outline,
+        faqs: aiBrief.faqs.length > 0 ? aiBrief.faqs : fallbackBrief.faqs,
+        internalLinks: aiBrief.internalLinks.length > 0 ? aiBrief.internalLinks : fallbackBrief.internalLinks,
         publishStatus: job.brief.publishStatus || "draft",
         categoryIds: job.brief.categoryIds,
         tagIds: job.brief.tagIds,
         featuredImageUrl: job.brief.featuredImageUrl
       }
-    : generateBrief(job.seedKeyword, selectedIdea, job.research, {
-        sectionCount: settings.sectionCount
-      });
+    : fallbackBrief;
 
   if (!isDatabaseConfigured()) {
     job.brief = brief;
@@ -903,6 +914,9 @@ export async function generateJobDraft(jobId: string, options?: Partial<Workflow
         )) as Array<{ id: string }>)
       : [];
   const promptConfig = await getPromptConfig(clientRows[0]?.id ?? null);
+  const fallbackDraft = generateDraft(job.seedKeyword, job.brief, job.research, {
+    sectionCount: settings.sectionCount
+  });
   const aiDraft = await generateDraftWithOpenAi({
     seedKeyword: job.seedKeyword,
     brief: {
@@ -927,9 +941,13 @@ export async function generateJobDraft(jobId: string, options?: Partial<Workflow
         promptConfig
       }).catch(() => aiDraft)
     : null;
-  const draft = polishedDraft ?? aiDraft ?? generateDraft(job.seedKeyword, job.brief, job.research, {
-    sectionCount: settings.sectionCount
-  });
+  const candidateDraft = polishedDraft ?? aiDraft;
+  const draft =
+    candidateDraft &&
+    candidateDraft.sections.length > 0 &&
+    candidateDraft.sections.some((section) => section.heading.trim() || section.body.trim())
+      ? candidateDraft
+      : fallbackDraft;
   const images = generateArticleImages({
     seedKeyword: job.seedKeyword,
     title: job.brief.title,
