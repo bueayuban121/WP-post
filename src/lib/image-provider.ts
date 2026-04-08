@@ -5,6 +5,7 @@ type GenerateManagedImageInput = {
   prompt: string;
   width?: number;
   height?: number;
+  qualityMode?: "fast" | "premium-text";
 };
 
 type ManagedImageProvider = "gemini-banana" | "phaya-nano-banana" | "prompt-fallback";
@@ -38,7 +39,13 @@ export async function generateManagedImage(
   input: GenerateManagedImageInput
 ): Promise<ManagedGeneratedImage> {
   if (isGeminiImageConfigured()) {
-    const generated = await generateImageWithGemini(input);
+    const generated = await generateImageWithGemini({
+      ...input,
+      model:
+        input.qualityMode === "premium-text"
+          ? process.env.GEMINI_PREMIUM_IMAGE_MODEL?.trim() || "gemini-3-pro-image-preview"
+          : process.env.GEMINI_IMAGE_MODEL?.trim() || "gemini-2.5-flash-image"
+    });
     return {
       src: generated.src,
       provider: "gemini-banana"

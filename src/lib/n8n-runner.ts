@@ -3,7 +3,8 @@ import {
   generateDraftWithOpenAi,
   synthesizeResearchWithOpenAi
 } from "@/lib/openai";
-import { generateArticleImages } from "@/lib/article-images";
+import { generateArticleImages, inferArticleImageTextMode } from "@/lib/article-images";
+import { resolveClientPlanByClientName, type ClientPlan } from "@/lib/client-plan";
 import { buildResearchPackFromDataForSeo } from "@/lib/dataforseo";
 import { generateManagedImage, getPreferredImageProvider, isManagedImageGenerationConfigured } from "@/lib/image-provider";
 import { resolveResearchProviderByClientName } from "@/lib/research-provider-config";
@@ -14,6 +15,14 @@ import type { ResearchPack, TopicIdea, WorkflowAutomationType, WorkflowJob } fro
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getImageQualityModeForPlan(plan: ClientPlan, prompt: string) {
+  if (plan === "normal") {
+    return "fast" as const;
+  }
+
+  return inferArticleImageTextMode(prompt) === "text_overlay" ? ("premium-text" as const) : ("fast" as const);
 }
 
 function getSelectedIdea(job: WorkflowJob): TopicIdea {
@@ -40,10 +49,11 @@ async function buildResearchPack(job: WorkflowJob) {
   const selectedIdea = getSelectedIdea(job);
   const seedKeyword = job.seedKeyword;
   const provider = await resolveResearchProviderByClientName(job.client);
+  const clientPlan = await resolveClientPlanByClientName(job.client);
   let searchError: string | null = null;
 
   if (provider === "dataforseo") {
-    const dataForSeoResult = await buildResearchPackFromDataForSeo(seedKeyword, selectedIdea);
+    const dataForSeoResult = await buildResearchPackFromDataForSeo(seedKeyword, selectedIdea, job.serpSnapshot, clientPlan);
     return {
       research: dataForSeoResult.research,
       payload: {
@@ -215,6 +225,7 @@ export async function buildRunnerCallback(input: {
     });
     const imageGenerationEnabled = isManagedImageGenerationConfigured();
     const imageResults = [];
+    const clientPlan = await resolveClientPlanByClientName(job.client);
 
     if (imageGenerationEnabled) {
       for (const [index, image] of images.entries()) {
@@ -222,7 +233,8 @@ export async function buildRunnerCallback(input: {
           const generated = await generateManagedImage({
             prompt: image.prompt,
             width: image.kind === "featured" ? 1600 : 1400,
-            height: image.kind === "featured" ? 900 : 840
+            height: image.kind === "featured" ? 900 : 840,
+            qualityMode: getImageQualityModeForPlan(clientPlan, image.prompt)
           });
 
           imageResults.push({

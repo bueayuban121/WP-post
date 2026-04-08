@@ -2,6 +2,7 @@ type GenerateGeminiImageInput = {
   prompt: string;
   width?: number;
   height?: number;
+  model?: string;
 };
 
 type GeneratedGeminiImage = {
@@ -23,7 +24,11 @@ function getBaseUrl() {
   return getEnv("GEMINI_IMAGE_BASE_URL") || DEFAULT_BASE_URL;
 }
 
-function getModel() {
+function getModel(model?: string) {
+  if (model?.trim()) {
+    return model.trim();
+  }
+
   return getEnv("GEMINI_IMAGE_MODEL") || "gemini-2.5-flash-image";
 }
 
@@ -118,7 +123,7 @@ export async function generateImageWithGemini(
   }
 
   const response = await fetch(
-    joinUrl(getBaseUrl(), `models/${getModel()}:generateContent`),
+    joinUrl(getBaseUrl(), `models/${getModel(input.model)}:generateContent`),
     {
       method: "POST",
       headers: {

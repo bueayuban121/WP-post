@@ -1,5 +1,6 @@
 import { mockWorkflowJob } from "@/data/mock-workflow";
-import { generateArticleImages } from "@/lib/article-images";
+import { generateArticleImages, inferArticleImageTextMode } from "@/lib/article-images";
+import { resolveClientPlanByClientId, resolveClientPlanByClientName, type ClientPlan } from "@/lib/client-plan";
 import { buildResearchPackFromDataForSeo, getDataForSeoSerpSnapshot } from "@/lib/dataforseo";
 import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import { generateBriefWithOpenAi, generateDraftWithOpenAi, polishDraftWithOpenAi } from "@/lib/openai";
@@ -25,6 +26,18 @@ import type {
 import { WorkflowStage, ResearchRegion, type Prisma } from "@/generated/prisma/client";
 
 const jobs = new Map<string, WorkflowJob>([[mockWorkflowJob.id, mockWorkflowJob]]);
+
+function getImageQualityModeForPlan(plan: ClientPlan, prompt: string) {
+  if (plan === "normal") {
+    return "fast" as const;
+  }
+
+  return inferArticleImageTextMode(prompt) === "text_overlay" ? ("premium-text" as const) : ("fast" as const);
+}
+
+async function resolveJobClientPlan(job: Pick<WorkflowJob, "client">) {
+  return resolveClientPlanByClientName(job.client);
+}
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -604,7 +617,10 @@ export async function createJob(input: { client: string; seedKeyword: string; cl
   const provider = input.clientId
     ? (await resolveResearchProviderByClientId(input.clientId))
     : await resolveResearchProviderByClientName(input.client);
-  const job = await buildNewJob(input.seedKeyword, input.client, provider);
+  const clientPlan = input.clientId
+    ? await resolveClientPlanByClientId(input.clientId)
+    : await resolveClientPlanByClientName(input.client);
+  const job = await buildNewJob(input.seedKeyword, input.client, provider, clientPlan);
 
   if (!isDatabaseConfigured()) {
     jobs.set(job.id, job);
@@ -668,8 +684,9 @@ export async function selectIdea(jobId: string, ideaId: string) {
 
   if (isKeywordVariantPhase(job)) {
     const nextKeyword = selectedIdea.title.trim();
-    const serpSnapshot = await getDataForSeoSerpSnapshot(nextKeyword);
-    const topicIdeas = await generateTopicIdeas(nextKeyword, job.researchProvider, serpSnapshot);
+    const clientPlan = await resolveJobClientPlan(job);
+    const serpSnapshot = await getDataForSeoSerpSnapshot(nextKeyword, clientPlan);
+    const topicIdeas = await generateTopicIdeas(nextKeyword, job.researchProvider, serpSnapshot, clientPlan);
 
     if (!isDatabaseConfigured()) {
       job.seedKeyword = nextKeyword;
@@ -796,9 +813,10 @@ export async function runResearch(jobId: string) {
   const selectedIdea = job.ideas.find((idea) => idea.id === job.selectedIdeaId);
   if (!selectedIdea) return null;
   const provider = await resolveResearchProviderByClientName(job.client);
+  const clientPlan = await resolveJobClientPlan(job);
   const research =
     provider === "dataforseo"
-      ? (await buildResearchPackFromDataForSeo(job.seedKeyword, selectedIdea, job.serpSnapshot)).research
+      ? (await buildResearchPackFromDataForSeo(job.seedKeyword, selectedIdea, job.serpSnapshot, clientPlan)).research
       : generateResearch(job.seedKeyword, selectedIdea);
 
   if (!isDatabaseConfigured()) {
@@ -1052,6 +1070,7 @@ export async function regenerateJobImages(jobId: string, options?: Partial<Workf
   });
   const images: ArticleImageAsset[] = [];
   const imageGenerationEnabled = isManagedImageGenerationConfigured();
+  const clientPlan = await resolveJobClientPlan(job);
 
   for (const [index, image] of promptImages.entries()) {
     if (imageGenerationEnabled) {
@@ -1059,7 +1078,8 @@ export async function regenerateJobImages(jobId: string, options?: Partial<Workf
         const generated = await generateManagedImage({
           prompt: image.prompt,
           width: image.kind === "featured" ? 1600 : 1400,
-          height: image.kind === "featured" ? 900 : 840
+          height: image.kind === "featured" ? 900 : 840,
+          qualityMode: getImageQualityModeForPlan(clientPlan, image.prompt)
         });
 
         images.push({
@@ -1141,12 +1161,14 @@ export async function regenerateJobImageAt(
     ...targetImage,
     prompt: resolvedPrompt
   };
+  const clientPlan = await resolveJobClientPlan(job);
 
   if (isManagedImageGenerationConfigured()) {
     const generated = await generateManagedImage({
       prompt: resolvedTargetImage.prompt,
       width: resolvedTargetImage.kind === "featured" ? 1600 : 1400,
-      height: resolvedTargetImage.kind === "featured" ? 900 : 840
+      height: resolvedTargetImage.kind === "featured" ? 900 : 840,
+      qualityMode: getImageQualityModeForPlan(clientPlan, resolvedTargetImage.prompt)
     });
 
     nextImages[imageIndex] = {

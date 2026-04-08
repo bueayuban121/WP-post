@@ -1,4 +1,5 @@
 import { generateKeywordIdeasWithOpenAi, synthesizeResearchWithOpenAi } from "@/lib/openai";
+import type { ClientPlan } from "@/lib/client-plan";
 import type { ResearchProvider } from "@/lib/research-provider-config";
 import type { ResearchPack, SerpResult, SerpSnapshot, TopicIdea } from "@/types/workflow";
 
@@ -76,6 +77,15 @@ type DataForSeoSerpResponse = {
   tasks?: DataForSeoSerpTask[];
 };
 
+type DataForSeoScope = {
+  rankedKeywordLimit: number;
+  serpDepth: number;
+  serpResultLimit: number;
+  serpQuestionLimit: number;
+  topicIdeaLimit: number;
+  researchIdeaLimit: number;
+};
+
 export type DataForSeoKeywordVariantResult = {
   seedKeyword: string;
   generatedAt: string;
@@ -91,6 +101,39 @@ export type DataForSeoKeywordVariantResult = {
   }>;
   rawResponse: GoogleAdsResponse;
 };
+
+function getDataForSeoScope(plan: ClientPlan): DataForSeoScope {
+  if (plan === "pro") {
+    return {
+      rankedKeywordLimit: 30,
+      serpDepth: 30,
+      serpResultLimit: 8,
+      serpQuestionLimit: 8,
+      topicIdeaLimit: 16,
+      researchIdeaLimit: 12
+    };
+  }
+
+  if (plan === "premium") {
+    return {
+      rankedKeywordLimit: 30,
+      serpDepth: 20,
+      serpResultLimit: 6,
+      serpQuestionLimit: 6,
+      topicIdeaLimit: 12,
+      researchIdeaLimit: 8
+    };
+  }
+
+  return {
+    rankedKeywordLimit: 20,
+    serpDepth: 10,
+    serpResultLimit: 4,
+    serpQuestionLimit: 4,
+    topicIdeaLimit: 8,
+    researchIdeaLimit: 6
+  };
+}
 
 function getAuthHeader() {
   return `Basic ${Buffer.from(`${DATAFORSEO_LOGIN}:${DATAFORSEO_PASSWORD}`).toString("base64")}`;
@@ -470,7 +513,7 @@ async function callDataForSeoKeywordVariants(seedKeyword: string) {
   return (await response.json()) as GoogleAdsResponse;
 }
 
-async function callDataForSeoSerpSnapshot(keyword: string) {
+async function callDataForSeoSerpSnapshot(keyword: string, depth = 20) {
   if (!isDataForSeoConfigured()) {
     throw new Error("DataForSEO credentials are not configured.");
   }
@@ -486,7 +529,7 @@ async function callDataForSeoSerpSnapshot(keyword: string) {
         keyword,
         location_code: DATAFORSEO_LOCATION_CODE,
         language_code: DATAFORSEO_LANGUAGE_CODE,
-        depth: 20
+        depth
       }
     ])
   });
@@ -528,12 +571,16 @@ export async function getDataForSeoKeywordVariantResult(
   };
 }
 
-export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<TopicIdea[] | null> {
+export async function generateIdeasFromDataForSeo(
+  seedKeyword: string,
+  plan: ClientPlan = "normal"
+): Promise<TopicIdea[] | null> {
   if (!isDataForSeoConfigured()) {
     return buildKeywordVariantFallback(seedKeyword);
   }
 
   try {
+    const scope = getDataForSeoScope(plan);
     const variantResult = await getDataForSeoKeywordVariantResult(seedKeyword);
     const suggestions = variantResult.suggestions;
 
@@ -596,7 +643,7 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
 
         return left.keyword.localeCompare(right.keyword);
       })
-      .slice(0, 30);
+      .slice(0, scope.rankedKeywordLimit);
 
     return rankedKeywords.map((ranked, index) => {
       const matchedItem = ranked.matchedItem;
@@ -634,13 +681,17 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
   }
 }
 
-export async function getDataForSeoSerpSnapshot(keyword: string): Promise<SerpSnapshot | null> {
+export async function getDataForSeoSerpSnapshot(
+  keyword: string,
+  plan: ClientPlan = "normal"
+): Promise<SerpSnapshot | null> {
   if (!isDataForSeoConfigured()) {
     return null;
   }
 
   try {
-    const response = await callDataForSeoSerpSnapshot(keyword);
+    const scope = getDataForSeoScope(plan);
+    const response = await callDataForSeoSerpSnapshot(keyword, scope.serpDepth);
     const items = extractSerpItems(response);
 
     if (items.length === 0) {
@@ -649,7 +700,7 @@ export async function getDataForSeoSerpSnapshot(keyword: string): Promise<SerpSn
 
     const topResults = items
       .filter((item) => item.type && /organic|paid|shopping|merchant/.test(item.type))
-      .slice(0, 6)
+      .slice(0, scope.serpResultLimit)
       .map(toSerpResult);
 
     const featuredSnippetItem = items.find((item) => item.type === "featured_snippet") ?? null;
@@ -658,11 +709,11 @@ export async function getDataForSeoSerpSnapshot(keyword: string): Promise<SerpSn
     const peopleAlsoAsk = (paaItem?.items ?? [])
       .map((item) => trimSentence(String(item.title ?? item.description ?? "")))
       .filter(Boolean)
-      .slice(0, 6);
+      .slice(0, scope.serpQuestionLimit);
     const relatedSearches = (relatedSearchesItem?.items ?? [])
       .map((item) => trimSentence(String(item.title ?? item.description ?? "")))
       .filter(Boolean)
-      .slice(0, 6);
+      .slice(0, scope.serpQuestionLimit);
     const serpFeatures = dedupe(items.map((item) => normalizeSerpFeatureLabel(String(item.type ?? ""))).filter(Boolean));
     const hasLocalPack = items.some((item) => item.type === "local_pack");
 
@@ -688,15 +739,17 @@ export async function getDataForSeoSerpSnapshot(keyword: string): Promise<SerpSn
 
 export async function generateTopicIdeasFromDataForSeo(
   seedKeyword: string,
-  serpSnapshot?: SerpSnapshot | null
+  serpSnapshot?: SerpSnapshot | null,
+  plan: ClientPlan = "normal"
 ): Promise<TopicIdea[] | null> {
   if (!isDataForSeoConfigured()) {
     return null;
   }
 
   try {
-    const response = await callDataForSeoKeywordIdeas([seedKeyword], 12);
-    const items = extractItems(response).slice(0, 12);
+    const scope = getDataForSeoScope(plan);
+    const response = await callDataForSeoKeywordIdeas([seedKeyword], scope.topicIdeaLimit);
+    const items = extractItems(response).slice(0, scope.topicIdeaLimit);
 
     if (items.length < 4) {
       return null;
@@ -706,10 +759,10 @@ export async function generateTopicIdeasFromDataForSeo(
       items
         .map((item) => trimSentence(String(item.keyword ?? "")))
         .filter(Boolean)
-    ).slice(0, 12);
+    ).slice(0, scope.topicIdeaLimit);
 
     const summaryHooks = items
-      .slice(0, 8)
+      .slice(0, Math.min(scope.topicIdeaLimit, 8))
       .map((item) => `${item.keyword}: ${buildInsightLine(item)}`)
       .concat(
         serpSnapshot
@@ -723,7 +776,10 @@ export async function generateTopicIdeasFromDataForSeo(
       .join(" ");
 
     const serpTitles = serpSnapshot?.topResults.map((result) => result.title) ?? [];
-    const topicTitles = dedupe([...keywordTitles, ...serpTitles, ...(serpSnapshot?.peopleAlsoAsk ?? [])]).slice(0, 12);
+    const topicTitles = dedupe([...keywordTitles, ...serpTitles, ...(serpSnapshot?.peopleAlsoAsk ?? [])]).slice(
+      0,
+      scope.topicIdeaLimit
+    );
 
     const aiIdeas = await generateKeywordIdeasWithOpenAi({
       seedKeyword,
@@ -733,7 +789,7 @@ export async function generateTopicIdeasFromDataForSeo(
       globalTitles: topicTitles
     }).catch(() => []);
 
-    if (aiIdeas.length >= 8) {
+    if (aiIdeas.length >= Math.min(8, scope.topicIdeaLimit)) {
       return aiIdeas.map((idea, index) => ({
         id: crypto.randomUUID(),
         title: trimSentence(idea.title),
@@ -748,7 +804,7 @@ export async function generateTopicIdeasFromDataForSeo(
       }));
     }
 
-    return keywordTitles.slice(0, 12).map((keyword, index) => ({
+    return keywordTitles.slice(0, scope.topicIdeaLimit).map((keyword, index) => ({
       id: crypto.randomUUID(),
       title: keyword,
       angle: `Build an article angle around "${keyword}" while keeping the broader intent of "${seedKeyword}".`,
@@ -768,7 +824,8 @@ export async function generateTopicIdeasFromDataForSeo(
 export async function buildResearchPackFromDataForSeo(
   seedKeyword: string,
   selectedIdea: TopicIdea,
-  serpSnapshot?: SerpSnapshot | null
+  serpSnapshot?: SerpSnapshot | null,
+  plan: ClientPlan = "normal"
 ): Promise<{ research: ResearchPack; provider: ResearchProvider; summaryText: string; summaryHooks: string }> {
   if (!isDataForSeoConfigured()) {
     return {
@@ -780,8 +837,9 @@ export async function buildResearchPackFromDataForSeo(
   }
 
   try {
-    const response = await callDataForSeoKeywordIdeas([selectedIdea.title, seedKeyword], 8);
-    const items = extractItems(response).slice(0, 8);
+    const scope = getDataForSeoScope(plan);
+    const response = await callDataForSeoKeywordIdeas([selectedIdea.title, seedKeyword], scope.researchIdeaLimit);
+    const items = extractItems(response).slice(0, scope.researchIdeaLimit);
 
     if (items.length === 0) {
       return {
@@ -807,7 +865,7 @@ export async function buildResearchPackFromDataForSeo(
             source: "Needs verification",
             insight: serpSnapshot.intentSummary
           },
-          ...serpSnapshot.topResults.slice(0, 3).map((result) => ({
+          ...serpSnapshot.topResults.slice(0, Math.min(scope.serpResultLimit, 4)).map((result) => ({
             region: "Global" as const,
             title: result.title,
             source: result.url || "DataForSEO SERP live advanced",
@@ -824,7 +882,11 @@ export async function buildResearchPackFromDataForSeo(
         "Show which related terms reveal the clearest user intent.",
         "Translate keyword data into a content angle that fits Thai readers.",
         ...(serpSnapshot?.peopleAlsoAsk.length
-          ? [`Address related user questions such as ${serpSnapshot.peopleAlsoAsk.slice(0, 2).join(" and ")}.`]
+          ? [
+              `Address related user questions such as ${serpSnapshot.peopleAlsoAsk
+                .slice(0, Math.min(scope.serpQuestionLimit, 3))
+                .join(" and ")}.`
+            ]
           : [])
       ],
       sources: [...sources, ...serpSources]

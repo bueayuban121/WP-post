@@ -1,4 +1,5 @@
 import { mockWorkflowJob } from "@/data/mock-workflow";
+import type { ClientPlan } from "@/lib/client-plan";
 import { generateIdeasFromDataForSeo, generateTopicIdeasFromDataForSeo } from "@/lib/dataforseo";
 import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import { generateKeywordIdeasWithOpenAi } from "@/lib/openai";
@@ -478,11 +479,12 @@ async function generateIdeasFromTavily(seedKeyword: string): Promise<TopicIdea[]
 
 export async function generateIdeas(
   seedKeyword: string,
-  provider: ResearchProvider = "tavily"
+  provider: ResearchProvider = "tavily",
+  plan: ClientPlan = "normal"
 ): Promise<TopicIdea[]> {
   const aiIdeas =
     provider === "dataforseo"
-      ? await generateIdeasFromDataForSeo(seedKeyword)
+      ? await generateIdeasFromDataForSeo(seedKeyword, plan)
       : await generateIdeasFromTavily(seedKeyword);
 
   if (aiIdeas && aiIdeas.length > 0) {
@@ -510,11 +512,12 @@ export async function generateIdeas(
 export async function generateTopicIdeas(
   seedKeyword: string,
   provider: ResearchProvider = "tavily",
-  serpSnapshot?: SerpSnapshot | null
+  serpSnapshot?: SerpSnapshot | null,
+  plan: ClientPlan = "normal"
 ): Promise<TopicIdea[]> {
   const aiIdeas =
     provider === "dataforseo"
-      ? await generateTopicIdeasFromDataForSeo(seedKeyword, serpSnapshot)
+      ? await generateTopicIdeasFromDataForSeo(seedKeyword, serpSnapshot, plan)
       : await generateIdeasFromTavily(seedKeyword);
 
   if (aiIdeas && aiIdeas.length > 0) {
@@ -753,9 +756,10 @@ export function generateDraft(
 export async function buildNewJob(
   seedKeyword: string,
   client: string,
-  provider: ResearchProvider = "tavily"
+  provider: ResearchProvider = "tavily",
+  plan: ClientPlan = "normal"
 ): Promise<WorkflowJob> {
-  const ideas = await generateIdeas(seedKeyword, provider);
+  const ideas = await generateIdeas(seedKeyword, provider, plan);
 
   return {
     id: crypto.randomUUID(),
