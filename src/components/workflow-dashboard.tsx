@@ -625,6 +625,13 @@ export function WorkflowDashboard({
     }
   }, []);
 
+  function beginAction(action: PendingAction, title: string, detail: string) {
+    setPendingAction(action);
+    setStatusMessage(title);
+    showFloatingStatus(title, detail);
+    setError("");
+  }
+
   async function postJob(path: string, body?: unknown, message = "Updated", nextTab?: WorkspaceTab) {
     const response = await fetch(path, {
       method: "POST",
@@ -708,11 +715,8 @@ export function WorkflowDashboard({
 
   async function createProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    beginAction("create-project", "Creating project", "We are preparing the keyword workflow for this client.");
     startTransition(async () => {
-      setPendingAction("create-project");
-      setStatusMessage("Creating project");
-      showFloatingStatus("Creating project", "We are preparing the keyword workflow for this client.");
-      setError("");
       try {
         if (!selectedClientAccount?.name) {
           throw new Error("Please select a client account before creating the job.");
@@ -738,16 +742,14 @@ export function WorkflowDashboard({
 
   async function selectKeyword(idea: TopicIdea) {
     if (!job) return;
+    beginAction(
+      "select-keyword",
+      inKeywordVariantPhase ? "Selecting keyword variant" : "Selecting article topic",
+      inKeywordVariantPhase
+        ? "Locking this keyword and preparing the next topic options."
+        : "Saving this topic and moving the workflow into research."
+    );
     startTransition(async () => {
-      setPendingAction("select-keyword");
-      setStatusMessage(inKeywordVariantPhase ? "Selecting keyword variant" : "Selecting article topic");
-      showFloatingStatus(
-        inKeywordVariantPhase ? "Selecting keyword variant" : "Selecting article topic",
-        inKeywordVariantPhase
-          ? "Locking this keyword and preparing the next topic options."
-          : "Saving this topic and moving the workflow into research."
-      );
-      setError("");
       try {
         const selectedJob = await postJob(
           `/api/jobs/${job.id}/ideas/select`,
@@ -790,11 +792,8 @@ export function WorkflowDashboard({
   async function saveSelectedKeyword() {
     if (!job || !activeIdea || inKeywordVariantPhase) return;
 
+    beginAction("save-keyword", "Saving selected topic", "Updating the workflow with your chosen article angle.");
     startTransition(async () => {
-      setPendingAction("save-keyword");
-      setStatusMessage("Saving selected topic");
-      showFloatingStatus("Saving selected topic", "Updating the workflow with your chosen article angle.");
-      setError("");
       try {
         await postJob(
           `/api/jobs/${job.id}/ideas/select`,
@@ -816,11 +815,8 @@ export function WorkflowDashboard({
 
   async function runResearch() {
     if (!job) return;
+    beginAction("run-research", "Queueing research", "Collecting sources and building the research document.");
     startTransition(async () => {
-      setPendingAction("run-research");
-      setStatusMessage("Queueing research");
-      showFloatingStatus("Running research", "Collecting sources and building the research document.");
-      setError("");
       try {
         await queueAutomation("research", "Research queued in n8n", "Research summary ready", "research");
       } catch (researchError) {
@@ -833,11 +829,8 @@ export function WorkflowDashboard({
 
   async function createArticle() {
     if (!job) return;
+    beginAction("create-article", "Generating article", "Turning the brief and research into a full draft.");
     startTransition(async () => {
-      setPendingAction("create-article");
-      setStatusMessage("Generating article");
-      showFloatingStatus("Generating article", "Turning the brief and research into a full draft.");
-      setError("");
       try {
         const generationSettings = getGenerationSettings();
         await postJob(`/api/jobs/${job.id}/brief`, { generationSettings }, "Brief ready", "article");
@@ -860,14 +853,12 @@ export function WorkflowDashboard({
 
     setEditorialPatternOverride(nextPatternName);
 
+    beginAction(
+      "regenerate-pattern",
+      `Regenerating article with ${nextPattern?.label ?? nextPatternName}`,
+      `Switching the draft to the ${nextPattern?.label ?? nextPatternName} pattern.`
+    );
     startTransition(async () => {
-      setPendingAction("regenerate-pattern");
-      setStatusMessage(`Regenerating article with ${nextPattern?.label ?? nextPatternName}`);
-      showFloatingStatus(
-        "Regenerating article",
-        `Switching the draft to the ${nextPattern?.label ?? nextPatternName} pattern.`
-      );
-      setError("");
       try {
         const generationSettings = {
           ...getGenerationSettings(),
@@ -894,11 +885,8 @@ export function WorkflowDashboard({
       featuredImageUrl: briefFeaturedImageUrl
     };
 
+    beginAction("save-brief", "Saving brief", "Updating the title, metadata, and article direction.");
     startTransition(async () => {
-      setPendingAction("save-brief");
-      setStatusMessage("Saving brief");
-      showFloatingStatus("Saving brief", "Updating the title, metadata, and article direction.");
-      setError("");
       try {
         await postJob(`/api/jobs/${job.id}/brief`, brief, "Brief saved", "article");
       } catch (saveError) {
@@ -918,11 +906,8 @@ export function WorkflowDashboard({
       sections: draftSections
     };
 
+    beginAction("save-draft", "Saving draft", "Recording your latest article edits.");
     startTransition(async () => {
-      setPendingAction("save-draft");
-      setStatusMessage("Saving draft");
-      showFloatingStatus("Saving draft", "Recording your latest article edits.");
-      setError("");
       try {
         await postJob(
           `/api/jobs/${job.id}/draft`,
@@ -1058,15 +1043,12 @@ export function WorkflowDashboard({
   async function suggestImageCopy(index: number) {
     if (!job) return;
 
+    beginAction(
+      "suggest-image-copy",
+      `Generating AI copy for image ${index + 1}`,
+      `Writing overlay text and layout guidance for image ${index + 1}.`
+    );
     startTransition(async () => {
-      setPendingAction("suggest-image-copy");
-      setStatusMessage(`Generating AI copy for image ${index + 1}`);
-      showFloatingStatus(
-        "Suggesting image copy",
-        `Writing overlay text and layout guidance for image ${index + 1}.`
-      );
-      setError("");
-
       try {
         const response = await fetch(`/api/jobs/${job.id}/images/copy`, {
           method: "POST",
@@ -1162,11 +1144,8 @@ export function WorkflowDashboard({
   async function saveImages() {
     if (!job) return;
 
+    beginAction("save-images", "Saving image edits", "Updating prompts, captions, and image settings.");
     startTransition(async () => {
-      setPendingAction("save-images");
-      setStatusMessage("Saving image edits");
-      showFloatingStatus("Saving image plan", "Updating prompts, captions, and image settings.");
-      setError("");
       try {
         await postJob(
           `/api/jobs/${job.id}/images`,
@@ -1210,12 +1189,8 @@ export function WorkflowDashboard({
   async function regenerateSingleImage(index: number) {
     if (!job) return;
 
+    beginAction("regenerate-image", `Generating image ${index + 1}`, `Creating image ${index + 1} from the updated prompt.`);
     startTransition(async () => {
-      setPendingAction("regenerate-image");
-      setStatusMessage(`Generating image ${index + 1}`);
-      showFloatingStatus("Generating image", `Creating image ${index + 1} from the updated prompt.`);
-      setError("");
-
       try {
         await postJob(
           `/api/jobs/${job.id}/images`,
@@ -1258,20 +1233,16 @@ export function WorkflowDashboard({
 
   async function runPrimaryAction(type: "approve" | "publish" | "images") {
     if (!job) return;
+    beginAction(
+      type === "approve" ? "approve" : type === "publish" ? "publish" : "generate-images",
+      type === "approve" ? "Approving article" : type === "publish" ? "Queueing publish" : "Queueing image generation",
+      type === "approve"
+        ? "Marking the draft as ready for delivery."
+        : type === "publish"
+          ? "Sending the article into the publish pipeline."
+          : "Building the latest image set for this article."
+    );
     startTransition(async () => {
-      setPendingAction(type === "approve" ? "approve" : type === "publish" ? "publish" : "generate-images");
-      setStatusMessage(
-        type === "approve" ? "Approving article" : type === "publish" ? "Queueing publish" : "Queueing image generation"
-      );
-      showFloatingStatus(
-        type === "approve" ? "Approving article" : type === "publish" ? "Queueing publish" : "Generating images",
-        type === "approve"
-          ? "Marking the draft as ready for delivery."
-          : type === "publish"
-            ? "Sending the article into the publish pipeline."
-            : "Building the latest image set for this article."
-      );
-      setError("");
       try {
         if (type === "approve") {
           await postJob(`/api/jobs/${job.id}/approve`, undefined, "Article approved", "article");
