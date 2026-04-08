@@ -1,4 +1,5 @@
 import type { WorkflowJob } from "@/types/workflow";
+import { buildLongResearchSummary } from "@/lib/research-copy";
 
 type ResearchReportFormat = "html" | "doc";
 
@@ -27,9 +28,26 @@ function getResearchSummary(job: WorkflowJob) {
     .filter((event) => event.type === "research")
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
 
-  return typeof latestResearchEvent?.payload?.summaryText === "string"
-    ? latestResearchEvent.payload.summaryText
-    : "";
+  const eventSummary =
+    typeof latestResearchEvent?.payload?.summaryText === "string"
+      ? latestResearchEvent.payload.summaryText.trim()
+      : "";
+
+  if (eventSummary) {
+    return eventSummary;
+  }
+
+  const selectedIdea = getSelectedIdea(job);
+  if (selectedIdea && job.research.sources.length > 0) {
+    return buildLongResearchSummary({
+      seedKeyword: job.seedKeyword,
+      idea: selectedIdea,
+      job,
+      summaryHooks: ""
+    });
+  }
+
+  return "";
 }
 
 function buildSources(job: WorkflowJob) {
