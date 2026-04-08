@@ -6,8 +6,9 @@
 
 .floatingStatus {
   position: fixed;
-  top: 84px;
-  right: max(20px, calc((100vw - 1460px) / 2 + 24px));
+  top: auto;
+  right: 24px;
+  bottom: 24px;
   z-index: 60;
   display: flex;
   align-items: center;
@@ -21,6 +22,7 @@
   box-shadow: 0 22px 42px rgba(50, 21, 8, 0.24);
   backdrop-filter: blur(18px);
   animation: floatIn 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
 }
 
 .floatingDot {
@@ -43,6 +45,19 @@
   margin-top: 2px;
   color: #f3c9ab;
   font-size: 0.8rem;
+}
+
+.floatingStatus::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 8px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(248, 206, 177, 0.2), rgba(235, 149, 100, 0.9), rgba(248, 206, 177, 0.2));
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
 }
 
 .page::before {
@@ -1735,7 +1750,6 @@
 
 @media (max-width: 900px) {
   .floatingStatus {
-    top: auto;
     right: 16px;
     bottom: 18px;
     left: 16px;

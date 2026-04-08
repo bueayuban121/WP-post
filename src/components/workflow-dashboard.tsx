@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { type FormEvent, useCallback, useEffect, useState, useTransition } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import type { AppUserSession } from "@/lib/auth";
 import type {
   ArticleImageAsset,
@@ -358,6 +358,15 @@ export function WorkflowDashboard({
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const [pendingAction, setPendingAction] = useState<PendingAction>("");
+  const [floatingSnapshot, setFloatingSnapshot] = useState<{
+    visible: boolean;
+    title: string;
+    detail: string;
+  }>({
+    visible: false,
+    title: "",
+    detail: ""
+  });
 
   const [briefTitle, setBriefTitle] = useState("");
   const [briefMetaTitle, setBriefMetaTitle] = useState("");
@@ -1241,14 +1250,19 @@ export function WorkflowDashboard({
   const activeEvent =
     queueEvents.find((event) => event.status === "running") ??
     queueEvents.find((event) => event.status === "queued");
-  const floatingStatusTitle = pendingAction
-    ? statusMessage
-    : activeEvent
-      ? `${automationTypeLabels[activeEvent.type]} ${automationLabels[activeEvent.status]}`
-      : "";
-  const floatingStatusDetail = pendingAction
-    ? "Still working in the background. You can keep scrolling and reviewing the page."
-    : activeEvent?.message || "";
+  const currentFloatingState = useMemo(
+    () => ({
+      title: pendingAction
+        ? statusMessage
+        : activeEvent
+          ? `${automationTypeLabels[activeEvent.type]} ${automationLabels[activeEvent.status]}`
+          : "",
+      detail: pendingAction
+        ? "Still working in the background. You can keep scrolling and reviewing the page."
+        : activeEvent?.message || ""
+    }),
+    [activeEvent, pendingAction, statusMessage]
+  );
   const liveEvent = queueEvents.find((event) => event.status === "queued" || event.status === "running") ?? null;
   const hasImages = articleImages.length > 0;
   const safeJob = job;
@@ -1381,14 +1395,31 @@ export function WorkflowDashboard({
     };
   })();
 
+  useEffect(() => {
+    if (currentFloatingState.title) {
+      setFloatingSnapshot({
+        visible: true,
+        title: currentFloatingState.title,
+        detail: currentFloatingState.detail
+      });
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setFloatingSnapshot((previous) => ({ ...previous, visible: false }));
+    }, 1400);
+
+    return () => window.clearTimeout(timeout);
+  }, [currentFloatingState]);
+
   return (
     <main className={styles.page}>
-      {floatingStatusTitle ? (
+      {floatingSnapshot.visible ? (
         <div className={styles.floatingStatus}>
           <span className={styles.floatingDot} aria-hidden="true" />
           <div>
-            <strong>{floatingStatusTitle}</strong>
-            <span>{floatingStatusDetail || "Please wait while the current step finishes."}</span>
+            <strong>{floatingSnapshot.title}</strong>
+            <span>{floatingSnapshot.detail || "Please wait while the current step finishes."}</span>
           </div>
         </div>
       ) : null}
