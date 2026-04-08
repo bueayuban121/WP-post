@@ -127,7 +127,7 @@ export function buildArticleImagePrompt(input: {
   return trimSentence(
     [
       "Premium editorial image for a blog article.",
-      shotDirection + ".",
+      `${shotDirection}.`,
       `Main topic: ${subject}.`,
       `Seed keyword focus: ${input.seedKeyword}.`,
       `Audience intent: ${input.audience}.`,
@@ -229,7 +229,7 @@ export function generateArticleImages(input: BuildImageInput): ArticleImageAsset
   const sections = input.draft.sections.slice(0, inlineCount);
 
   return [
-    buildAsset(input, "Hero", "hero", undefined, "featured"),
+    buildAsset(input, "Hero", "hero", undefined, undefined, "featured"),
     ...sections.map((section, index) =>
       buildAsset(
         input,
