@@ -29,6 +29,44 @@ export type SerpSnapshot = {
   generatedAt: string;
 };
 
+export type CompetitiveKeywordGap = {
+  keyword: string;
+  overlapScore?: number;
+  searchVolume?: number;
+  competition?: number;
+  ourRank?: number | null;
+  competitorRank?: number | null;
+};
+
+export type CompetitorDomainInsight = {
+  domain: string;
+  overlapKeywords: number;
+  visibilityHint: string;
+};
+
+export type PositionTrackingEntry = {
+  keyword: string;
+  url?: string;
+  title?: string;
+  rankGroup?: number | null;
+  rankAbsolute?: number | null;
+  estimatedTraffic?: number | null;
+};
+
+export type CompetitiveSnapshot = {
+  siteDomain: string;
+  competitorDomains: string[];
+  discoveredCompetitors: CompetitorDomainInsight[];
+  overlapKeywords: CompetitiveKeywordGap[];
+  positionTracking: PositionTrackingEntry[];
+  competitorPositions: Array<{
+    domain: string;
+    keywords: PositionTrackingEntry[];
+  }>;
+  summary: string;
+  generatedAt: string;
+};
+
 export type TopicIdea = {
   id: string;
   title: string;
@@ -129,6 +167,7 @@ export type WorkflowJob = {
   selectedIdeaId: string;
   ideas: TopicIdea[];
   serpSnapshot?: SerpSnapshot | null;
+  competitiveSnapshot?: CompetitiveSnapshot | null;
   research: ResearchPack;
   brief: ContentBrief;
   draft: ArticleDraft;

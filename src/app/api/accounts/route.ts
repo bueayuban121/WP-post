@@ -27,6 +27,7 @@ export async function POST(request: Request) {
     researchProvider?: "tavily" | "dataforseo";
     clientPlan?: "normal" | "premium" | "pro";
     wordpressUrl?: string;
+    competitorDomains?: string;
     wordpressUsername?: string;
     wordpressAppPassword?: string;
     wordpressPublishStatus?: "draft" | "publish";
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
       researchProvider: body.researchProvider,
       clientPlan: body.clientPlan,
       wordpressUrl: body.wordpressUrl,
+      competitorDomains: body.competitorDomains,
       wordpressUsername: body.wordpressUsername,
       wordpressAppPassword: body.wordpressAppPassword,
       wordpressPublishStatus: body.wordpressPublishStatus,

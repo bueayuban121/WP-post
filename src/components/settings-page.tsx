@@ -21,6 +21,7 @@ type ManagedAccountDraft = {
   clientResearchProvider: "tavily" | "dataforseo";
   clientPlan: "normal" | "premium" | "pro";
   clientWordpressUrl: string;
+  clientCompetitorDomains: string;
   clientWordpressUsername: string;
   clientWordpressAppPassword: string;
   clientWordpressPublishStatus: "draft" | "publish";
@@ -37,6 +38,7 @@ type NewAccountState = {
   researchProvider: "tavily" | "dataforseo";
   clientPlan: "normal" | "premium" | "pro";
   wordpressUrl: string;
+  competitorDomains: string;
   wordpressUsername: string;
   wordpressAppPassword: string;
   wordpressPublishStatus: "draft" | "publish";
@@ -62,6 +64,7 @@ const emptyNewAccount: NewAccountState = {
   researchProvider: "tavily",
   clientPlan: "normal",
   wordpressUrl: "",
+  competitorDomains: "",
   wordpressUsername: "",
   wordpressAppPassword: "",
   wordpressPublishStatus: "draft",
@@ -80,6 +83,7 @@ function createAccountDraft(user: AppUserSession): ManagedAccountDraft {
     clientResearchProvider: user.clientResearchProvider === "dataforseo" ? "dataforseo" : "tavily",
     clientPlan: user.clientPlan === "premium" || user.clientPlan === "pro" ? user.clientPlan : "normal",
     clientWordpressUrl: user.clientWordpressUrl ?? "",
+    clientCompetitorDomains: user.clientCompetitorDomains ?? "",
     clientWordpressUsername: user.clientWordpressUsername ?? "",
     clientWordpressAppPassword: user.clientWordpressAppPassword ?? "",
     clientWordpressPublishStatus: user.clientWordpressPublishStatus === "publish" ? "publish" : "draft"
@@ -103,6 +107,7 @@ function createFallbackClient(userId: string): AppUserSession {
     clientResearchProvider: null,
     clientPlan: null,
     clientWordpressUrl: null,
+    clientCompetitorDomains: null,
     clientWordpressUsername: null,
     clientWordpressAppPassword: null,
     clientWordpressPublishStatus: null
@@ -284,6 +289,7 @@ export function SettingsPage({
       clientResearchProvider?: "tavily" | "dataforseo";
       clientPlan?: "normal" | "premium" | "pro";
       clientWordpressUrl?: string;
+      clientCompetitorDomains?: string;
       clientWordpressUsername?: string;
       clientWordpressAppPassword?: string;
       clientWordpressPublishStatus?: "draft" | "publish";
@@ -473,6 +479,16 @@ export function SettingsPage({
             </label>
 
             <label>
+              Competitor domains
+              <small>ใส่โดเมนคู่แข่งทีละบรรทัดหรือคั่นด้วย comma เพื่อให้ Pro research ใช้ทำ overlap, intersection และ ranking</small>
+              <textarea
+                rows={4}
+                value={newAccount.competitorDomains}
+                onChange={(event) => updateNewAccount("competitorDomains", event.target.value)}
+              />
+            </label>
+
+            <label>
               WordPress username
               <small>ชื่อผู้ใช้ WordPress สำหรับการ publish ของลูกค้ารายนี้</small>
               <input
@@ -640,6 +656,17 @@ export function SettingsPage({
                             </label>
 
                             <label>
+                              Competitor domains
+                              <textarea
+                                rows={4}
+                                value={draft.clientCompetitorDomains}
+                                onChange={(event) =>
+                                  updateAccountDraft(account.id, "clientCompetitorDomains", event.target.value)
+                                }
+                              />
+                            </label>
+
+                            <label>
                               WordPress username
                               <input
                                 value={draft.clientWordpressUsername}
@@ -711,6 +738,7 @@ export function SettingsPage({
                                   clientResearchProvider: draft.clientResearchProvider,
                                   clientPlan: draft.clientPlan,
                                   clientWordpressUrl: draft.clientWordpressUrl,
+                                  clientCompetitorDomains: draft.clientCompetitorDomains,
                                   clientWordpressUsername: draft.clientWordpressUsername,
                                   clientWordpressAppPassword: draft.clientWordpressAppPassword,
                                   clientWordpressPublishStatus: draft.clientWordpressPublishStatus

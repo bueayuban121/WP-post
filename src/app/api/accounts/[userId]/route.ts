@@ -22,6 +22,7 @@ export async function PATCH(
     clientResearchProvider?: "tavily" | "dataforseo";
     clientPlan?: "normal" | "premium" | "pro";
     clientWordpressUrl?: string;
+    clientCompetitorDomains?: string;
     clientWordpressUsername?: string;
     clientWordpressAppPassword?: string;
     clientWordpressPublishStatus?: "draft" | "publish";

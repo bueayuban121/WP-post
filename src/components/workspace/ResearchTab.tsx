@@ -73,18 +73,10 @@ export function ResearchTab({
           </p>
         </div>
         <div className="flex flex-row gap-2">
-          <Button
-            variant="secondary"
-            disabled={!hasSelectedIdea || Boolean(pendingAction)}
-            onClick={() => runResearch()}
-          >
+          <Button variant="secondary" disabled={!hasSelectedIdea || Boolean(pendingAction)} onClick={() => runResearch()}>
             {pendingAction === "run-research" ? "Running Research..." : "Run Research"}
           </Button>
-          <Button
-            variant="default"
-            disabled={!hasResearch || Boolean(pendingAction)}
-            onClick={() => createArticle()}
-          >
+          <Button variant="default" disabled={!hasResearch || Boolean(pendingAction)} onClick={() => createArticle()}>
             {pendingAction === "create-article" ? "Creating Article..." : "Create Article"}
           </Button>
         </div>
@@ -121,6 +113,11 @@ export function ResearchTab({
                 SERP features: {job.serpSnapshot.serpFeatures.slice(0, 3).join(" · ") || "Loaded"}
               </span>
             ) : null}
+            {job.competitiveSnapshot ? (
+              <span className="inline-flex items-center rounded-full border border-white/10 bg-background/50 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                Competitors: {job.competitiveSnapshot.competitorDomains.length}
+              </span>
+            ) : null}
           </div>
 
           {job.serpSnapshot ? (
@@ -142,11 +139,32 @@ export function ResearchTab({
             </div>
           ) : null}
 
+          {job.competitiveSnapshot ? (
+            <div className="rounded-xl border border-white/10 bg-background/30 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-accent">Competitive Snapshot</p>
+              <p className="mt-2 text-sm leading-7 text-muted-foreground">{job.competitiveSnapshot.summary}</p>
+              {job.competitiveSnapshot.overlapKeywords.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {job.competitiveSnapshot.overlapKeywords.slice(0, 5).map((item) => (
+                    <span
+                      key={item.keyword}
+                      className="inline-flex items-center rounded-full border border-white/10 bg-background/50 px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                    >
+                      {item.keyword}
+                      {item.ourRank ? ` #${item.ourRank}` : ""}
+                      {item.competitorRank ? ` vs #${item.competitorRank}` : ""}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="prose prose-invert mt-2 max-w-none rounded-md border border-white/5 bg-background/30 p-4 text-sm leading-relaxed text-muted-foreground">
             {researchSummary ? (
               <div className="whitespace-pre-wrap">{renderTextWithLinks(researchSummary)}</div>
             ) : (
-              <span className="italic">ยังไม่มีข้อมูลรีเซิร์ตในงานนี้</span>
+              <span className="italic">No research document available yet.</span>
             )}
           </div>
         </article>
@@ -195,6 +213,23 @@ export function ResearchTab({
               )}
             </ul>
           </div>
+
+          {job.competitiveSnapshot ? (
+            <div className="flex flex-col gap-3">
+              <span className="text-sm font-semibold uppercase tracking-wider text-foreground">Position tracking</span>
+              <div className="max-h-[320px] overflow-y-auto pr-2 flex flex-col gap-3">
+                {job.competitiveSnapshot.positionTracking.map((item) => (
+                  <div key={item.keyword} className="rounded-md border border-white/5 bg-background/50 p-3">
+                    <strong className="text-sm text-foreground">{item.keyword}</strong>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Your site rank: {item.rankGroup ?? "-"}
+                      {item.url ? ` · ${item.url}` : ""}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </aside>
       </div>
     </GlassPanel>

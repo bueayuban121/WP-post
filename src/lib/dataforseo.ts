@@ -1,7 +1,16 @@
 import { generateKeywordIdeasWithOpenAi, synthesizeResearchWithOpenAi } from "@/lib/openai";
-import type { ClientPlan } from "@/lib/client-plan";
+import type { ClientPlan, ClientSeoProfile } from "@/lib/client-plan";
 import type { ResearchProvider } from "@/lib/research-provider-config";
-import type { ResearchPack, SerpResult, SerpSnapshot, TopicIdea } from "@/types/workflow";
+import type {
+  CompetitiveKeywordGap,
+  CompetitiveSnapshot,
+  CompetitorDomainInsight,
+  PositionTrackingEntry,
+  ResearchPack,
+  SerpResult,
+  SerpSnapshot,
+  TopicIdea
+} from "@/types/workflow";
 
 const DATAFORSEO_LOGIN = process.env.DATAFORSEO_LOGIN?.trim() ?? "";
 const DATAFORSEO_PASSWORD = process.env.DATAFORSEO_PASSWORD?.trim() ?? "";
@@ -12,6 +21,12 @@ const DATAFORSEO_KEYWORD_IDEAS_PATH =
   process.env.DATAFORSEO_KEYWORD_IDEAS_PATH?.trim() || "/v3/dataforseo_labs/google/keyword_ideas/live";
 const DATAFORSEO_SERP_PATH =
   process.env.DATAFORSEO_SERP_PATH?.trim() || "/v3/serp/google/organic/live/advanced";
+const DATAFORSEO_COMPETITORS_PATH =
+  process.env.DATAFORSEO_COMPETITORS_PATH?.trim() || "/v3/dataforseo_labs/competitors_domain/live";
+const DATAFORSEO_DOMAIN_INTERSECTION_PATH =
+  process.env.DATAFORSEO_DOMAIN_INTERSECTION_PATH?.trim() || "/v3/dataforseo_labs/google/domain_intersection/live";
+const DATAFORSEO_RANKED_KEYWORDS_PATH =
+  process.env.DATAFORSEO_RANKED_KEYWORDS_PATH?.trim() || "/v3/dataforseo_labs/google/ranked_keywords/live";
 const DATAFORSEO_LOCATION_CODE = Number(process.env.DATAFORSEO_LOCATION_CODE || "2764");
 const DATAFORSEO_LANGUAGE_NAME = process.env.DATAFORSEO_LANGUAGE_NAME?.trim() || "Thai";
 const DATAFORSEO_LANGUAGE_CODE = process.env.DATAFORSEO_LANGUAGE_CODE?.trim() || "th";
@@ -77,6 +92,14 @@ type DataForSeoSerpResponse = {
   tasks?: DataForSeoSerpTask[];
 };
 
+type DataForSeoLabsResponse = {
+  tasks?: Array<{
+    result?: Array<{
+      items?: Array<Record<string, unknown>>;
+    }>;
+  }>;
+};
+
 type DataForSeoScope = {
   rankedKeywordLimit: number;
   serpDepth: number;
@@ -84,6 +107,9 @@ type DataForSeoScope = {
   serpQuestionLimit: number;
   topicIdeaLimit: number;
   researchIdeaLimit: number;
+  competitorDomainLimit: number;
+  overlapLimit: number;
+  positionLimit: number;
 };
 
 export type DataForSeoKeywordVariantResult = {
@@ -110,7 +136,10 @@ function getDataForSeoScope(plan: ClientPlan): DataForSeoScope {
       serpResultLimit: 8,
       serpQuestionLimit: 8,
       topicIdeaLimit: 16,
-      researchIdeaLimit: 12
+      researchIdeaLimit: 12,
+      competitorDomainLimit: 3,
+      overlapLimit: 6,
+      positionLimit: 6
     };
   }
 
@@ -121,7 +150,10 @@ function getDataForSeoScope(plan: ClientPlan): DataForSeoScope {
       serpResultLimit: 6,
       serpQuestionLimit: 6,
       topicIdeaLimit: 12,
-      researchIdeaLimit: 8
+      researchIdeaLimit: 8,
+      competitorDomainLimit: 0,
+      overlapLimit: 0,
+      positionLimit: 0
     };
   }
 
@@ -131,7 +163,10 @@ function getDataForSeoScope(plan: ClientPlan): DataForSeoScope {
     serpResultLimit: 4,
     serpQuestionLimit: 4,
     topicIdeaLimit: 8,
-    researchIdeaLimit: 6
+    researchIdeaLimit: 6,
+    competitorDomainLimit: 0,
+    overlapLimit: 0,
+    positionLimit: 0
   };
 }
 
@@ -176,6 +211,10 @@ function extractSerpItems(response: DataForSeoSerpResponse) {
   return response.tasks?.flatMap((task) => task.result?.flatMap((result) => result.items ?? []) ?? []) ?? [];
 }
 
+function extractLabsItems(response: DataForSeoLabsResponse) {
+  return response.tasks?.flatMap((task) => task.result?.flatMap((result) => result.items ?? []) ?? []) ?? [];
+}
+
 function inferIntentFromKeyword(keyword: string): TopicIdea["searchIntent"] {
   const normalized = keyword.toLowerCase();
 
@@ -188,6 +227,14 @@ function inferIntentFromKeyword(keyword: string): TopicIdea["searchIntent"] {
   }
 
   return "informational";
+}
+
+function asNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" ? trimSentence(value) : "";
 }
 
 function inferDifficulty(score?: number): TopicIdea["difficulty"] {
@@ -541,6 +588,34 @@ async function callDataForSeoSerpSnapshot(keyword: string, depth = 20) {
   return (await response.json()) as DataForSeoSerpResponse;
 }
 
+async function callDataForSeoLabs(path: string, task: Record<string, unknown>) {
+  if (!isDataForSeoConfigured()) {
+    throw new Error("DataForSEO credentials are not configured.");
+  }
+
+  const response = await fetch(`${DATAFORSEO_BASE_URL}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: getAuthHeader(),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify([
+      {
+        location_code: DATAFORSEO_LOCATION_CODE,
+        language_code: DATAFORSEO_LANGUAGE_CODE,
+        language_name: DATAFORSEO_LANGUAGE_NAME,
+        ...task
+      }
+    ])
+  });
+
+  if (!response.ok) {
+    throw new Error(`DataForSEO request failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as DataForSeoLabsResponse;
+}
+
 export async function getDataForSeoKeywordVariantResult(
   seedKeyword: string
 ): Promise<DataForSeoKeywordVariantResult> {
@@ -737,6 +812,193 @@ export async function getDataForSeoSerpSnapshot(
   }
 }
 
+function buildVisibilityHint(item: Record<string, unknown>) {
+  const metrics = (item.metrics as Record<string, unknown> | undefined)?.organic as Record<string, unknown> | undefined;
+  const sharedKeywords = asNumber(metrics?.count) ?? asNumber(item.intersections) ?? 0;
+  const sharedTraffic = asNumber(metrics?.etv) ?? 0;
+
+  if (sharedKeywords > 0 && sharedTraffic > 0) {
+    return `Shares about ${sharedKeywords} ranking keywords with estimated traffic value near ${Math.round(sharedTraffic)}.`;
+  }
+
+  if (sharedKeywords > 0) {
+    return `Shares about ${sharedKeywords} ranking keywords with your site.`;
+  }
+
+  return "Competes in overlapping search results with your site.";
+}
+
+function mapPositionTrackingEntry(item: Record<string, unknown>): PositionTrackingEntry | null {
+  const keywordData = item.keyword_data as Record<string, unknown> | undefined;
+  const keyword = asString(keywordData?.keyword);
+  const serpElement = item.ranked_serp_element as Record<string, unknown> | undefined;
+  const serpItem = serpElement?.serp_item as Record<string, unknown> | undefined;
+
+  if (!keyword) {
+    return null;
+  }
+
+  return {
+    keyword,
+    url: asString(serpItem?.url) || undefined,
+    title: asString(serpItem?.title) || undefined,
+    rankGroup: asNumber(serpItem?.rank_group),
+    rankAbsolute: asNumber(serpItem?.rank_absolute),
+    estimatedTraffic: asNumber(serpElement?.etv) ?? asNumber(item.etv)
+  };
+}
+
+async function buildCompetitiveSnapshot(
+  seedKeyword: string,
+  selectedIdea: TopicIdea,
+  seoProfile: Pick<ClientSeoProfile, "siteDomain" | "competitorDomains">,
+  scope: DataForSeoScope
+): Promise<CompetitiveSnapshot | null> {
+  if (!seoProfile.siteDomain || scope.competitorDomainLimit <= 0) {
+    return null;
+  }
+
+  try {
+    const explicitCompetitors = seoProfile.competitorDomains.slice(0, scope.competitorDomainLimit);
+    const competitorResponse =
+      explicitCompetitors.length === 0
+        ? await callDataForSeoLabs(DATAFORSEO_COMPETITORS_PATH, {
+            target: seoProfile.siteDomain,
+            limit: scope.competitorDomainLimit,
+            max_rank_group: 20
+          })
+        : null;
+
+    const discoveredCompetitors = extractLabsItems(competitorResponse ?? { tasks: [] })
+      .map((item) => ({
+        domain: asString(item.domain),
+        overlapKeywords:
+          asNumber(((item.metrics as Record<string, unknown> | undefined)?.organic as Record<string, unknown> | undefined)?.count) ??
+          asNumber(item.intersections) ??
+          0,
+        visibilityHint: buildVisibilityHint(item)
+      }))
+      .filter((item) => item.domain && item.domain !== seoProfile.siteDomain)
+      .slice(0, scope.competitorDomainLimit);
+
+    const competitorDomains = [...new Set([...explicitCompetitors, ...discoveredCompetitors.map((item) => item.domain)])].slice(
+      0,
+      scope.competitorDomainLimit
+    );
+
+    const ourRankedKeywordsResponse = await callDataForSeoLabs(DATAFORSEO_RANKED_KEYWORDS_PATH, {
+      target: seoProfile.siteDomain,
+      limit: scope.positionLimit,
+      historical_serp_mode: "live",
+      filters: [["keyword_data.keyword","match",selectedIdea.title], "or", ["keyword_data.keyword","match",seedKeyword]]
+    }).catch(() => null);
+
+    const positionTracking = extractLabsItems(ourRankedKeywordsResponse ?? { tasks: [] })
+      .map(mapPositionTrackingEntry)
+      .filter((item): item is PositionTrackingEntry => Boolean(item))
+      .slice(0, scope.positionLimit);
+
+    const competitorPositions = await Promise.all(
+      competitorDomains.map(async (domain) => {
+        const response = await callDataForSeoLabs(DATAFORSEO_RANKED_KEYWORDS_PATH, {
+          target: domain,
+          limit: scope.positionLimit,
+          historical_serp_mode: "live",
+          filters: [["keyword_data.keyword","match",selectedIdea.title], "or", ["keyword_data.keyword","match",seedKeyword]]
+        }).catch(() => null);
+
+        return {
+          domain,
+          keywords: extractLabsItems(response ?? { tasks: [] })
+            .map(mapPositionTrackingEntry)
+            .filter((item): item is PositionTrackingEntry => Boolean(item))
+            .slice(0, scope.positionLimit)
+        };
+      })
+    );
+
+    const overlapPairs = await Promise.all(
+      competitorDomains.map(async (domain) => {
+        const response = await callDataForSeoLabs(DATAFORSEO_DOMAIN_INTERSECTION_PATH, {
+          target1: seoProfile.siteDomain,
+          target2: domain,
+          intersections: true,
+          item_types: ["organic", "featured_snippet", "local_pack"],
+          limit: scope.overlapLimit
+        }).catch(() => null);
+
+        const keywords = extractLabsItems(response ?? { tasks: [] })
+          .map((item): CompetitiveKeywordGap | null => {
+            const keywordData = item.keyword_data as Record<string, unknown> | undefined;
+            const keywordInfo = keywordData?.keyword_info as Record<string, unknown> | undefined;
+            const first = item.first_domain_serp_element as Record<string, unknown> | undefined;
+            const second = item.second_domain_serp_element as Record<string, unknown> | undefined;
+
+            const keyword = asString(keywordData?.keyword);
+            if (!keyword) {
+              return null;
+            }
+
+            return {
+              keyword,
+              overlapScore: 100,
+              searchVolume: asNumber(keywordInfo?.search_volume) ?? undefined,
+              competition: asNumber(keywordInfo?.competition) ?? undefined,
+              ourRank: asNumber(first?.rank_group),
+              competitorRank: asNumber(second?.rank_group)
+            };
+          })
+          .filter((item): item is CompetitiveKeywordGap => item !== null);
+
+        return keywords;
+      })
+    );
+
+    const overlapMap = new Map<string, CompetitiveKeywordGap>();
+    for (const pair of overlapPairs) {
+      for (const item of pair) {
+        const existing = overlapMap.get(item.keyword);
+        if (!existing) {
+          overlapMap.set(item.keyword, item);
+          continue;
+        }
+
+        overlapMap.set(item.keyword, {
+          keyword: item.keyword,
+          overlapScore: Math.max(existing.overlapScore ?? 0, item.overlapScore ?? 0),
+          searchVolume: existing.searchVolume ?? item.searchVolume,
+          competition: existing.competition ?? item.competition,
+          ourRank: existing.ourRank ?? item.ourRank,
+          competitorRank: existing.competitorRank ?? item.competitorRank
+        });
+      }
+    }
+
+    const overlapKeywords = [...overlapMap.values()].slice(0, scope.overlapLimit);
+
+    const summaryParts = [
+      competitorDomains.length > 0 ? `Tracked competitors: ${competitorDomains.join(", ")}.` : "",
+      overlapKeywords.length > 0 ? `Shared ranking terms include ${overlapKeywords.slice(0, 4).map((item) => item.keyword).join(", ")}.` : "",
+      positionTracking.length > 0
+        ? `Current site positions surfaced for ${positionTracking.slice(0, 3).map((item) => `${item.keyword} (#${item.rankGroup ?? "-"})`).join(", ")}.`
+        : ""
+    ].filter(Boolean);
+
+    return {
+      siteDomain: seoProfile.siteDomain,
+      competitorDomains,
+      discoveredCompetitors,
+      overlapKeywords,
+      positionTracking,
+      competitorPositions,
+      summary: summaryParts.join(" "),
+      generatedAt: new Date().toISOString()
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function generateTopicIdeasFromDataForSeo(
   seedKeyword: string,
   serpSnapshot?: SerpSnapshot | null,
@@ -825,14 +1087,22 @@ export async function buildResearchPackFromDataForSeo(
   seedKeyword: string,
   selectedIdea: TopicIdea,
   serpSnapshot?: SerpSnapshot | null,
-  plan: ClientPlan = "normal"
-): Promise<{ research: ResearchPack; provider: ResearchProvider; summaryText: string; summaryHooks: string }> {
+  plan: ClientPlan = "normal",
+  seoProfile?: Pick<ClientSeoProfile, "siteDomain" | "competitorDomains"> | null
+): Promise<{
+  research: ResearchPack;
+  provider: ResearchProvider;
+  summaryText: string;
+  summaryHooks: string;
+  competitiveSnapshot: CompetitiveSnapshot | null;
+}> {
   if (!isDataForSeoConfigured()) {
     return {
       research: buildFallbackResearch(seedKeyword, selectedIdea),
       provider: "tavily",
       summaryText: "",
-      summaryHooks: ""
+      summaryHooks: "",
+      competitiveSnapshot: null
     };
   }
 
@@ -846,9 +1116,13 @@ export async function buildResearchPackFromDataForSeo(
         research: buildFallbackResearch(seedKeyword, selectedIdea),
         provider: "tavily",
         summaryText: "",
-        summaryHooks: ""
+        summaryHooks: "",
+        competitiveSnapshot: null
       };
     }
+
+    const competitiveSnapshot =
+      plan === "pro" && seoProfile ? await buildCompetitiveSnapshot(seedKeyword, selectedIdea, seoProfile, scope) : null;
 
     const sources = items.map((item) => ({
       region: "TH" as const,
@@ -881,6 +1155,11 @@ export async function buildResearchPackFromDataForSeo(
         `Turn keyword metrics into useful research insight for "${selectedIdea.title}" instead of listing numbers only.`,
         "Show which related terms reveal the clearest user intent.",
         "Translate keyword data into a content angle that fits Thai readers.",
+        ...(competitiveSnapshot
+          ? [
+              "Map where your site already ranks, where competitors outrank you, and which overlap keywords can be turned into stronger content coverage."
+            ]
+          : []),
         ...(serpSnapshot?.peopleAlsoAsk.length
           ? [
               `Address related user questions such as ${serpSnapshot.peopleAlsoAsk
@@ -889,7 +1168,32 @@ export async function buildResearchPackFromDataForSeo(
             ]
           : [])
       ],
-      sources: [...sources, ...serpSources]
+      sources: [
+        ...sources,
+        ...serpSources,
+        ...(competitiveSnapshot
+          ? [
+              {
+                region: "Global" as const,
+                title: `Competitive snapshot for ${competitiveSnapshot.siteDomain}`,
+                source: "DataForSEO Labs",
+                insight: competitiveSnapshot.summary || "Competitive positioning data was collected for Pro research."
+              },
+              ...competitiveSnapshot.overlapKeywords.slice(0, scope.overlapLimit).map((item) => ({
+                region: "Global" as const,
+                title: `Overlap keyword: ${item.keyword}`,
+                source: "DataForSEO domain intersection",
+                insight: `Site rank ${item.ourRank ?? "-"} vs competitor rank ${item.competitorRank ?? "-"}${typeof item.searchVolume === "number" ? `, volume ${item.searchVolume}` : ""}.`
+              })),
+              ...competitiveSnapshot.positionTracking.slice(0, scope.positionLimit).map((item) => ({
+                region: "Global" as const,
+                title: `Current ranking: ${item.keyword}`,
+                source: item.url || "DataForSEO ranked keywords",
+                insight: `Your site appears around rank ${item.rankGroup ?? "-"} for this query${item.title ? ` with result "${item.title}"` : ""}.`
+              }))
+            ]
+          : [])
+      ]
     };
 
     const summaryHooks = items
@@ -902,7 +1206,16 @@ export async function buildResearchPackFromDataForSeo(
               `People Also Ask: ${serpSnapshot.peopleAlsoAsk.join(", ") || "-"}`,
               `Local pack: ${serpSnapshot.hasLocalPack ? "yes" : "no"}`
             ]
-          : []
+          : [],
+        ...(competitiveSnapshot
+          ? [
+              `Competitive summary: ${competitiveSnapshot.summary}`,
+              `Overlap keywords: ${competitiveSnapshot.overlapKeywords.map((item) => item.keyword).join(", ") || "-"}`,
+              `Current rankings: ${competitiveSnapshot.positionTracking
+                .map((item) => `${item.keyword} #${item.rankGroup ?? "-"}`)
+                .join(", ") || "-"}`
+            ]
+          : [])
       )
       .join(" ");
     const synthesized = await synthesizeResearchWithOpenAi({
@@ -923,14 +1236,16 @@ export async function buildResearchPackFromDataForSeo(
         : fallbackResearch,
       provider: "dataforseo",
       summaryText: synthesized?.summary ?? "",
-      summaryHooks
+      summaryHooks,
+      competitiveSnapshot
     };
   } catch {
     return {
       research: buildFallbackResearch(seedKeyword, selectedIdea),
       provider: "tavily",
       summaryText: "",
-      summaryHooks: ""
+      summaryHooks: "",
+      competitiveSnapshot: null
     };
   }
 }

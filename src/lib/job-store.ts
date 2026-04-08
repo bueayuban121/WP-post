@@ -1,6 +1,11 @@
 import { mockWorkflowJob } from "@/data/mock-workflow";
 import { generateArticleImages, inferArticleImageTextMode } from "@/lib/article-images";
-import { resolveClientPlanByClientId, resolveClientPlanByClientName, type ClientPlan } from "@/lib/client-plan";
+import {
+  resolveClientPlanByClientId,
+  resolveClientPlanByClientName,
+  resolveClientSeoProfileByClientName,
+  type ClientPlan
+} from "@/lib/client-plan";
 import { buildResearchPackFromDataForSeo, getDataForSeoSerpSnapshot } from "@/lib/dataforseo";
 import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import { generateBriefWithOpenAi, generateDraftWithOpenAi, polishDraftWithOpenAi } from "@/lib/openai";
@@ -21,6 +26,7 @@ import type {
   ArticleImageAsset,
   FacebookPostDraft,
   WorkflowGenerationSettings,
+  CompetitiveSnapshot,
   SerpSnapshot
 } from "@/types/workflow";
 import { WorkflowStage, ResearchRegion, type Prisma } from "@/generated/prisma/client";
@@ -140,6 +146,17 @@ function extractSerpSnapshot(events?: WorkflowAutomationEvent[]): SerpSnapshot |
   }
 
   return snapshotPayload as SerpSnapshot;
+}
+
+function extractCompetitiveSnapshot(events?: WorkflowAutomationEvent[]): CompetitiveSnapshot | null {
+  const snapshotEvent = events?.find((event) => event.payload && typeof event.payload.competitiveSnapshot === "object");
+  const snapshotPayload = snapshotEvent?.payload?.competitiveSnapshot;
+
+  if (!snapshotPayload || typeof snapshotPayload !== "object") {
+    return null;
+  }
+
+  return snapshotPayload as CompetitiveSnapshot;
 }
 
 function mapStoredAutomationEvent(event: StoredJob["workflowEvents"][number]): WorkflowAutomationEvent {
@@ -304,6 +321,7 @@ function fromStoredJob(job: StoredJob): WorkflowJob {
       relatedKeywords: idea.relatedKeywords
     })),
     serpSnapshot: extractSerpSnapshot(automationEvents),
+    competitiveSnapshot: extractCompetitiveSnapshot(automationEvents),
     research: {
       objective: job.researchPack?.objective ?? "",
       audience: job.researchPack?.audience ?? "",
@@ -812,19 +830,44 @@ export async function runResearch(jobId: string) {
   if (!selectedIdea) return null;
   const provider = await resolveResearchProviderByClientName(job.client);
   const clientPlan = await resolveJobClientPlan(job);
-  const research =
+  const seoProfile = provider === "dataforseo" ? await resolveClientSeoProfileByClientName(job.client) : null;
+  const dataForSeoResult =
     provider === "dataforseo"
-      ? (await buildResearchPackFromDataForSeo(job.seedKeyword, selectedIdea, job.serpSnapshot, clientPlan)).research
-      : generateResearch(job.seedKeyword, selectedIdea);
+      ? await buildResearchPackFromDataForSeo(job.seedKeyword, selectedIdea, job.serpSnapshot, clientPlan, seoProfile)
+      : null;
+  const research = dataForSeoResult?.research ?? generateResearch(job.seedKeyword, selectedIdea);
 
   if (!isDatabaseConfigured()) {
     job.research = research;
     job.stage = "researching";
+    if (dataForSeoResult?.competitiveSnapshot) {
+      job.competitiveSnapshot = dataForSeoResult.competitiveSnapshot;
+    }
     jobs.set(job.id, job);
     return cloneJob(job);
   }
 
-  return updateStoredWorkflow(jobId, "researching", { research });
+  const updatedJob = await updateStoredWorkflow(jobId, "researching", { research });
+
+  if (dataForSeoResult) {
+    await createWorkflowEvent({
+      jobId,
+      type: "research",
+      status: "succeeded",
+      source: "app",
+      message: dataForSeoResult.competitiveSnapshot
+        ? "Research document with competitive snapshot ready."
+        : "Research document ready.",
+      payload: {
+        provider: dataForSeoResult.provider,
+        summaryHooks: dataForSeoResult.summaryHooks,
+        summaryText: dataForSeoResult.summaryText,
+        competitiveSnapshot: dataForSeoResult.competitiveSnapshot
+      }
+    });
+  }
+
+  return updatedJob ? getJob(jobId) : null;
 }
 
 export async function generateJobBrief(jobId: string, options?: Partial<WorkflowGenerationSettings> | null) {

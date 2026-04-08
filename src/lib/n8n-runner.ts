@@ -4,7 +4,7 @@ import {
   synthesizeResearchWithOpenAi
 } from "@/lib/openai";
 import { generateArticleImages, inferArticleImageTextMode } from "@/lib/article-images";
-import { resolveClientPlanByClientName, type ClientPlan } from "@/lib/client-plan";
+import { resolveClientPlanByClientName, resolveClientSeoProfileByClientName, type ClientPlan } from "@/lib/client-plan";
 import { buildResearchPackFromDataForSeo } from "@/lib/dataforseo";
 import { generateManagedImage, getPreferredImageProvider, isManagedImageGenerationConfigured } from "@/lib/image-provider";
 import { resolveResearchProviderByClientName } from "@/lib/research-provider-config";
@@ -53,13 +53,21 @@ async function buildResearchPack(job: WorkflowJob) {
   let searchError: string | null = null;
 
   if (provider === "dataforseo") {
-    const dataForSeoResult = await buildResearchPackFromDataForSeo(seedKeyword, selectedIdea, job.serpSnapshot, clientPlan);
+    const seoProfile = await resolveClientSeoProfileByClientName(job.client);
+    const dataForSeoResult = await buildResearchPackFromDataForSeo(
+      seedKeyword,
+      selectedIdea,
+      job.serpSnapshot,
+      clientPlan,
+      seoProfile
+    );
     return {
       research: dataForSeoResult.research,
       payload: {
         provider: dataForSeoResult.provider,
         summaryHooks: dataForSeoResult.summaryHooks,
         summaryText: dataForSeoResult.summaryText,
+        competitiveSnapshot: dataForSeoResult.competitiveSnapshot,
         error: null
       }
     };

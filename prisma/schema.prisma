@@ -75,6 +75,7 @@ model Client {
   brandVoicePrompt   String       @default("")
   researchProvider   String       @default("")
   wordpressUrl       String       @default("")
+  competitorDomains  String       @default("")
   wordpressUsername  String       @default("")
   wordpressAppPassword String     @default("")
   wordpressPublishStatus String   @default("draft")
