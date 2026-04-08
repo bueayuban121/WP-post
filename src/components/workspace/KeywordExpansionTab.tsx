@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { GlassPanel } from "@/components/ui/glass-panel"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import type { TopicIdea, WorkflowJob } from "@/types/workflow"
+import type { SerpSnapshot, TopicIdea, WorkflowJob } from "@/types/workflow"
 
 interface KeywordExpansionTabProps {
   inKeywordVariantPhase: boolean
@@ -53,6 +53,10 @@ function scoreTone(score: number) {
   }
 
   return "border-white/10 bg-white/[0.06] text-slate-200"
+}
+
+function serpFeatureLabel(value: string) {
+  return value.replace(/\s+/g, " ").trim() || "Feature"
 }
 
 export function KeywordExpansionTab({
@@ -115,6 +119,7 @@ export function KeywordExpansionTab({
       : job.ideas.slice(0, 15)
     : job.ideas
   const hiddenRecommendationCount = inKeywordVariantPhase ? Math.max(job.ideas.length - 15, 0) : 0
+  const serpSnapshot: SerpSnapshot | null = job.serpSnapshot ?? null
 
   return (
     <GlassPanel className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,20,28,0.98),rgba(10,16,24,0.94))] p-0 shadow-[0_28px_80px_rgba(5,10,18,0.38)]">
@@ -217,6 +222,98 @@ export function KeywordExpansionTab({
             </div>
           </div>
         </div>
+
+        {!inKeywordVariantPhase && serpSnapshot ? (
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))] p-5 shadow-[0_20px_48px_rgba(5,10,18,0.26)]"
+          >
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <span className="inline-flex rounded-full border border-fuchsia-300/15 bg-fuchsia-300/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-fuchsia-100">
+                    SERP Snapshot
+                  </span>
+                  <h3 className="mt-3 text-xl font-semibold tracking-[-0.03em] text-slate-50">
+                    Search landscape for &ldquo;{serpSnapshot.keyword}&rdquo;
+                  </h3>
+                  <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-300">{serpSnapshot.intentSummary}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-medium text-slate-200">
+                    {serpSnapshot.topResults.length} top results
+                  </span>
+                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-medium text-slate-200">
+                    PAA {serpSnapshot.peopleAlsoAsk.length}
+                  </span>
+                  {serpSnapshot.hasLocalPack ? (
+                    <span className="inline-flex items-center rounded-full border border-emerald-300/15 bg-emerald-300/10 px-3 py-2 text-xs font-medium text-emerald-100">
+                      Local pack present
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Top results</p>
+                  <div className="mt-3 flex flex-col gap-3">
+                    {serpSnapshot.topResults.slice(0, 4).map((result, index) => (
+                      <div key={`${result.url}-${index}`} className="rounded-[18px] border border-white/8 bg-black/10 p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-300">
+                            {serpFeatureLabel(result.type)}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm font-medium leading-6 text-slate-100">{result.title}</p>
+                        {result.description ? (
+                          <p className="mt-1 text-xs leading-6 text-slate-400">{result.description}</p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {serpSnapshot.featuredSnippet ? (
+                    <div className="rounded-[24px] border border-cyan-300/15 bg-cyan-300/10 p-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100">Featured snippet</p>
+                      <p className="mt-2 text-sm font-medium leading-6 text-slate-50">{serpSnapshot.featuredSnippet.title}</p>
+                    </div>
+                  ) : null}
+
+                  <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">People also ask</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {serpSnapshot.peopleAlsoAsk.length > 0 ? (
+                        serpSnapshot.peopleAlsoAsk.slice(0, 6).map((question) => (
+                          <span key={question} className="inline-flex rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs leading-5 text-slate-200">
+                            {question}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-slate-400">No related questions surfaced.</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">SERP features</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {serpSnapshot.serpFeatures.map((feature) => (
+                        <span key={feature} className="inline-flex rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs text-slate-200">
+                          {serpFeatureLabel(feature)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
 
         {!inKeywordVariantPhase && activeIdea ? (
           <motion.div

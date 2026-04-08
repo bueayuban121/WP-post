@@ -79,7 +79,31 @@ export function ResearchTab({
             <span className="inline-flex items-center rounded-full bg-background/50 border border-white/10 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
               Audience: {job.research.audience || "Waiting for synthesis"}
             </span>
+            {job.serpSnapshot ? (
+              <span className="inline-flex items-center rounded-full bg-background/50 border border-white/10 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                SERP features: {job.serpSnapshot.serpFeatures.slice(0, 3).join(" · ") || "Loaded"}
+              </span>
+            ) : null}
           </div>
+
+          {job.serpSnapshot ? (
+            <div className="rounded-xl border border-white/10 bg-background/30 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-accent">SERP Snapshot</p>
+              <p className="mt-2 text-sm leading-7 text-muted-foreground">{job.serpSnapshot.intentSummary}</p>
+              {job.serpSnapshot.peopleAlsoAsk.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {job.serpSnapshot.peopleAlsoAsk.slice(0, 4).map((question) => (
+                    <span
+                      key={question}
+                      className="inline-flex items-center rounded-full bg-background/50 border border-white/10 px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                    >
+                      {question}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           
           <div className="prose prose-invert max-w-none text-muted-foreground text-sm leading-relaxed mt-2 p-4 rounded-md bg-background/30 border border-white/5">
             {researchSummary ? (

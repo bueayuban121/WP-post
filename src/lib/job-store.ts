@@ -1,6 +1,6 @@
 import { mockWorkflowJob } from "@/data/mock-workflow";
 import { generateArticleImages } from "@/lib/article-images";
-import { buildResearchPackFromDataForSeo } from "@/lib/dataforseo";
+import { buildResearchPackFromDataForSeo, getDataForSeoSerpSnapshot } from "@/lib/dataforseo";
 import { normalizeGenerationSettings } from "@/lib/generation-settings";
 import { generateBriefWithOpenAi, generateDraftWithOpenAi, polishDraftWithOpenAi } from "@/lib/openai";
 import { generateImageWithPhaya, isPhayaConfigured } from "@/lib/phaya";
@@ -8,7 +8,7 @@ import { getPromptConfig } from "@/lib/prompt-config";
 import { resolveResearchProviderByClientId, resolveResearchProviderByClientName } from "@/lib/research-provider-config";
 import { buildNewJob, generateBrief, generateDraft, generateResearch, generateTopicIdeas } from "@/lib/workflow-generators";
 import { getPrismaClient, isDatabaseConfigured } from "@/lib/prisma";
-import { listWorkflowEvents } from "@/lib/workflow-events";
+import { createWorkflowEvent, listWorkflowEvents } from "@/lib/workflow-events";
 import type {
   WorkflowJob,
   WorkflowStage as AppWorkflowStage,
@@ -19,7 +19,8 @@ import type {
   WorkflowAutomationEvent,
   ArticleImageAsset,
   FacebookPostDraft,
-  WorkflowGenerationSettings
+  WorkflowGenerationSettings,
+  SerpSnapshot
 } from "@/types/workflow";
 import { WorkflowStage, ResearchRegion, type Prisma } from "@/generated/prisma/client";
 
@@ -115,6 +116,35 @@ function createEmptyFacebook(): FacebookPostDraft {
 
 function isKeywordVariantPhase(job: WorkflowJob) {
   return job.researchProvider === "dataforseo" && job.stage === "idea_pool";
+}
+
+function extractSerpSnapshot(events?: WorkflowAutomationEvent[]): SerpSnapshot | null {
+  const snapshotEvent = events?.find((event) => event.payload && typeof event.payload.serpSnapshot === "object");
+  const snapshotPayload = snapshotEvent?.payload?.serpSnapshot;
+
+  if (!snapshotPayload || typeof snapshotPayload !== "object") {
+    return null;
+  }
+
+  return snapshotPayload as SerpSnapshot;
+}
+
+function mapStoredAutomationEvent(event: StoredJob["workflowEvents"][number]): WorkflowAutomationEvent {
+  return {
+    id: event.id,
+    jobId: event.jobId,
+    type: event.type.toLowerCase() as WorkflowAutomationEvent["type"],
+    status: event.status.toLowerCase() as WorkflowAutomationEvent["status"],
+    source: event.source === "n8n" ? "n8n" : "app",
+    workflowRunId: event.workflowRunId ?? undefined,
+    message: event.message ?? undefined,
+    payload:
+      event.payload && typeof event.payload === "object"
+        ? (event.payload as Record<string, unknown>)
+        : undefined,
+    createdAt: event.createdAt.toISOString(),
+    updatedAt: event.updatedAt.toISOString()
+  };
 }
 
 async function withResolvedProvider(job: WorkflowJob): Promise<WorkflowJob> {
@@ -223,6 +253,8 @@ function toStoredJob(job: WorkflowJob) {
 }
 
 function fromStoredJob(job: StoredJob): WorkflowJob {
+  const automationEvents = job.workflowEvents.map(mapStoredAutomationEvent);
+
   return {
     id: job.id,
     client: job.client?.name ?? "Unknown client",
@@ -242,6 +274,7 @@ function fromStoredJob(job: StoredJob): WorkflowJob {
       globalSignal: idea.globalSignal,
       relatedKeywords: idea.relatedKeywords
     })),
+    serpSnapshot: extractSerpSnapshot(automationEvents),
     research: {
       objective: job.researchPack?.objective ?? "",
       audience: job.researchPack?.audience ?? "",
@@ -294,21 +327,7 @@ function fromStoredJob(job: StoredJob): WorkflowJob {
       selectedImageId: job.facebookPost?.selectedImageId ?? job.articleImages[0]?.id ?? "",
       status: (job.facebookPost?.status as FacebookPostDraft["status"] | undefined) ?? "draft"
     },
-    automationEvents: job.workflowEvents.map((event) => ({
-      id: event.id,
-      jobId: event.jobId,
-      type: event.type.toLowerCase() as WorkflowAutomationEvent["type"],
-      status: event.status.toLowerCase() as WorkflowAutomationEvent["status"],
-      source: event.source === "n8n" ? "n8n" : "app",
-      workflowRunId: event.workflowRunId ?? undefined,
-      message: event.message ?? undefined,
-      payload:
-        event.payload && typeof event.payload === "object"
-          ? (event.payload as Record<string, unknown>)
-          : undefined,
-      createdAt: event.createdAt.toISOString(),
-      updatedAt: event.updatedAt.toISOString()
-    }))
+    automationEvents
   };
 }
 
@@ -632,13 +651,15 @@ export async function selectIdea(jobId: string, ideaId: string) {
 
   if (isKeywordVariantPhase(job)) {
     const nextKeyword = selectedIdea.title.trim();
-    const topicIdeas = await generateTopicIdeas(nextKeyword, job.researchProvider);
+    const serpSnapshot = await getDataForSeoSerpSnapshot(nextKeyword);
+    const topicIdeas = await generateTopicIdeas(nextKeyword, job.researchProvider, serpSnapshot);
 
     if (!isDatabaseConfigured()) {
       job.seedKeyword = nextKeyword;
       job.stage = "selected";
       job.selectedIdeaId = "";
       job.ideas = topicIdeas;
+      job.serpSnapshot = serpSnapshot;
       job.research = createEmptyResearch();
       job.brief = createEmptyBrief();
       job.draft = createEmptyDraft();
@@ -648,7 +669,7 @@ export async function selectIdea(jobId: string, ideaId: string) {
       return cloneJob(job);
     }
 
-    return updateStoredWorkflow(jobId, "selected", {
+    await updateStoredWorkflow(jobId, "selected", {
       seedKeyword: nextKeyword,
       selectedIdeaId: "",
       ideas: topicIdeas,
@@ -658,6 +679,22 @@ export async function selectIdea(jobId: string, ideaId: string) {
       images: [],
       facebook: createEmptyFacebook()
     });
+
+    if (serpSnapshot) {
+      await createWorkflowEvent({
+        jobId,
+        type: "research",
+        status: "succeeded",
+        source: "app",
+        message: "SERP snapshot ready",
+        payload: {
+          stage: "serp_snapshot",
+          serpSnapshot
+        }
+      });
+    }
+
+    return getJob(jobId);
   }
 
   if (!isDatabaseConfigured()) {
@@ -744,7 +781,7 @@ export async function runResearch(jobId: string) {
   const provider = await resolveResearchProviderByClientName(job.client);
   const research =
     provider === "dataforseo"
-      ? (await buildResearchPackFromDataForSeo(job.seedKeyword, selectedIdea)).research
+      ? (await buildResearchPackFromDataForSeo(job.seedKeyword, selectedIdea, job.serpSnapshot)).research
       : generateResearch(job.seedKeyword, selectedIdea);
 
   if (!isDatabaseConfigured()) {

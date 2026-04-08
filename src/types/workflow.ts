@@ -10,6 +10,25 @@ export type WorkflowStage =
 
 export type ResearchProvider = "tavily" | "dataforseo";
 
+export type SerpResult = {
+  type: string;
+  title: string;
+  url?: string;
+  description?: string;
+};
+
+export type SerpSnapshot = {
+  keyword: string;
+  intentSummary: string;
+  topResults: SerpResult[];
+  featuredSnippet?: SerpResult | null;
+  peopleAlsoAsk: string[];
+  relatedSearches: string[];
+  hasLocalPack: boolean;
+  serpFeatures: string[];
+  generatedAt: string;
+};
+
 export type TopicIdea = {
   id: string;
   title: string;
@@ -109,6 +128,7 @@ export type WorkflowJob = {
   stage: WorkflowStage;
   selectedIdeaId: string;
   ideas: TopicIdea[];
+  serpSnapshot?: SerpSnapshot | null;
   research: ResearchPack;
   brief: ContentBrief;
   draft: ArticleDraft;

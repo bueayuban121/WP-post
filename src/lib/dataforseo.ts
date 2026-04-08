@@ -1,6 +1,6 @@
 import { generateKeywordIdeasWithOpenAi, synthesizeResearchWithOpenAi } from "@/lib/openai";
 import type { ResearchProvider } from "@/lib/research-provider-config";
-import type { ResearchPack, TopicIdea } from "@/types/workflow";
+import type { ResearchPack, SerpResult, SerpSnapshot, TopicIdea } from "@/types/workflow";
 
 const DATAFORSEO_LOGIN = process.env.DATAFORSEO_LOGIN?.trim() ?? "";
 const DATAFORSEO_PASSWORD = process.env.DATAFORSEO_PASSWORD?.trim() ?? "";
@@ -9,6 +9,8 @@ const DATAFORSEO_VARIANTS_PATH =
   process.env.DATAFORSEO_VARIANTS_PATH?.trim() || "/v3/keywords_data/google_ads/keywords_for_keywords/live";
 const DATAFORSEO_KEYWORD_IDEAS_PATH =
   process.env.DATAFORSEO_KEYWORD_IDEAS_PATH?.trim() || "/v3/dataforseo_labs/google/keyword_ideas/live";
+const DATAFORSEO_SERP_PATH =
+  process.env.DATAFORSEO_SERP_PATH?.trim() || "/v3/serp/google/organic/live/advanced";
 const DATAFORSEO_LOCATION_CODE = Number(process.env.DATAFORSEO_LOCATION_CODE || "2764");
 const DATAFORSEO_LANGUAGE_NAME = process.env.DATAFORSEO_LANGUAGE_NAME?.trim() || "Thai";
 const DATAFORSEO_LANGUAGE_CODE = process.env.DATAFORSEO_LANGUAGE_CODE?.trim() || "th";
@@ -51,6 +53,27 @@ type GoogleAdsTask = {
 
 type GoogleAdsResponse = {
   tasks?: GoogleAdsTask[];
+};
+
+type DataForSeoSerpItem = {
+  type?: string;
+  title?: string;
+  url?: string;
+  description?: string;
+  items?: DataForSeoSerpItem[];
+  xpath?: string;
+};
+
+type DataForSeoSerpTaskResult = {
+  items?: DataForSeoSerpItem[];
+};
+
+type DataForSeoSerpTask = {
+  result?: DataForSeoSerpTaskResult[];
+};
+
+type DataForSeoSerpResponse = {
+  tasks?: DataForSeoSerpTask[];
 };
 
 export type DataForSeoKeywordVariantResult = {
@@ -104,6 +127,10 @@ function extractItems(response: DataForSeoResponse) {
 
 function extractGoogleAdsSuggestions(response: GoogleAdsResponse) {
   return response.tasks?.flatMap((task) => task.result ?? []) ?? [];
+}
+
+function extractSerpItems(response: DataForSeoSerpResponse) {
+  return response.tasks?.flatMap((task) => task.result?.flatMap((result) => result.items ?? []) ?? []) ?? [];
 }
 
 function inferIntentFromKeyword(keyword: string): TopicIdea["searchIntent"] {
@@ -320,6 +347,48 @@ function buildInsightLine(item: DataForSeoKeywordIdeaItem) {
   return parts.length > 0 ? parts.join(", ") : "keyword variant from DataForSEO";
 }
 
+function normalizeSerpFeatureLabel(value: string) {
+  return value.replace(/_/g, " ").trim();
+}
+
+function toSerpResult(item: DataForSeoSerpItem): SerpResult {
+  return {
+    type: String(item.type ?? "organic"),
+    title: trimSentence(String(item.title ?? "")) || "Untitled result",
+    url: item.url ? String(item.url).trim() : undefined,
+    description: item.description ? trimSentence(String(item.description)) : undefined
+  };
+}
+
+function buildSerpIntentSummary(snapshot: Omit<SerpSnapshot, "intentSummary" | "generatedAt">) {
+  const reasons: string[] = [];
+
+  if (snapshot.featuredSnippet) {
+    reasons.push("Google is rewarding concise explanatory content with a featured snippet");
+  }
+
+  if (snapshot.peopleAlsoAsk.length > 0) {
+    reasons.push("People Also Ask questions suggest an educational, question-led search intent");
+  }
+
+  if (snapshot.hasLocalPack) {
+    reasons.push("A local pack appears, so local or place-based intent is present");
+  }
+
+  const topTypes = snapshot.topResults.map((result) => result.type.toLowerCase());
+  const reviewLikeCount = topTypes.filter((type) => /review|product|shopping|merchant/.test(type)).length;
+
+  if (reviewLikeCount >= 2) {
+    reasons.push("The SERP leans commercial, with multiple result types suggesting comparison or buying intent");
+  }
+
+  if (reasons.length === 0) {
+    reasons.push("The SERP mostly reflects informational search intent with room for structured educational content");
+  }
+
+  return reasons.join(". ");
+}
+
 function buildFallbackResearch(seedKeyword: string, selectedIdea: TopicIdea): ResearchPack {
   return {
     objective: `Build a usable research pack for "${selectedIdea.title}" based on the broader seed keyword "${seedKeyword}".`,
@@ -399,6 +468,34 @@ async function callDataForSeoKeywordVariants(seedKeyword: string) {
   }
 
   return (await response.json()) as GoogleAdsResponse;
+}
+
+async function callDataForSeoSerpSnapshot(keyword: string) {
+  if (!isDataForSeoConfigured()) {
+    throw new Error("DataForSEO credentials are not configured.");
+  }
+
+  const response = await fetch(`${DATAFORSEO_BASE_URL}${DATAFORSEO_SERP_PATH}`, {
+    method: "POST",
+    headers: {
+      Authorization: getAuthHeader(),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify([
+      {
+        keyword,
+        location_code: DATAFORSEO_LOCATION_CODE,
+        language_code: DATAFORSEO_LANGUAGE_CODE,
+        depth: 20
+      }
+    ])
+  });
+
+  if (!response.ok) {
+    throw new Error(`DataForSEO SERP snapshot failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as DataForSeoSerpResponse;
 }
 
 export async function getDataForSeoKeywordVariantResult(
@@ -537,7 +634,62 @@ export async function generateIdeasFromDataForSeo(seedKeyword: string): Promise<
   }
 }
 
-export async function generateTopicIdeasFromDataForSeo(seedKeyword: string): Promise<TopicIdea[] | null> {
+export async function getDataForSeoSerpSnapshot(keyword: string): Promise<SerpSnapshot | null> {
+  if (!isDataForSeoConfigured()) {
+    return null;
+  }
+
+  try {
+    const response = await callDataForSeoSerpSnapshot(keyword);
+    const items = extractSerpItems(response);
+
+    if (items.length === 0) {
+      return null;
+    }
+
+    const topResults = items
+      .filter((item) => item.type && /organic|paid|shopping|merchant/.test(item.type))
+      .slice(0, 6)
+      .map(toSerpResult);
+
+    const featuredSnippetItem = items.find((item) => item.type === "featured_snippet") ?? null;
+    const paaItem = items.find((item) => item.type === "people_also_ask");
+    const relatedSearchesItem = items.find((item) => item.type === "related_searches");
+    const peopleAlsoAsk = (paaItem?.items ?? [])
+      .map((item) => trimSentence(String(item.title ?? item.description ?? "")))
+      .filter(Boolean)
+      .slice(0, 6);
+    const relatedSearches = (relatedSearchesItem?.items ?? [])
+      .map((item) => trimSentence(String(item.title ?? item.description ?? "")))
+      .filter(Boolean)
+      .slice(0, 6);
+    const serpFeatures = dedupe(items.map((item) => normalizeSerpFeatureLabel(String(item.type ?? ""))).filter(Boolean));
+    const hasLocalPack = items.some((item) => item.type === "local_pack");
+
+    const baseSnapshot = {
+      keyword: trimSentence(keyword),
+      topResults,
+      featuredSnippet: featuredSnippetItem ? toSerpResult(featuredSnippetItem) : null,
+      peopleAlsoAsk,
+      relatedSearches,
+      hasLocalPack,
+      serpFeatures
+    };
+
+    return {
+      ...baseSnapshot,
+      intentSummary: buildSerpIntentSummary(baseSnapshot),
+      generatedAt: new Date().toISOString()
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function generateTopicIdeasFromDataForSeo(
+  seedKeyword: string,
+  serpSnapshot?: SerpSnapshot | null
+): Promise<TopicIdea[] | null> {
   if (!isDataForSeoConfigured()) {
     return null;
   }
@@ -559,14 +711,26 @@ export async function generateTopicIdeasFromDataForSeo(seedKeyword: string): Pro
     const summaryHooks = items
       .slice(0, 8)
       .map((item) => `${item.keyword}: ${buildInsightLine(item)}`)
+      .concat(
+        serpSnapshot
+          ? [
+              `SERP intent: ${serpSnapshot.intentSummary}`,
+              `People Also Ask: ${serpSnapshot.peopleAlsoAsk.join(", ") || "-"}`,
+              `SERP features: ${serpSnapshot.serpFeatures.join(", ") || "-"}`
+            ]
+          : []
+      )
       .join(" ");
+
+    const serpTitles = serpSnapshot?.topResults.map((result) => result.title) ?? [];
+    const topicTitles = dedupe([...keywordTitles, ...serpTitles, ...(serpSnapshot?.peopleAlsoAsk ?? [])]).slice(0, 12);
 
     const aiIdeas = await generateKeywordIdeasWithOpenAi({
       seedKeyword,
       thaiSummary: summaryHooks,
       globalSummary: summaryHooks,
-      thaiTitles: keywordTitles,
-      globalTitles: keywordTitles
+      thaiTitles: topicTitles,
+      globalTitles: topicTitles
     }).catch(() => []);
 
     if (aiIdeas.length >= 8) {
@@ -603,7 +767,8 @@ export async function generateTopicIdeasFromDataForSeo(seedKeyword: string): Pro
 
 export async function buildResearchPackFromDataForSeo(
   seedKeyword: string,
-  selectedIdea: TopicIdea
+  selectedIdea: TopicIdea,
+  serpSnapshot?: SerpSnapshot | null
 ): Promise<{ research: ResearchPack; provider: ResearchProvider; summaryText: string; summaryHooks: string }> {
   if (!isDataForSeoConfigured()) {
     return {
@@ -634,18 +799,50 @@ export async function buildResearchPackFromDataForSeo(
       insight: buildInsightLine(item)
     }));
 
+    const serpSources: ResearchPack["sources"] = serpSnapshot
+      ? [
+          {
+            region: "TH",
+            title: `SERP intent snapshot for ${serpSnapshot.keyword}`,
+            source: "DataForSEO SERP live advanced",
+            insight: serpSnapshot.intentSummary
+          },
+          ...serpSnapshot.topResults.slice(0, 3).map((result) => ({
+            region: "Global" as const,
+            title: result.title,
+            source: result.url || "DataForSEO SERP live advanced",
+            insight: result.description || `SERP result type: ${result.type}`
+          }))
+        ]
+      : [];
+
     const fallbackResearch: ResearchPack = {
       objective: `Use DataForSEO keyword intelligence to clarify how "${selectedIdea.title}" should be researched and framed before article writing.`,
       audience: `Readers searching for ${seedKeyword} who are comparing answers, angles, or buying considerations tied to "${selectedIdea.title}".`,
       gaps: [
         `Turn keyword metrics into useful research insight for "${selectedIdea.title}" instead of listing numbers only.`,
         "Show which related terms reveal the clearest user intent.",
-        "Translate keyword data into a content angle that fits Thai readers."
+        "Translate keyword data into a content angle that fits Thai readers.",
+        ...(serpSnapshot?.peopleAlsoAsk.length
+          ? [`Address related user questions such as ${serpSnapshot.peopleAlsoAsk.slice(0, 2).join(" and ")}.`]
+          : [])
       ],
-      sources
+      sources: [...sources, ...serpSources]
     };
 
-    const summaryHooks = items.map((item) => `${item.keyword}: ${buildInsightLine(item)}`).join(" ");
+    const summaryHooks = items
+      .map((item) => `${item.keyword}: ${buildInsightLine(item)}`)
+      .concat(
+        serpSnapshot
+          ? [
+              `SERP intent: ${serpSnapshot.intentSummary}`,
+              `Featured snippet: ${serpSnapshot.featuredSnippet?.title ?? "-"}`,
+              `People Also Ask: ${serpSnapshot.peopleAlsoAsk.join(", ") || "-"}`,
+              `Local pack: ${serpSnapshot.hasLocalPack ? "yes" : "no"}`
+            ]
+          : []
+      )
+      .join(" ");
     const synthesized = await synthesizeResearchWithOpenAi({
       seedKeyword,
       ideaTitle: selectedIdea.title,

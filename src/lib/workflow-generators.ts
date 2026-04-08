@@ -10,6 +10,7 @@ import type {
   ResearchPack,
   ResearchSource,
   TopicIdea,
+  SerpSnapshot,
   WorkflowJob
 } from "@/types/workflow";
 
@@ -508,11 +509,12 @@ export async function generateIdeas(
 
 export async function generateTopicIdeas(
   seedKeyword: string,
-  provider: ResearchProvider = "tavily"
+  provider: ResearchProvider = "tavily",
+  serpSnapshot?: SerpSnapshot | null
 ): Promise<TopicIdea[]> {
   const aiIdeas =
     provider === "dataforseo"
-      ? await generateTopicIdeasFromDataForSeo(seedKeyword)
+      ? await generateTopicIdeasFromDataForSeo(seedKeyword, serpSnapshot)
       : await generateIdeasFromTavily(seedKeyword);
 
   if (aiIdeas && aiIdeas.length > 0) {
