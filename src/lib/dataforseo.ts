@@ -794,8 +794,8 @@ export async function buildResearchPackFromDataForSeo(
 
     const sources = items.map((item) => ({
       region: "TH" as const,
-      title: String(item.keyword ?? selectedIdea.title),
-      source: "DataForSEO Labs keyword_ideas/live",
+      title: `Keyword signal: ${String(item.keyword ?? selectedIdea.title)}`,
+      source: "Needs verification",
       insight: buildInsightLine(item)
     }));
 
@@ -804,7 +804,7 @@ export async function buildResearchPackFromDataForSeo(
           {
             region: "TH",
             title: `SERP intent snapshot for ${serpSnapshot.keyword}`,
-            source: "DataForSEO SERP live advanced",
+            source: "Needs verification",
             insight: serpSnapshot.intentSummary
           },
           ...serpSnapshot.topResults.slice(0, 3).map((result) => ({

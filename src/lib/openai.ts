@@ -170,6 +170,10 @@ function cleanResearchDocumentBlock(value: string) {
     .trim();
 }
 
+function isUrl(value: string) {
+  return /^https?:\/\//i.test(value.trim());
+}
+
 function getApiKey() {
   return process.env.OPENAI_API_KEY?.trim() || "";
 }
@@ -273,7 +277,9 @@ function summarizeSources(sources: ResearchSource[]) {
     index: index + 1,
     region: source.region,
     title: source.title,
-    source: source.source,
+    source: isUrl(source.source) ? source.source : "Needs verification",
+    sourceLabel: isUrl(source.source) ? source.source : source.source,
+    hasVerifiedUrl: isUrl(source.source),
     sourceType: inferSourceType(source.source),
     insight: source.insight
   }));
@@ -410,6 +416,9 @@ export async function synthesizeResearchWithOpenAi(input: {
     "- Use plain-text labels inside the summary so the output stays exportable and easy to scan.",
     "- References are mandatory. Use full real URLs only when they exist in the provided source context. Never invent or guess links.",
     '- If a source is useful but no verified URL is available in the provided source context, write "Needs verification" instead of making one up.',
+    "- For claims that materially affect accuracy, include 1 to 3 stronger references in that section instead of many weak mentions.",
+    "- Treat sources without verified URLs as supporting hints only, not as primary citable evidence.",
+    "- Strategic insight must be specific to this topic, this audience, and the available evidence. Avoid generic advice that could fit any keyword.",
     "- Prefer stronger sources such as research, institutions, universities, and recognized organizations when the topic is scientific, medical, technical, or data-sensitive.",
     "- Explain what sources agree on, what they disagree on, and what remains uncertain.",
     "- Each main section should reduce the writer's need for additional research.",

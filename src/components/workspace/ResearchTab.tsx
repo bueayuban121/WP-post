@@ -19,6 +19,36 @@ function isLink(value: string) {
   return value.startsWith("http://") || value.startsWith("https://");
 }
 
+function renderTextWithLinks(value: string) {
+  const lines = value.split("\n");
+  const urlPattern = /(https?:\/\/[^\s]+)/g;
+
+  return lines.map((line, lineIndex) => {
+    const parts = line.split(urlPattern);
+
+    return (
+      <span key={`${line}-${lineIndex}`}>
+        {parts.map((part, partIndex) =>
+          isLink(part) ? (
+            <a
+              key={`${part}-${partIndex}`}
+              href={part}
+              target="_blank"
+              rel="noreferrer"
+              className="break-all text-accent underline-offset-4 hover:underline"
+            >
+              {part}
+            </a>
+          ) : (
+            <span key={`${part}-${partIndex}`}>{part}</span>
+          )
+        )}
+        {lineIndex < lines.length - 1 ? <br /> : null}
+      </span>
+    );
+  });
+}
+
 export function ResearchTab({
   job,
   activeIdea,
@@ -114,7 +144,7 @@ export function ResearchTab({
 
           <div className="prose prose-invert mt-2 max-w-none rounded-md border border-white/5 bg-background/30 p-4 text-sm leading-relaxed text-muted-foreground">
             {researchSummary ? (
-              <div className="whitespace-pre-wrap">{researchSummary}</div>
+              <div className="whitespace-pre-wrap">{renderTextWithLinks(researchSummary)}</div>
             ) : (
               <span className="italic">ยังไม่มีข้อมูลรีเซิร์ตในงานนี้</span>
             )}
@@ -141,7 +171,7 @@ export function ResearchTab({
                       {source.source}
                     </a>
                   ) : (
-                    <p className="truncate text-xs text-accent">{source.source}</p>
+                    <p className="text-xs text-accent">{source.source}</p>
                   )}
                   <small className="mt-1 line-clamp-3 text-xs leading-snug text-muted-foreground">{source.insight}</small>
                 </div>

@@ -11,6 +11,13 @@ function escapeHtml(value: string) {
     .replaceAll("'", "&#39;");
 }
 
+function linkifyText(value: string) {
+  return escapeHtml(value).replace(
+    /(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" target="_blank" rel="noreferrer">$1</a>'
+  );
+}
+
 function getSelectedIdea(job: WorkflowJob) {
   return job.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? null;
 }
@@ -91,6 +98,13 @@ export function buildResearchReport(job: WorkflowJob, format: ResearchReportForm
       margin: 0 0 14px;
       white-space: pre-wrap;
     }
+    .summary a,
+    .panel a {
+      color: #2563eb;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      word-break: break-word;
+    }
     ul {
       margin: 0;
       padding-left: 20px;
@@ -123,7 +137,7 @@ export function buildResearchReport(job: WorkflowJob, format: ResearchReportForm
   <div class="panel summary">
     ${summary
       .split(/\n{2,}/)
-      .map((paragraph) => `<p>${escapeHtml(paragraph.trim())}</p>`)
+      .map((paragraph) => `<p>${linkifyText(paragraph.trim())}</p>`)
       .join("")}
   </div>
 
