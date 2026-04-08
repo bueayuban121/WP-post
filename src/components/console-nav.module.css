@@ -80,10 +80,25 @@
 }
 
 .navActive {
-  border-color: rgba(255, 208, 178, 0.42);
-  background: linear-gradient(135deg, #f6c39f, #eb9869);
-  color: #3f1f0d !important;
-  box-shadow: 0 16px 36px rgba(157, 87, 44, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  border-color: rgba(255, 232, 214, 0.8);
+  background:
+    linear-gradient(135deg, #ffd4b6, #f2a777 48%, #df7e4c 100%),
+    #f6c39f;
+  color: #261003 !important;
+  transform: translateY(-1px);
+  box-shadow:
+    0 18px 38px rgba(157, 87, 44, 0.32),
+    0 0 0 1px rgba(255, 246, 238, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(115, 49, 20, 0.18);
+  text-shadow: 0 1px 0 rgba(255, 244, 236, 0.2);
+}
+
+.navActive:hover {
+  background:
+    linear-gradient(135deg, #ffd9bc, #f4ae80 48%, #e48451 100%),
+    #f6c39f;
+  color: #1f0b01 !important;
 }
 
 .logoutButton {
