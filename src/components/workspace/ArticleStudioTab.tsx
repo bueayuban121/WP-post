@@ -110,7 +110,7 @@ export function ArticleStudioTab({
           <div className="sticky top-0 z-20 -mx-6 -mt-6 border-b border-white/8 bg-[linear-gradient(180deg,rgba(10,16,24,0.98),rgba(10,16,24,0.84))] px-6 pb-4 pt-6 backdrop-blur-xl">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
-                <span className="inline-flex rounded-full border border-cyan-400/15 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200">
+                <span className="inline-flex rounded-full border border-[#f2b487]/20 bg-[#f2b487]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ffd6ba]">
                   Editorial Control
                 </span>
                 <h2 className="mt-4 text-2xl font-bold tracking-tight text-foreground">Draft Studio</h2>
@@ -168,7 +168,7 @@ export function ArticleStudioTab({
                 <small className="text-xs text-slate-400">Short summary for search snippets and social previews.</small>
                 <textarea
                   rows={4}
-                  className="custom-scroll flex w-full rounded-[18px] border border-white/10 bg-background/50 px-4 py-3 text-sm text-slate-50 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45"
+                  className="custom-scroll flex w-full rounded-[18px] border border-white/10 bg-background/50 px-4 py-3 text-sm text-slate-50 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2b487]/45"
                   value={briefMetaDescription}
                   onChange={(event) => setBriefMetaDescription(event.target.value)}
                 />
@@ -197,7 +197,7 @@ export function ArticleStudioTab({
                 <small className="text-xs text-slate-400">Opening paragraphs that frame the article.</small>
                 <textarea
                   rows={7}
-                  className="custom-scroll flex w-full rounded-[20px] border border-white/10 bg-background/50 px-4 py-3 text-sm text-slate-50 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45"
+                  className="custom-scroll flex w-full rounded-[20px] border border-white/10 bg-background/50 px-4 py-3 text-sm text-slate-50 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2b487]/45"
                   value={draftIntro}
                   onChange={(event) => setDraftIntro(event.target.value)}
                 />
@@ -217,8 +217,8 @@ export function ArticleStudioTab({
                     transition={{ duration: 0.28, delay: index * 0.05 }}
                     className="group relative flex flex-col gap-3 overflow-hidden rounded-[22px] border border-white/8 bg-white/[0.04] p-4 shadow-[0_18px_34px_rgba(5,10,18,0.16)]"
                   >
-                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                    <strong className="text-[12px] uppercase tracking-[0.2em] text-cyan-200">Section {index + 1}</strong>
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#f2b487]/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                    <strong className="text-[12px] uppercase tracking-[0.2em] text-[#ffd6ba]">Section {index + 1}</strong>
 
                     <label className="flex flex-col gap-2">
                       <span className="text-sm font-medium text-foreground">Heading</span>
@@ -233,7 +233,7 @@ export function ArticleStudioTab({
                       <span className="text-sm font-medium text-foreground">Body</span>
                       <textarea
                         rows={9}
-                        className="custom-scroll flex w-full rounded-[18px] border border-white/10 bg-background/60 px-4 py-3 text-sm text-slate-50 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45"
+                        className="custom-scroll flex w-full rounded-[18px] border border-white/10 bg-background/60 px-4 py-3 text-sm text-slate-50 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2b487]/45"
                         value={section.body}
                         onChange={(event) => updateDraftSection(index, "body", event.target.value)}
                       />
@@ -247,7 +247,7 @@ export function ArticleStudioTab({
                 <small className="text-xs text-slate-400">Closing section that wraps the article clearly.</small>
                 <textarea
                   rows={6}
-                  className="custom-scroll flex w-full rounded-[20px] border border-white/10 bg-background/50 px-4 py-3 text-sm text-slate-50 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45"
+                  className="custom-scroll flex w-full rounded-[20px] border border-white/10 bg-background/50 px-4 py-3 text-sm text-slate-50 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2b487]/45"
                   value={draftConclusion}
                   onChange={(event) => setDraftConclusion(event.target.value)}
                 />
@@ -265,7 +265,7 @@ export function ArticleStudioTab({
         transition={{ duration: 0.42, ease: "easeOut", delay: 0.06 }}
       >
         <GlassPanel className="overflow-hidden p-0">
-          <div className="relative aspect-[16/8] w-full overflow-hidden border-b border-white/6 bg-muted">
+          <div className="relative aspect-[16/9] min-h-[320px] w-full overflow-hidden border-b border-white/6 bg-muted md:min-h-[400px]">
             {featuredImageSrc ? (
               <Image alt={articleImages[0]?.alt ?? "Featured article image"} fill src={featuredImageSrc} unoptimized className="object-cover" />
             ) : (
@@ -275,21 +275,21 @@ export function ArticleStudioTab({
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-[#070b10] via-[#070b10]/30 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 z-10 px-6 pb-6 md:px-8">
-              <span className="inline-flex rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200 backdrop-blur-md">
+              <span className="inline-flex rounded-full border border-[#f2b487]/22 bg-black/25 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ffd6ba] backdrop-blur-md">
                 Draft Preview
               </span>
-              <h2 className="mt-4 max-w-4xl text-2xl font-semibold tracking-[-0.04em] text-slate-50 md:text-[2.35rem]">
+              <h2 className="mt-4 max-w-3xl text-2xl font-semibold tracking-[-0.04em] text-slate-50 md:text-[2.1rem]">
                 {previewTitle}
               </h2>
               {briefMetaDescription ? (
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300 md:text-[15px]">{briefMetaDescription}</p>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300 md:text-[15px]">{briefMetaDescription}</p>
               ) : null}
             </div>
           </div>
 
           <div className="sticky top-0 z-20 border-b border-white/6 bg-[linear-gradient(180deg,rgba(8,12,18,0.96),rgba(8,12,18,0.82))] px-6 py-4 backdrop-blur-xl md:px-8">
             <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center rounded-full border border-cyan-400/15 bg-cyan-400/10 px-3 py-2 text-xs font-medium text-cyan-200">
+              <span className="inline-flex items-center rounded-full border border-[#f2b487]/20 bg-[#f2b487]/10 px-3 py-2 text-xs font-medium text-[#ffd6ba]">
                 Keyword: {selectedKeywordLabel || "Waiting"}
               </span>
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-medium text-slate-300">
@@ -309,7 +309,7 @@ export function ArticleStudioTab({
                   key={anchor.id}
                   type="button"
                   onClick={() => scrollToAnchor(anchor.id)}
-                  className="inline-flex shrink-0 items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/25 hover:bg-cyan-300/10 hover:text-cyan-100"
+                  className="inline-flex shrink-0 items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-slate-200 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#f2b487]/25 hover:bg-[#f2b487]/10 hover:text-[#ffe4d0]"
                 >
                   {anchor.label}
                 </button>
@@ -337,7 +337,7 @@ export function ArticleStudioTab({
                 transition={{ duration: 0.3 }}
                 className="scroll-mt-36 rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-6 shadow-[0_22px_48px_rgba(5,10,18,0.18)]"
               >
-                <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200">Intro</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ffd6ba]">Intro</span>
                 <div className="mt-4 space-y-5 text-[1.02rem] leading-8 text-slate-200">
                   {splitParagraphs(draftIntro).map((paragraph) => (
                     <p key={`intro-${paragraph.slice(0, 36)}`}>{paragraph}</p>
@@ -390,7 +390,7 @@ export function ArticleStudioTab({
                 transition={{ duration: 0.3 }}
                 className="scroll-mt-36 mt-8 rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-6 shadow-[0_22px_48px_rgba(5,10,18,0.18)]"
               >
-                <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200">Conclusion</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ffd6ba]">Conclusion</span>
                 <div className="mt-4 space-y-5 text-[1rem] leading-8 text-slate-200">
                   {splitParagraphs(draftConclusion).map((paragraph) => (
                     <p key={`conclusion-${paragraph.slice(0, 36)}`}>{paragraph}</p>

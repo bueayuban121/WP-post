@@ -54,7 +54,7 @@
 .navLinks a {
   border: 0;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
-  color: #a7b8c7;
+  color: #f3c7a9;
   cursor: pointer;
   padding: 10px 14px;
   border-radius: 999px;
@@ -65,22 +65,22 @@
 }
 
 .navLinks a:hover {
-  background: linear-gradient(180deg, rgba(15, 118, 110, 0.2), rgba(15, 118, 110, 0.12));
-  color: #f3fbfb;
+  background: linear-gradient(180deg, rgba(242, 180, 135, 0.2), rgba(212, 122, 69, 0.14));
+  color: #fff4ea;
   transform: translateY(-2px);
   box-shadow: 0 14px 28px rgba(6, 14, 24, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .navActive {
-  background: linear-gradient(135deg, #0f766e, #1a8f84);
-  color: #fffdf8 !important;
-  box-shadow: 0 16px 36px rgba(15, 118, 110, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.14);
+  background: linear-gradient(135deg, #f6c39f, #eb9869);
+  color: #4a2711 !important;
+  box-shadow: 0 16px 36px rgba(157, 87, 44, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.1);
 }
 
 .logoutButton {
-  border: 1px solid rgba(212, 122, 69, 0.22);
-  background: rgba(212, 122, 69, 0.08);
-  color: #f3c39d;
+  border: 1px solid rgba(245, 184, 149, 0.3);
+  background: rgba(251, 174, 127, 0.12);
+  color: #ffd8bf;
   padding: 11px 16px;
   border-radius: 999px;
   cursor: pointer;
@@ -90,9 +90,9 @@
 
 .logoutButton:hover {
   transform: translateY(-2px);
-  border-color: rgba(212, 122, 69, 0.42);
-  background: rgba(212, 122, 69, 0.14);
-  box-shadow: 0 14px 28px rgba(16, 8, 4, 0.28);
+  border-color: rgba(245, 184, 149, 0.5);
+  background: rgba(251, 174, 127, 0.2);
+  box-shadow: 0 14px 28px rgba(82, 38, 14, 0.22);
 }
 
 @media (max-width: 720px) {

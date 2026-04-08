@@ -87,6 +87,15 @@ const automationLabels: Record<WorkflowAutomationEvent["status"], string> = {
   failed: "Failed"
 };
 
+const automationTypeLabels: Record<WorkflowAutomationEvent["type"], string> = {
+  research: "Research",
+  brief: "Brief",
+  draft: "Draft",
+  images: "Images",
+  publish: "Publish",
+  facebook: "Social"
+};
+
 const pagePresentations: Record<PageMode, PagePresentation> = {
   home: {
     heroClassName: styles.heroHome,
@@ -1229,6 +1238,17 @@ export function WorkflowDashboard({
     right.updatedAt.localeCompare(left.updatedAt)
   );
   const queueCount = queueEvents.filter((event) => event.status === "queued" || event.status === "running").length;
+  const activeEvent =
+    queueEvents.find((event) => event.status === "running") ??
+    queueEvents.find((event) => event.status === "queued");
+  const floatingStatusTitle = pendingAction
+    ? statusMessage
+    : activeEvent
+      ? `${automationTypeLabels[activeEvent.type]} ${automationLabels[activeEvent.status]}`
+      : "";
+  const floatingStatusDetail = pendingAction
+    ? "Still working in the background. You can keep scrolling and reviewing the page."
+    : activeEvent?.message || "";
   const liveEvent = queueEvents.find((event) => event.status === "queued" || event.status === "running") ?? null;
   const hasImages = articleImages.length > 0;
   const safeJob = job;
@@ -1363,6 +1383,15 @@ export function WorkflowDashboard({
 
   return (
     <main className={styles.page}>
+      {floatingStatusTitle ? (
+        <div className={styles.floatingStatus}>
+          <span className={styles.floatingDot} aria-hidden="true" />
+          <div>
+            <strong>{floatingStatusTitle}</strong>
+            <span>{floatingStatusDetail || "Please wait while the current step finishes."}</span>
+          </div>
+        </div>
+      ) : null}
       <section className={`${styles.shell} ${pagePresentation.shellClassName}`}>
         <ConsoleNav />
 
