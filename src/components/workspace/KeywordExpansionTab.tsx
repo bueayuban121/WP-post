@@ -27,18 +27,6 @@ function uniqueSearchIntents(job: WorkflowJob) {
     .filter(Boolean)
 }
 
-function downloadBlob(filename: string, content: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  URL.revokeObjectURL(url)
-}
-
 function scoreTone(score: number) {
   if (score >= 90) {
     return "border-emerald-300/20 bg-emerald-400/12 text-emerald-100"
@@ -73,46 +61,6 @@ export function KeywordExpansionTab({
 }: KeywordExpansionTabProps) {
   const intentMix = uniqueSearchIntents(job)
   const [showAllRecommendations, setShowAllRecommendations] = React.useState(false)
-  const exportBaseName = `${job.seedKeyword || "keyword-expansion"}`
-    .trim()
-    .replace(/[\\/:*?"<>|]/g, "-")
-    .replace(/\s+/g, "-")
-    .toLowerCase()
-
-  const exportKeywordVariantsAsTxt = React.useCallback(() => {
-    const lines = [
-      `Seed keyword: ${job.seedKeyword}`,
-      "",
-      "Expanded keyword variants:",
-      ...job.ideas.map((idea, index) => `${index + 1}. ${idea.title}`)
-    ]
-
-    downloadBlob(`${exportBaseName}-variants.txt`, lines.join("\n"), "text/plain;charset=utf-8")
-  }, [exportBaseName, job.ideas, job.seedKeyword])
-
-  const exportKeywordVariantsAsCsv = React.useCallback(() => {
-    const rows = [
-      ["seed_keyword", "variant_keyword", "difficulty", "confidence", "search_intent"],
-      ...job.ideas.map((idea) => [
-        job.seedKeyword,
-        idea.title,
-        idea.difficulty,
-        String(idea.confidence),
-        idea.searchIntent
-      ])
-    ]
-
-    const csv = rows
-      .map((row) =>
-        row
-          .map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`)
-          .join(",")
-      )
-      .join("\n")
-
-    downloadBlob(`${exportBaseName}-variants.csv`, csv, "text/csv;charset=utf-8")
-  }, [exportBaseName, job.ideas, job.seedKeyword])
-
   const visibleIdeas = inKeywordVariantPhase
     ? showAllRecommendations
       ? job.ideas
@@ -148,20 +96,6 @@ export function KeywordExpansionTab({
               </span>
               {inKeywordVariantPhase && job.ideas.length > 0 ? (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={exportKeywordVariantsAsTxt}
-                    className="h-10 rounded-full border-white/10 bg-white/[0.05] px-4 text-xs font-medium text-slate-100 hover:-translate-y-0.5 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-100"
-                  >
-                    Download TXT
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={exportKeywordVariantsAsCsv}
-                    className="h-10 rounded-full border-white/10 bg-white/[0.05] px-4 text-xs font-medium text-slate-100 hover:-translate-y-0.5 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-100"
-                  >
-                    Download CSV
-                  </Button>
                   <Button
                     asChild
                     variant="outline"
