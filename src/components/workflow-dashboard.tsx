@@ -50,6 +50,7 @@ type PendingAction =
   | "approve"
   | "publish";
 const settingsStorageKey = "auto-post-content-settings";
+const floatingStatusStorageKey = "auto-post-floating-status";
 
 type EditorialPatternPreview = {
   name: string;
@@ -527,6 +528,37 @@ export function WorkflowDashboard({
       })
     );
   }, [articleLength, bannedWords, imageCount, tone]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const raw = window.sessionStorage.getItem(floatingStatusStorageKey);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        title?: string;
+        detail?: string;
+        expiresAt?: number;
+      };
+
+      if (parsed.title && typeof parsed.expiresAt === "number" && parsed.expiresAt > Date.now()) {
+        setFloatingSnapshot({
+          visible: true,
+          title: parsed.title,
+          detail: parsed.detail ?? ""
+        });
+      } else {
+        window.sessionStorage.removeItem(floatingStatusStorageKey);
+      }
+    } catch {
+      window.sessionStorage.removeItem(floatingStatusStorageKey);
+    }
+  }, []);
 
   useEffect(() => {
     if (job) {
@@ -1396,17 +1428,35 @@ export function WorkflowDashboard({
   })();
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
     if (currentFloatingState.title) {
-      setFloatingSnapshot({
+      const nextSnapshot = {
         visible: true,
         title: currentFloatingState.title,
         detail: currentFloatingState.detail
+      };
+
+      window.sessionStorage.setItem(
+        floatingStatusStorageKey,
+        JSON.stringify({
+          title: currentFloatingState.title,
+          detail: currentFloatingState.detail,
+          expiresAt: Date.now() + 8000
+        })
+      );
+
+      setFloatingSnapshot({
+        ...nextSnapshot
       });
       return;
     }
 
     const timeout = window.setTimeout(() => {
       setFloatingSnapshot((previous) => ({ ...previous, visible: false }));
+      window.sessionStorage.removeItem(floatingStatusStorageKey);
     }, 1400);
 
     return () => window.clearTimeout(timeout);
