@@ -180,11 +180,11 @@ function getApiKey() {
 
 function buildArticlePromptLayer(config?: ArticlePromptConfig) {
   const layers = [
-    config?.systemArticlePrompt?.trim(),
-    config?.clientExpertisePrompt?.trim(),
-    config?.clientBrandVoicePrompt?.trim(),
-    config?.clientArticlePrompt?.trim()
-  ].filter(Boolean);
+    ["Global editorial guidance", config?.systemArticlePrompt?.trim()],
+    ["Client expertise", config?.clientExpertisePrompt?.trim()],
+    ["Brand voice", config?.clientBrandVoicePrompt?.trim()],
+    ["Client article rules", config?.clientArticlePrompt?.trim()]
+  ].filter((entry): entry is [string, string] => Boolean(entry[1]));
 
   if (layers.length === 0) {
     return "";
@@ -192,8 +192,8 @@ function buildArticlePromptLayer(config?: ArticlePromptConfig) {
 
   return [
     "",
-    "Additional writing instructions:",
-    ...layers.map((item, index) => `${index + 1}. ${item}`)
+    "Editorial guidance layers:",
+    ...layers.map(([label, item], index) => `${index + 1}. ${label}: ${item}`)
   ].join("\n");
 }
 

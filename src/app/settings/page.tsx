@@ -19,7 +19,8 @@ async function SettingsRouteContent() {
         <span className={styles.eyebrow}>Settings</span>
         <h1 className={styles.title}>Set content defaults before the team starts generating</h1>
         <p className={styles.description}>
-          หน้านี้รวมค่าตั้งต้นที่ใช้บ่อยที่สุดสำหรับโทนบทความ คำต้องห้าม ความยาวบทความ และค่า publish เบื้องต้น เพื่อให้การเริ่มงานแต่ละรอบเร็วขึ้น
+          หน้านี้รวมค่าที่ใช้บ่อยที่สุดของระบบ ทั้งกฎการเขียนกลาง การตั้งค่าลูกค้า แพ็กการใช้งาน และปลายทาง
+          WordPress เพื่อให้ workflow แต่ละรอบเริ่มได้เร็วขึ้นและคุมคุณภาพได้ง่ายขึ้น
         </p>
       </section>
 

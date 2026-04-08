@@ -51,23 +51,6 @@ const defaultSettings: SavedSettings = {
   articleLength: "1800"
 };
 
-function createAccountDraft(user: AppUserSession): ManagedAccountDraft {
-  return {
-    status: user.status,
-    contractEnd: user.contractEnd ? user.contractEnd.slice(0, 10) : "",
-    clientArticlePrompt: user.clientArticlePrompt ?? "",
-    clientExpertisePrompt: user.clientExpertisePrompt ?? "",
-    clientBrandVoicePrompt: user.clientBrandVoicePrompt ?? "",
-    clientResearchProvider: user.clientResearchProvider === "dataforseo" ? "dataforseo" : "tavily",
-    clientPlan: user.clientPlan === "premium" || user.clientPlan === "pro" ? user.clientPlan : "normal",
-    clientWordpressUrl: user.clientWordpressUrl ?? "",
-    clientWordpressUsername: user.clientWordpressUsername ?? "",
-    clientWordpressAppPassword: user.clientWordpressAppPassword ?? "",
-    clientWordpressPublishStatus:
-      user.clientWordpressPublishStatus === "publish" ? "publish" : "draft"
-  };
-}
-
 const emptyNewAccount: NewAccountState = {
   email: "",
   name: "",
@@ -86,6 +69,53 @@ const emptyNewAccount: NewAccountState = {
   contractEnd: "",
   status: "active"
 };
+
+function createAccountDraft(user: AppUserSession): ManagedAccountDraft {
+  return {
+    status: user.status,
+    contractEnd: user.contractEnd ? user.contractEnd.slice(0, 10) : "",
+    clientArticlePrompt: user.clientArticlePrompt ?? "",
+    clientExpertisePrompt: user.clientExpertisePrompt ?? "",
+    clientBrandVoicePrompt: user.clientBrandVoicePrompt ?? "",
+    clientResearchProvider: user.clientResearchProvider === "dataforseo" ? "dataforseo" : "tavily",
+    clientPlan: user.clientPlan === "premium" || user.clientPlan === "pro" ? user.clientPlan : "normal",
+    clientWordpressUrl: user.clientWordpressUrl ?? "",
+    clientWordpressUsername: user.clientWordpressUsername ?? "",
+    clientWordpressAppPassword: user.clientWordpressAppPassword ?? "",
+    clientWordpressPublishStatus: user.clientWordpressPublishStatus === "publish" ? "publish" : "draft"
+  };
+}
+
+function createFallbackClient(userId: string): AppUserSession {
+  return {
+    id: userId,
+    email: "",
+    name: "",
+    role: "client",
+    status: "active",
+    clientId: null,
+    clientName: null,
+    contractStart: null,
+    contractEnd: null,
+    clientArticlePrompt: null,
+    clientExpertisePrompt: null,
+    clientBrandVoicePrompt: null,
+    clientResearchProvider: null,
+    clientPlan: null,
+    clientWordpressUrl: null,
+    clientWordpressUsername: null,
+    clientWordpressAppPassword: null,
+    clientWordpressPublishStatus: null
+  };
+}
+
+function formatExpiryLabel(contractEnd: string | null) {
+  if (!contractEnd) {
+    return "No expiry";
+  }
+
+  return `Ends ${new Date(contractEnd).toLocaleDateString("en-GB")}`;
+}
 
 export function SettingsPage({
   currentUser,
@@ -114,23 +144,41 @@ export function SettingsPage({
   });
   const [saved, setSaved] = useState(false);
   const [accounts, setAccounts] = useState(managedUsers);
+  const [accountDrafts, setAccountDrafts] = useState<Record<string, ManagedAccountDraft>>(() =>
+    Object.fromEntries(managedUsers.map((user) => [user.id, createAccountDraft(user)]))
+  );
+  const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
+  const [newAccount, setNewAccount] = useState<NewAccountState>(emptyNewAccount);
   const [accountStatus, setAccountStatus] = useState("");
   const [accountPending, setAccountPending] = useState(false);
   const [systemArticlePrompt, setSystemArticlePrompt] = useState("");
   const [defaultResearchProvider, setDefaultResearchProvider] = useState<"tavily" | "dataforseo">("tavily");
   const [promptSaved, setPromptSaved] = useState("");
-  const [accountDrafts, setAccountDrafts] = useState<Record<string, ManagedAccountDraft>>(() =>
-    Object.fromEntries(managedUsers.map((user) => [user.id, createAccountDraft(user)]))
-  );
-  const [newAccount, setNewAccount] = useState<NewAccountState>(emptyNewAccount);
-  const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
 
-  function update<K extends keyof SavedSettings>(key: K, value: SavedSettings[K]) {
+  function updateSetting<K extends keyof SavedSettings>(key: K, value: SavedSettings[K]) {
     setSaved(false);
     setSettings((current) => ({ ...current, [key]: value }));
   }
 
-  function saveSettings() {
+  function updateNewAccount<K extends keyof NewAccountState>(key: K, value: NewAccountState[K]) {
+    setNewAccount((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateAccountDraft<K extends keyof ManagedAccountDraft>(
+    userId: string,
+    field: K,
+    value: ManagedAccountDraft[K]
+  ) {
+    setAccountDrafts((current) => ({
+      ...current,
+      [userId]: {
+        ...(current[userId] ?? createAccountDraft(createFallbackClient(userId))),
+        [field]: value
+      }
+    }));
+  }
+
+  function saveLocalDefaults() {
     window.localStorage.setItem(storageKey, JSON.stringify(settings));
     setSaved(true);
   }
@@ -148,12 +196,15 @@ export function SettingsPage({
           systemArticlePrompt?: string;
           defaultResearchProvider?: "tavily" | "dataforseo";
         };
-        if (response.ok) {
-          setSystemArticlePrompt(data.systemArticlePrompt ?? "");
-          setDefaultResearchProvider(data.defaultResearchProvider === "dataforseo" ? "dataforseo" : "tavily");
+
+        if (!response.ok) {
+          return;
         }
+
+        setSystemArticlePrompt(data.systemArticlePrompt ?? "");
+        setDefaultResearchProvider(data.defaultResearchProvider === "dataforseo" ? "dataforseo" : "tavily");
       } catch {
-        // Keep the field editable locally when the request fails.
+        // Keep the fields locally editable if the request fails.
       }
     })();
   }, [currentUser.role]);
@@ -176,15 +227,16 @@ export function SettingsPage({
         systemArticlePrompt?: string;
         defaultResearchProvider?: "tavily" | "dataforseo";
       };
+
       if (!response.ok) {
-        throw new Error(data.error ?? "Unable to save system prompt.");
+        throw new Error(data.error ?? "Unable to save AI settings.");
       }
 
       setSystemArticlePrompt(data.systemArticlePrompt ?? "");
       setDefaultResearchProvider(data.defaultResearchProvider === "dataforseo" ? "dataforseo" : "tavily");
-      setPromptSaved("System AI settings saved.");
+      setPromptSaved("AI workflow settings saved.");
     } catch (error) {
-      setPromptSaved(error instanceof Error ? error.message : "Unable to save system prompt.");
+      setPromptSaved(error instanceof Error ? error.message : "Unable to save AI settings.");
     } finally {
       setAccountPending(false);
     }
@@ -211,7 +263,7 @@ export function SettingsPage({
         ...current,
         [data.user!.id]: createAccountDraft(data.user!)
       }));
-      setNewAccount({ ...emptyNewAccount });
+      setNewAccount(emptyNewAccount);
       setAccountStatus("Client account created.");
     } catch (error) {
       setAccountStatus(error instanceof Error ? error.message : "Unable to create account.");
@@ -247,6 +299,7 @@ export function SettingsPage({
         body: JSON.stringify(payload)
       });
       const data = (await response.json()) as { error?: string; user?: AppUserSession };
+
       if (!response.ok || !data.user) {
         throw new Error(data.error ?? "Unable to update account.");
       }
@@ -264,56 +317,23 @@ export function SettingsPage({
     }
   }
 
-  function updateAccountDraft<K extends keyof ManagedAccountDraft>(
-    userId: string,
-    field: K,
-    value: ManagedAccountDraft[K]
-  ) {
-    setAccountDrafts((current) => ({
-      ...current,
-      [userId]: {
-        ...(current[userId] ?? createAccountDraft({
-          id: userId,
-          email: "",
-          name: "",
-          role: "client",
-          status: "active",
-          clientId: null,
-          clientName: null,
-          contractStart: null,
-          contractEnd: null,
-          clientArticlePrompt: null,
-          clientExpertisePrompt: null,
-          clientBrandVoicePrompt: null,
-          clientResearchProvider: null,
-          clientPlan: null,
-          clientWordpressUrl: null,
-          clientWordpressUsername: null,
-          clientWordpressAppPassword: null,
-          clientWordpressPublishStatus: null
-        })),
-        [field]: value
-      }
-    }));
-  }
-
   return (
     <section className={styles.grid}>
       <section className={styles.panel}>
         <div className={styles.panelHead}>
           <div>
-            <span className={styles.eyebrow}>Content Defaults</span>
+            <span className={styles.eyebrow}>Workspace Defaults</span>
             <h2>Default generation settings</h2>
-            <p>ใช้ตั้งค่าพื้นฐานสำหรับโทนการเขียน คำต้องห้าม และความยาวบทความก่อนเริ่มสร้างงานใหม่</p>
+            <p>ค่านี้ถูกใช้ใน browser ปัจจุบันสำหรับ tone, banned words และความยาวบทความ ช่วยให้เริ่มงานใหม่ได้เร็วขึ้นโดยไม่ต้องตั้งซ้ำทุกครั้ง</p>
           </div>
-          <span className={styles.badge}>Editable</span>
+          <span className={styles.badge}>Workspace</span>
         </div>
 
         <div className={styles.form}>
           <label>
             Tone
             <small>โทนหลักของบทความ เช่น calm expert, premium editorial หรือ direct conversion</small>
-            <input value={settings.tone} onChange={(event) => update("tone", event.target.value)} />
+            <input value={settings.tone} onChange={(event) => updateSetting("tone", event.target.value)} />
           </label>
 
           <label>
@@ -322,20 +342,20 @@ export function SettingsPage({
             <textarea
               rows={4}
               value={settings.restrictedWords}
-              onChange={(event) => update("restrictedWords", event.target.value)}
+              onChange={(event) => updateSetting("restrictedWords", event.target.value)}
             />
           </label>
 
           <label>
             Article length
             <small>ความยาวเป้าหมายของบทความ เช่น 1800 หรือ 2200 คำ</small>
-            <input value={settings.articleLength} onChange={(event) => update("articleLength", event.target.value)} />
+            <input value={settings.articleLength} onChange={(event) => updateSetting("articleLength", event.target.value)} />
           </label>
         </div>
 
         <div className={styles.actions}>
-          <button className={styles.primaryButton} onClick={saveSettings} type="button">
-            Save settings
+          <button className={styles.primaryButton} onClick={saveLocalDefaults} type="button">
+            Save defaults
           </button>
           {saved ? <span className={styles.success}>Saved to this browser</span> : null}
         </div>
@@ -345,17 +365,17 @@ export function SettingsPage({
         <section className={styles.panel}>
           <div className={styles.panelHead}>
             <div>
-              <span className={styles.eyebrow}>AI Writing Control</span>
-              <h2>System article prompt</h2>
-              <p>เห็นและแก้ได้เฉพาะ admin หรือ owner ใช้เป็นกฎกลางก่อนนำ prompt เฉพาะบริษัทมาซ้อนเพิ่ม</p>
+              <span className={styles.eyebrow}>AI Workflow Control</span>
+              <h2>Global editorial guidance</h2>
+              <p>ส่วนนี้ยังจำเป็นอยู่ เพราะเป็นกฎกลางที่ถูกส่งเข้า brief, draft และ polish ก่อนจะซ้อน prompt เฉพาะลูกค้าเข้าไปอีกชั้น</p>
             </div>
             <span className={styles.badge}>Admin only</span>
           </div>
 
           <div className={styles.form}>
             <label>
-              Global article prompt
-              <small>กำหนดกฎกลางของระบบ เช่น วิธีเขียน ความเป็นธรรมชาติ ความเข้ม SEO และข้อห้ามหลัก</small>
+              Global writing rules
+              <small>ใช้สำหรับกฎกลางของระบบ เช่นระดับความเป็นธรรมชาติ ความเข้มของ SEO สิ่งที่ควรเน้น และสิ่งที่ห้ามทำ ไม่ควรใส่ข้อมูลแบรนด์เฉพาะรายที่นี่</small>
               <textarea
                 rows={8}
                 value={systemArticlePrompt}
@@ -365,12 +385,10 @@ export function SettingsPage({
 
             <label>
               Default research provider
-              <small>กำหนด provider กลางของระบบ ลูกค้ารายไหนไม่ override จะใช้ค่านี้</small>
+              <small>กำหนด provider กลางของระบบ ลูกค้ารายไหนที่ไม่ได้ตั้ง override จะใช้ค่านี้</small>
               <select
                 value={defaultResearchProvider}
-                onChange={(event) =>
-                  setDefaultResearchProvider(event.target.value as "tavily" | "dataforseo")
-                }
+                onChange={(event) => setDefaultResearchProvider(event.target.value as "tavily" | "dataforseo")}
               >
                 <option value="tavily">tavily</option>
                 <option value="dataforseo">dataforseo</option>
@@ -380,7 +398,7 @@ export function SettingsPage({
 
           <div className={styles.actions}>
             <button className={styles.primaryButton} disabled={accountPending} onClick={() => void saveSystemPrompt()} type="button">
-              {accountPending ? "Saving prompt..." : "Save system prompt"}
+              {accountPending ? "Saving AI settings..." : "Save AI settings"}
             </button>
             {promptSaved ? <span className={styles.success}>{promptSaved}</span> : null}
           </div>
@@ -391,9 +409,9 @@ export function SettingsPage({
         <section className={styles.panel}>
           <div className={styles.panelHead}>
             <div>
-              <span className={styles.eyebrow}>Access Control</span>
-              <h2>Client accounts and company WordPress settings</h2>
-              <p>สร้างลูกค้าใหม่ พร้อมเก็บ prompt เฉพาะธุรกิจและข้อมูล WordPress ของแต่ละบริษัทไว้ใต้ account นั้นเลย</p>
+              <span className={styles.eyebrow}>Client Control</span>
+              <h2>Client accounts and WordPress settings</h2>
+              <p>สร้างลูกค้าใหม่ พร้อมเก็บ prompt เฉพาะธุรกิจ แพ็กการใช้งาน และค่าปลายทาง WordPress ไว้ใน account เดียวกัน</p>
             </div>
             <span className={styles.badge}>Admin only</span>
           </div>
@@ -401,52 +419,34 @@ export function SettingsPage({
           <div className={styles.form}>
             <label>
               Client name
-              <small>ชื่อบริษัทหรือแบรนด์ที่ใช้ scope งาน โปรเจกต์ และ publish ปลายทาง</small>
-              <input
-                value={newAccount.clientName}
-                onChange={(event) => setNewAccount((current) => ({ ...current, clientName: event.target.value }))}
-              />
+              <small>ชื่อบริษัทหรือแบรนด์ที่จะใช้เป็น scope ของงานและปลายทาง publish</small>
+              <input value={newAccount.clientName} onChange={(event) => updateNewAccount("clientName", event.target.value)} />
             </label>
 
             <label>
               Contact name
               <small>ชื่อผู้ใช้งานหรือชื่อผู้ประสานงานฝั่งลูกค้า</small>
-              <input
-                value={newAccount.name}
-                onChange={(event) => setNewAccount((current) => ({ ...current, name: event.target.value }))}
-              />
+              <input value={newAccount.name} onChange={(event) => updateNewAccount("name", event.target.value)} />
             </label>
 
             <label>
               Login email
-              <small>Email ที่ลูกค้าใช้เข้าสู่ระบบ</small>
-              <input
-                value={newAccount.email}
-                onChange={(event) => setNewAccount((current) => ({ ...current, email: event.target.value }))}
-              />
+              <small>อีเมลที่ลูกค้าใช้เข้าสู่ระบบ</small>
+              <input value={newAccount.email} onChange={(event) => updateNewAccount("email", event.target.value)} />
             </label>
 
             <label>
               Password
               <small>รหัสผ่านชั่วคราวสำหรับ account ใหม่นี้</small>
-              <input
-                type="password"
-                value={newAccount.password}
-                onChange={(event) => setNewAccount((current) => ({ ...current, password: event.target.value }))}
-              />
+              <input type="password" value={newAccount.password} onChange={(event) => updateNewAccount("password", event.target.value)} />
             </label>
 
             <label>
               Research provider
-              <small>เลือก provider สำหรับงานแตก keyword และรีเสิร์ชของลูกค้ารายนี้</small>
+              <small>เลือก provider สำหรับ keyword discovery และ research ของลูกค้ารายนี้</small>
               <select
                 value={newAccount.researchProvider}
-                onChange={(event) =>
-                  setNewAccount((current) => ({
-                    ...current,
-                    researchProvider: event.target.value as "tavily" | "dataforseo"
-                  }))
-                }
+                onChange={(event) => updateNewAccount("researchProvider", event.target.value as "tavily" | "dataforseo")}
               >
                 <option value="tavily">tavily</option>
                 <option value="dataforseo">dataforseo</option>
@@ -455,15 +455,10 @@ export function SettingsPage({
 
             <label>
               Plan
-              <small>กำหนดระดับแพ็กของลูกค้ารายนี้เพื่อใช้คุม feature และ workflow ในรอบถัดไป</small>
+              <small>กำหนดระดับแพ็กเพื่อคุม research depth, SERP depth และคุณภาพ text-on-image</small>
               <select
                 value={newAccount.clientPlan}
-                onChange={(event) =>
-                  setNewAccount((current) => ({
-                    ...current,
-                    clientPlan: event.target.value as "normal" | "premium" | "pro"
-                  }))
-                }
+                onChange={(event) => updateNewAccount("clientPlan", event.target.value as "normal" | "premium" | "pro")}
               >
                 <option value="normal">normal</option>
                 <option value="premium">premium</option>
@@ -474,20 +469,15 @@ export function SettingsPage({
             <label>
               WordPress URL
               <small>โดเมนปลายทางของลูกค้ารายนี้ เช่น https://example.com</small>
-              <input
-                value={newAccount.wordpressUrl}
-                onChange={(event) => setNewAccount((current) => ({ ...current, wordpressUrl: event.target.value }))}
-              />
+              <input value={newAccount.wordpressUrl} onChange={(event) => updateNewAccount("wordpressUrl", event.target.value)} />
             </label>
 
             <label>
               WordPress username
-              <small>ชื่อผู้ใช้ WordPress สำหรับ publish ของลูกค้ารายนี้</small>
+              <small>ชื่อผู้ใช้ WordPress สำหรับการ publish ของลูกค้ารายนี้</small>
               <input
                 value={newAccount.wordpressUsername}
-                onChange={(event) =>
-                  setNewAccount((current) => ({ ...current, wordpressUsername: event.target.value }))
-                }
+                onChange={(event) => updateNewAccount("wordpressUsername", event.target.value)}
               />
             </label>
 
@@ -497,9 +487,7 @@ export function SettingsPage({
               <input
                 type="password"
                 value={newAccount.wordpressAppPassword}
-                onChange={(event) =>
-                  setNewAccount((current) => ({ ...current, wordpressAppPassword: event.target.value }))
-                }
+                onChange={(event) => updateNewAccount("wordpressAppPassword", event.target.value)}
               />
             </label>
 
@@ -508,12 +496,7 @@ export function SettingsPage({
               <small>สถานะเริ่มต้นเมื่อส่งโพสต์ขึ้น WordPress ของลูกค้ารายนี้</small>
               <select
                 value={newAccount.wordpressPublishStatus}
-                onChange={(event) =>
-                  setNewAccount((current) => ({
-                    ...current,
-                    wordpressPublishStatus: event.target.value as "draft" | "publish"
-                  }))
-                }
+                onChange={(event) => updateNewAccount("wordpressPublishStatus", event.target.value as "draft" | "publish")}
               >
                 <option value="draft">draft</option>
                 <option value="publish">publish</option>
@@ -521,53 +504,33 @@ export function SettingsPage({
             </label>
 
             <label>
-              Company article prompt
-              <small>Prompt เฉพาะบริษัทสำหรับสไตล์การเขียนบทความของลูกค้ารายนี้</small>
-              <textarea
-                rows={5}
-                value={newAccount.articlePrompt}
-                onChange={(event) => setNewAccount((current) => ({ ...current, articlePrompt: event.target.value }))}
-              />
+              Client article rules
+              <small>กฎการเขียนหรือเงื่อนไขเฉพาะลูกค้ารายนี้ เช่นสิ่งที่ต้องเน้น มุมที่ต้องการ หรือรูปแบบการเล่า</small>
+              <textarea rows={5} value={newAccount.articlePrompt} onChange={(event) => updateNewAccount("articlePrompt", event.target.value)} />
             </label>
 
             <label>
-              Company expertise prompt
-              <small>กำหนด domain knowledge หรือความเชี่ยวชาญเฉพาะธุรกิจของบริษัทนี้</small>
-              <textarea
-                rows={4}
-                value={newAccount.expertisePrompt}
-                onChange={(event) => setNewAccount((current) => ({ ...current, expertisePrompt: event.target.value }))}
-              />
+              Client expertise
+              <small>ใส่ domain knowledge หรือข้อเท็จจริงเฉพาะธุรกิจที่ระบบควรรู้ก่อนเขียน</small>
+              <textarea rows={4} value={newAccount.expertisePrompt} onChange={(event) => updateNewAccount("expertisePrompt", event.target.value)} />
             </label>
 
             <label>
-              Brand voice prompt
-              <small>กำหนดโทนแบรนด์ น้ำเสียง และลักษณะการสื่อสารของบริษัทนี้</small>
-              <textarea
-                rows={4}
-                value={newAccount.brandVoicePrompt}
-                onChange={(event) => setNewAccount((current) => ({ ...current, brandVoicePrompt: event.target.value }))}
-              />
+              Brand voice
+              <small>กำหนดโทนแบรนด์ น้ำเสียง และลักษณะการสื่อสารของลูกค้ารายนี้</small>
+              <textarea rows={4} value={newAccount.brandVoicePrompt} onChange={(event) => updateNewAccount("brandVoicePrompt", event.target.value)} />
             </label>
 
             <label>
               Contract start
-              <small>วันเริ่มต้นสัญญา ถ้าไม่กรอกจะถือว่าเริ่มใช้ได้ทันที</small>
-              <input
-                type="date"
-                value={newAccount.contractStart}
-                onChange={(event) => setNewAccount((current) => ({ ...current, contractStart: event.target.value }))}
-              />
+              <small>วันเริ่มต้นสัญญา ถ้าไม่กรอกจะถือว่าใช้งานได้ทันที</small>
+              <input type="date" value={newAccount.contractStart} onChange={(event) => updateNewAccount("contractStart", event.target.value)} />
             </label>
 
             <label>
               Contract end
               <small>หลังวันดังกล่าว account จะถูกมองว่า expired</small>
-              <input
-                type="date"
-                value={newAccount.contractEnd}
-                onChange={(event) => setNewAccount((current) => ({ ...current, contractEnd: event.target.value }))}
-              />
+              <input type="date" value={newAccount.contractEnd} onChange={(event) => updateNewAccount("contractEnd", event.target.value)} />
             </label>
           </div>
 
@@ -579,208 +542,192 @@ export function SettingsPage({
           </div>
 
           <div className={styles.stack}>
-            {accounts.map((account) => (
-              <article key={account.id} className={styles.projectCard}>
-                <strong>{account.clientName ?? account.name}</strong>
-                <p className={styles.muted}>
-                  {account.email} · {account.role}
-                </p>
-                <div className={styles.projectMeta}>
-                  <span className={styles.pill}>{account.status}</span>
-                  <span className={styles.pill}>{accountDrafts[account.id]?.clientPlan ?? "normal"}</span>
-                  <span className={styles.pill}>
-                    {account.contractEnd ? `Ends ${new Date(account.contractEnd).toLocaleDateString("en-GB")}` : "No expiry"}
-                  </span>
-                </div>
-                {account.role === "client" ? (
-                  <>
-                    <div 
-                      style={{ 
-                        marginTop: 16, 
-                        borderTop: "1px solid rgba(255,255,255,0.05)", 
-                        paddingTop: 16, 
-                        display: "flex", 
-                        justifyContent: "space-between", 
-                        alignItems: "center",
-                        cursor: "pointer",
-                        userSelect: "none"
-                      }}
-                      onClick={() => setExpandedAccount(expandedAccount === account.id ? null : account.id)}
-                    >
-                      <strong style={{ margin: 0, fontSize: "0.85rem", color: "#c2cedd" }}>Client Configuration</strong>
-                      <span style={{ color: "#8fa0b3", fontSize: "0.8rem" }}>
-                         {expandedAccount === account.id ? "▲ Collapse" : "▼ Expand"}
-                      </span>
-                    </div>
-                    
-                    {expandedAccount === account.id && (
-                      <>
-                        <div className={styles.form} style={{ marginTop: 16 }}>
-                      <label>
-                        Access status
-                        <select
-                          value={accountDrafts[account.id]?.status ?? account.status}
-                          onChange={(event) =>
-                            updateAccountDraft(account.id, "status", event.target.value as ManagedAccountDraft["status"])
-                          }
-                        >
-                          <option value="active">active</option>
-                          <option value="expired">expired</option>
-                          <option value="suspended">suspended</option>
-                        </select>
-                      </label>
+            {accounts.map((account) => {
+              const draft = accountDrafts[account.id] ?? createAccountDraft(account);
+              const isExpanded = expandedAccount === account.id;
 
-                      <label>
-                        Contract end
-                        <input
-                          type="date"
-                          value={accountDrafts[account.id]?.contractEnd ?? ""}
-                          onChange={(event) => updateAccountDraft(account.id, "contractEnd", event.target.value)}
-                        />
-                      </label>
+              return (
+                <article key={account.id} className={styles.projectCard}>
+                  <strong>{account.clientName ?? account.name}</strong>
+                  <p className={styles.muted}>
+                    {account.email} · {account.role}
+                  </p>
 
-                      <label>
-                        Plan
-                        <select
-                          value={accountDrafts[account.id]?.clientPlan ?? "normal"}
-                          onChange={(event) =>
-                            updateAccountDraft(
-                              account.id,
-                              "clientPlan",
-                              event.target.value as "normal" | "premium" | "pro"
-                            )
-                          }
-                        >
-                          <option value="normal">normal</option>
-                          <option value="premium">premium</option>
-                          <option value="pro">pro</option>
-                        </select>
-                      </label>
+                  <div className={styles.projectMeta}>
+                    <span className={styles.pill}>{account.status}</span>
+                    <span className={styles.pill}>{draft.clientPlan}</span>
+                    <span className={styles.pill}>{formatExpiryLabel(account.contractEnd)}</span>
+                  </div>
 
-                      <label>
-                        Research provider
-                        <select
-                          value={accountDrafts[account.id]?.clientResearchProvider ?? "tavily"}
-                          onChange={(event) =>
-                            updateAccountDraft(
-                              account.id,
-                              "clientResearchProvider",
-                              event.target.value as "tavily" | "dataforseo"
-                            )
-                          }
-                        >
-                          <option value="tavily">tavily</option>
-                          <option value="dataforseo">dataforseo</option>
-                        </select>
-                      </label>
-
-                      <label>
-                        WordPress URL
-                        <input
-                          value={accountDrafts[account.id]?.clientWordpressUrl ?? ""}
-                          onChange={(event) => updateAccountDraft(account.id, "clientWordpressUrl", event.target.value)}
-                        />
-                      </label>
-
-                      <label>
-                        WordPress username
-                        <input
-                          value={accountDrafts[account.id]?.clientWordpressUsername ?? ""}
-                          onChange={(event) =>
-                            updateAccountDraft(account.id, "clientWordpressUsername", event.target.value)
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        WordPress app password
-                        <input
-                          type="password"
-                          value={accountDrafts[account.id]?.clientWordpressAppPassword ?? ""}
-                          onChange={(event) =>
-                            updateAccountDraft(account.id, "clientWordpressAppPassword", event.target.value)
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Default publish status
-                        <select
-                          value={accountDrafts[account.id]?.clientWordpressPublishStatus ?? "draft"}
-                          onChange={(event) =>
-                            updateAccountDraft(
-                              account.id,
-                              "clientWordpressPublishStatus",
-                              event.target.value as "draft" | "publish"
-                            )
-                          }
-                        >
-                          <option value="draft">draft</option>
-                          <option value="publish">publish</option>
-                        </select>
-                      </label>
-
-                      <label>
-                        Company article prompt
-                        <textarea
-                          rows={5}
-                          value={accountDrafts[account.id]?.clientArticlePrompt ?? ""}
-                          onChange={(event) => updateAccountDraft(account.id, "clientArticlePrompt", event.target.value)}
-                        />
-                      </label>
-
-                      <label>
-                        Company expertise prompt
-                        <textarea
-                          rows={4}
-                          value={accountDrafts[account.id]?.clientExpertisePrompt ?? ""}
-                          onChange={(event) =>
-                            updateAccountDraft(account.id, "clientExpertisePrompt", event.target.value)
-                          }
-                        />
-                      </label>
-
-                      <label>
-                        Brand voice prompt
-                        <textarea
-                          rows={4}
-                          value={accountDrafts[account.id]?.clientBrandVoicePrompt ?? ""}
-                          onChange={(event) => updateAccountDraft(account.id, "clientBrandVoicePrompt", event.target.value)}
-                        />
-                      </label>
-                    </div>
-
-                    <div className={styles.actions}>
-                      <button
-                        className={styles.linkButton}
-                        disabled={accountPending}
-                        onClick={() =>
-                          void updateAccount(account.id, {
-                            status: accountDrafts[account.id]?.status ?? account.status,
-                            contractEnd: accountDrafts[account.id]?.contractEnd ?? "",
-                            clientArticlePrompt: accountDrafts[account.id]?.clientArticlePrompt ?? "",
-                            clientExpertisePrompt: accountDrafts[account.id]?.clientExpertisePrompt ?? "",
-                            clientBrandVoicePrompt: accountDrafts[account.id]?.clientBrandVoicePrompt ?? "",
-                            clientResearchProvider: accountDrafts[account.id]?.clientResearchProvider ?? "tavily",
-                            clientPlan: accountDrafts[account.id]?.clientPlan ?? "normal",
-                            clientWordpressUrl: accountDrafts[account.id]?.clientWordpressUrl ?? "",
-                            clientWordpressUsername: accountDrafts[account.id]?.clientWordpressUsername ?? "",
-                            clientWordpressAppPassword: accountDrafts[account.id]?.clientWordpressAppPassword ?? "",
-                            clientWordpressPublishStatus:
-                              accountDrafts[account.id]?.clientWordpressPublishStatus ?? "draft"
-                          })
-                        }
-                        type="button"
+                  {account.role === "client" ? (
+                    <>
+                      <div
+                        style={{
+                          marginTop: 16,
+                          borderTop: "1px solid rgba(255,255,255,0.05)",
+                          paddingTop: 16,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          cursor: "pointer",
+                          userSelect: "none"
+                        }}
+                        onClick={() => setExpandedAccount(isExpanded ? null : account.id)}
                       >
-                        Save account settings
-                      </button>
-                    </div>
-                      </>
-                    )}
-                  </>
-                ) : null}
-              </article>
-            ))}
+                        <strong style={{ margin: 0, fontSize: "0.85rem", color: "#c2cedd" }}>Client configuration</strong>
+                        <span style={{ color: "#8fa0b3", fontSize: "0.8rem" }}>{isExpanded ? "Hide details" : "Show details"}</span>
+                      </div>
+
+                      {isExpanded ? (
+                        <>
+                          <div className={styles.form} style={{ marginTop: 16 }}>
+                            <label>
+                              Access status
+                              <select
+                                value={draft.status}
+                                onChange={(event) =>
+                                  updateAccountDraft(account.id, "status", event.target.value as ManagedAccountDraft["status"])
+                                }
+                              >
+                                <option value="active">active</option>
+                                <option value="expired">expired</option>
+                                <option value="suspended">suspended</option>
+                              </select>
+                            </label>
+
+                            <label>
+                              Contract end
+                              <input
+                                type="date"
+                                value={draft.contractEnd}
+                                onChange={(event) => updateAccountDraft(account.id, "contractEnd", event.target.value)}
+                              />
+                            </label>
+
+                            <label>
+                              Plan
+                              <select
+                                value={draft.clientPlan}
+                                onChange={(event) =>
+                                  updateAccountDraft(account.id, "clientPlan", event.target.value as "normal" | "premium" | "pro")
+                                }
+                              >
+                                <option value="normal">normal</option>
+                                <option value="premium">premium</option>
+                                <option value="pro">pro</option>
+                              </select>
+                            </label>
+
+                            <label>
+                              Research provider
+                              <select
+                                value={draft.clientResearchProvider}
+                                onChange={(event) =>
+                                  updateAccountDraft(account.id, "clientResearchProvider", event.target.value as "tavily" | "dataforseo")
+                                }
+                              >
+                                <option value="tavily">tavily</option>
+                                <option value="dataforseo">dataforseo</option>
+                              </select>
+                            </label>
+
+                            <label>
+                              WordPress URL
+                              <input
+                                value={draft.clientWordpressUrl}
+                                onChange={(event) => updateAccountDraft(account.id, "clientWordpressUrl", event.target.value)}
+                              />
+                            </label>
+
+                            <label>
+                              WordPress username
+                              <input
+                                value={draft.clientWordpressUsername}
+                                onChange={(event) => updateAccountDraft(account.id, "clientWordpressUsername", event.target.value)}
+                              />
+                            </label>
+
+                            <label>
+                              WordPress app password
+                              <input
+                                type="password"
+                                value={draft.clientWordpressAppPassword}
+                                onChange={(event) => updateAccountDraft(account.id, "clientWordpressAppPassword", event.target.value)}
+                              />
+                            </label>
+
+                            <label>
+                              Default publish status
+                              <select
+                                value={draft.clientWordpressPublishStatus}
+                                onChange={(event) =>
+                                  updateAccountDraft(account.id, "clientWordpressPublishStatus", event.target.value as "draft" | "publish")
+                                }
+                              >
+                                <option value="draft">draft</option>
+                                <option value="publish">publish</option>
+                              </select>
+                            </label>
+
+                            <label>
+                              Client article rules
+                              <textarea
+                                rows={5}
+                                value={draft.clientArticlePrompt}
+                                onChange={(event) => updateAccountDraft(account.id, "clientArticlePrompt", event.target.value)}
+                              />
+                            </label>
+
+                            <label>
+                              Client expertise
+                              <textarea
+                                rows={4}
+                                value={draft.clientExpertisePrompt}
+                                onChange={(event) => updateAccountDraft(account.id, "clientExpertisePrompt", event.target.value)}
+                              />
+                            </label>
+
+                            <label>
+                              Brand voice
+                              <textarea
+                                rows={4}
+                                value={draft.clientBrandVoicePrompt}
+                                onChange={(event) => updateAccountDraft(account.id, "clientBrandVoicePrompt", event.target.value)}
+                              />
+                            </label>
+                          </div>
+
+                          <div className={styles.actions}>
+                            <button
+                              className={styles.linkButton}
+                              disabled={accountPending}
+                              onClick={() =>
+                                void updateAccount(account.id, {
+                                  status: draft.status,
+                                  contractEnd: draft.contractEnd,
+                                  clientArticlePrompt: draft.clientArticlePrompt,
+                                  clientExpertisePrompt: draft.clientExpertisePrompt,
+                                  clientBrandVoicePrompt: draft.clientBrandVoicePrompt,
+                                  clientResearchProvider: draft.clientResearchProvider,
+                                  clientPlan: draft.clientPlan,
+                                  clientWordpressUrl: draft.clientWordpressUrl,
+                                  clientWordpressUsername: draft.clientWordpressUsername,
+                                  clientWordpressAppPassword: draft.clientWordpressAppPassword,
+                                  clientWordpressPublishStatus: draft.clientWordpressPublishStatus
+                                })
+                              }
+                              type="button"
+                            >
+                              Save account settings
+                            </button>
+                          </div>
+                        </>
+                      ) : null}
+                    </>
+                  ) : null}
+                </article>
+              );
+            })}
           </div>
         </section>
       ) : null}
