@@ -162,6 +162,14 @@ function cleanParagraphBlock(value: string) {
     .join("\n\n");
 }
 
+function cleanResearchDocumentBlock(value: string) {
+  return value
+    .replace(/\[(.*?)\]\((https?:\/\/[^\s)]+)\)/g, "$1\n→ $2")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function getApiKey() {
   return process.env.OPENAI_API_KEY?.trim() || "";
 }
@@ -266,8 +274,29 @@ function summarizeSources(sources: ResearchSource[]) {
     region: source.region,
     title: source.title,
     source: source.source,
+    sourceType: inferSourceType(source.source),
     insight: source.insight
   }));
+}
+
+function inferSourceType(source: string) {
+  const value = source.toLowerCase();
+
+  if (value.includes("pubmed") || value.includes("nih.gov") || value.includes("ncbi.nlm.nih.gov")) {
+    return "research";
+  }
+
+  if (
+    value.includes("who.int") ||
+    value.includes(".edu") ||
+    value.includes("university") ||
+    value.includes("gov") ||
+    value.includes("ac.th")
+  ) {
+    return "institution";
+  }
+
+  return "article";
 }
 
 export async function generateKeywordIdeasWithOpenAi(input: {
@@ -348,18 +377,45 @@ export async function synthesizeResearchWithOpenAi(input: {
     "Return JSON only in this shape:",
     '{"objective":"","audience":"","gaps":[""],"summary":""}',
     "",
+    "Primary objective:",
+    "- Create a research + writing hybrid document that is production-ready for a human writer.",
+    "- Go deep enough to explain mechanisms, causes, effects, implications, and trade-offs.",
+    "- Cover real search intent, not just a definition-level summary.",
+    "- Use real evidence from the provided source context only.",
+    "",
+    "Writing limitation rule:",
+    "- This is not the final article.",
+    "- Do not over-polish storytelling.",
+    "- Keep it slightly raw but immediately useful for human refinement.",
+    "",
+    "Role separation:",
+    "- AI handles research, structure, explanation, and evidence.",
+    "- Human handles final storytelling, flow, and persuasion.",
+    "",
+    "Required document structure inside summary text:",
+    "1. Topic Overview",
+    "2. Core Concepts",
+    "3. Main Sections",
+    "4. FAQs",
+    "5. Strategic Insight Summary",
+    "",
     "Rules for summary:",
-    "- Write Thai as the main language.",
-    "- English source names and technical terms are allowed where helpful.",
-    "- Summary must be 2200 to 3200 Thai words.",
-    "- It must read like a real research summary before article writing begins.",
+      "- Write Thai as the main language.",
+      "- English source names and technical terms are allowed where helpful.",
+    "- Summary must be around 2400 to 3400 Thai words when the topic is substantive enough.",
+    "- It must read like a deep writer research document before article writing begins.",
     "- It must synthesize, compare, and explain findings, not just list sources.",
-    "- Use clear prose with deeper explanation, richer context, and practical interpretation for each major finding.",
-    "- Use short section labels inside normal prose if needed, but do not write the final article.",
-    "- Do not use H1/H2 markdown, bullet spam, raw links, or pasted URLs.",
+    "- Include mechanism-level explanation where the claim is technical, scientific, or causal.",
+    "- For each major section, include: explanation, mechanism breakdown, real-world example, strategic insight, content block, hook line, references, confidence level, depth level, and writer note.",
+    "- Use plain-text labels inside the summary so the output stays exportable and easy to scan.",
+    "- References are mandatory. Use full real URLs only when they exist in the provided source context. Never invent or guess links.",
+    '- If a source is useful but no verified URL is available in the provided source context, write "Needs verification" instead of making one up.',
+    "- Prefer stronger sources such as research, institutions, universities, and recognized organizations when the topic is scientific, medical, technical, or data-sensitive.",
     "- Explain what sources agree on, what they disagree on, and what remains uncertain.",
-    "- End with a clear recommendation on what the article should emphasize next."
-  ].join("\n");
+    "- Each main section should reduce the writer's need for additional research.",
+    "- Add non-generic strategic insight and useful writer notes for narrative direction.",
+    "- End with a concise strategic insight summary covering key trade-offs, misconceptions, and the angle the final article should emphasize next."
+    ].join("\n");
 
   const content = await complete(
     [
@@ -382,7 +438,7 @@ export async function synthesizeResearchWithOpenAi(input: {
     objective: cleanText(parsed.objective),
     audience: cleanText(parsed.audience),
     gaps: dedupeList(parsed.gaps, 6),
-    summary: cleanParagraphBlock(parsed.summary)
+    summary: cleanResearchDocumentBlock(parsed.summary)
   };
 }
 

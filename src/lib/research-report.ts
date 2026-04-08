@@ -31,7 +31,11 @@ function buildSources(job: WorkflowJob) {
       (source) => `
         <li>
           <strong>${escapeHtml(source.title)}</strong><br />
-          <span>${escapeHtml(source.source)}</span><br />
+          ${
+            source.source.startsWith("http://") || source.source.startsWith("https://")
+              ? `<a href="${escapeHtml(source.source)}" target="_blank" rel="noreferrer">${escapeHtml(source.source)}</a><br />`
+              : `<span>${escapeHtml(source.source)}</span><br />`
+          }
           <small>${escapeHtml(source.insight)}</small>
         </li>
       `
@@ -47,7 +51,7 @@ function buildGaps(job: WorkflowJob) {
 
 export function buildResearchReport(job: WorkflowJob, format: ResearchReportFormat) {
   const selectedIdea = getSelectedIdea(job);
-  const summary = getResearchSummary(job) || "No research summary available yet.";
+  const summary = getResearchSummary(job) || "No research document available yet.";
   const generatedAt = new Date().toLocaleString("th-TH", {
     dateStyle: "long",
     timeStyle: "short"
@@ -104,7 +108,7 @@ export function buildResearchReport(job: WorkflowJob, format: ResearchReportForm
   </style>
 </head>
 <body>
-  <h1>Research Report</h1>
+  <h1>Research Document</h1>
   <div class="meta">
     <strong>Project</strong><span>${escapeHtml(job.client)}</span>
     <strong>Seed keyword</strong><span>${escapeHtml(job.seedKeyword)}</span>
@@ -115,7 +119,7 @@ export function buildResearchReport(job: WorkflowJob, format: ResearchReportForm
     <strong>Generated at</strong><span>${escapeHtml(generatedAt)}</span>
   </div>
 
-  <h2>Executive Summary</h2>
+  <h2>Working Research Document</h2>
   <div class="panel summary">
     ${summary
       .split(/\n{2,}/)
