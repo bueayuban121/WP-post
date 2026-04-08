@@ -363,10 +363,12 @@ export function WorkflowDashboard({
     visible: boolean;
     title: string;
     detail: string;
+    expiresAt: number;
   }>({
     visible: false,
     title: "",
-    detail: ""
+    detail: "",
+    expiresAt: 0
   });
 
   const [briefTitle, setBriefTitle] = useState("");
@@ -388,6 +390,13 @@ export function WorkflowDashboard({
           name: currentUser.clientName ?? ""
         }
       : availableClientAccounts.find((account) => account.id === selectedClientId) ?? null;
+  const selectedClientSession =
+    currentUser.role === "client"
+      ? currentUser
+      : managedUsers.find((user) => user.role === "client" && user.clientId === selectedClientId) ?? null;
+  const currentPlan = selectedClientSession?.clientPlan ?? currentUser.clientPlan ?? "normal";
+  const currentPlanLabel =
+    currentPlan === "pro" ? "Pro" : currentPlan === "premium" ? "Premium" : "Normal";
 
   const job = jobs.find((item) => item.id === activeJobId) ?? jobs[0] ?? null;
   const activeIdea = job?.ideas.find((idea) => idea.id === job.selectedIdeaId) ?? null;
@@ -549,7 +558,8 @@ export function WorkflowDashboard({
         setFloatingSnapshot({
           visible: true,
           title: parsed.title,
-          detail: parsed.detail ?? ""
+          detail: parsed.detail ?? "",
+          expiresAt: parsed.expiresAt
         });
       } else {
         window.sessionStorage.removeItem(floatingStatusStorageKey);
@@ -592,6 +602,28 @@ export function WorkflowDashboard({
       setTab(nextTab);
     }
   }
+
+  const showFloatingStatus = useCallback((title: string, detail: string, ttlMs = 9000) => {
+    const expiresAt = Date.now() + ttlMs;
+
+    setFloatingSnapshot({
+      visible: true,
+      title,
+      detail,
+      expiresAt
+    });
+
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(
+        floatingStatusStorageKey,
+        JSON.stringify({
+          title,
+          detail,
+          expiresAt
+        })
+      );
+    }
+  }, []);
 
   async function postJob(path: string, body?: unknown, message = "Updated", nextTab?: WorkspaceTab) {
     const response = await fetch(path, {
@@ -679,6 +711,7 @@ export function WorkflowDashboard({
     startTransition(async () => {
       setPendingAction("create-project");
       setStatusMessage("Creating project");
+      showFloatingStatus("Creating project", "We are preparing the keyword workflow for this client.");
       setError("");
       try {
         if (!selectedClientAccount?.name) {
@@ -708,6 +741,12 @@ export function WorkflowDashboard({
     startTransition(async () => {
       setPendingAction("select-keyword");
       setStatusMessage(inKeywordVariantPhase ? "Selecting keyword variant" : "Selecting article topic");
+      showFloatingStatus(
+        inKeywordVariantPhase ? "Selecting keyword variant" : "Selecting article topic",
+        inKeywordVariantPhase
+          ? "Locking this keyword and preparing the next topic options."
+          : "Saving this topic and moving the workflow into research."
+      );
       setError("");
       try {
         const selectedJob = await postJob(
@@ -754,6 +793,7 @@ export function WorkflowDashboard({
     startTransition(async () => {
       setPendingAction("save-keyword");
       setStatusMessage("Saving selected topic");
+      showFloatingStatus("Saving selected topic", "Updating the workflow with your chosen article angle.");
       setError("");
       try {
         await postJob(
@@ -779,6 +819,7 @@ export function WorkflowDashboard({
     startTransition(async () => {
       setPendingAction("run-research");
       setStatusMessage("Queueing research");
+      showFloatingStatus("Running research", "Collecting sources and building the research document.");
       setError("");
       try {
         await queueAutomation("research", "Research queued in n8n", "Research summary ready", "research");
@@ -795,6 +836,7 @@ export function WorkflowDashboard({
     startTransition(async () => {
       setPendingAction("create-article");
       setStatusMessage("Generating article");
+      showFloatingStatus("Generating article", "Turning the brief and research into a full draft.");
       setError("");
       try {
         const generationSettings = getGenerationSettings();
@@ -821,6 +863,10 @@ export function WorkflowDashboard({
     startTransition(async () => {
       setPendingAction("regenerate-pattern");
       setStatusMessage(`Regenerating article with ${nextPattern?.label ?? nextPatternName}`);
+      showFloatingStatus(
+        "Regenerating article",
+        `Switching the draft to the ${nextPattern?.label ?? nextPatternName} pattern.`
+      );
       setError("");
       try {
         const generationSettings = {
@@ -851,6 +897,7 @@ export function WorkflowDashboard({
     startTransition(async () => {
       setPendingAction("save-brief");
       setStatusMessage("Saving brief");
+      showFloatingStatus("Saving brief", "Updating the title, metadata, and article direction.");
       setError("");
       try {
         await postJob(`/api/jobs/${job.id}/brief`, brief, "Brief saved", "article");
@@ -874,6 +921,7 @@ export function WorkflowDashboard({
     startTransition(async () => {
       setPendingAction("save-draft");
       setStatusMessage("Saving draft");
+      showFloatingStatus("Saving draft", "Recording your latest article edits.");
       setError("");
       try {
         await postJob(
@@ -1013,6 +1061,10 @@ export function WorkflowDashboard({
     startTransition(async () => {
       setPendingAction("suggest-image-copy");
       setStatusMessage(`Generating AI copy for image ${index + 1}`);
+      showFloatingStatus(
+        "Suggesting image copy",
+        `Writing overlay text and layout guidance for image ${index + 1}.`
+      );
       setError("");
 
       try {
@@ -1113,6 +1165,7 @@ export function WorkflowDashboard({
     startTransition(async () => {
       setPendingAction("save-images");
       setStatusMessage("Saving image edits");
+      showFloatingStatus("Saving image plan", "Updating prompts, captions, and image settings.");
       setError("");
       try {
         await postJob(
@@ -1160,6 +1213,7 @@ export function WorkflowDashboard({
     startTransition(async () => {
       setPendingAction("regenerate-image");
       setStatusMessage(`Generating image ${index + 1}`);
+      showFloatingStatus("Generating image", `Creating image ${index + 1} from the updated prompt.`);
       setError("");
 
       try {
@@ -1208,6 +1262,14 @@ export function WorkflowDashboard({
       setPendingAction(type === "approve" ? "approve" : type === "publish" ? "publish" : "generate-images");
       setStatusMessage(
         type === "approve" ? "Approving article" : type === "publish" ? "Queueing publish" : "Queueing image generation"
+      );
+      showFloatingStatus(
+        type === "approve" ? "Approving article" : type === "publish" ? "Queueing publish" : "Generating images",
+        type === "approve"
+          ? "Marking the draft as ready for delivery."
+          : type === "publish"
+            ? "Sending the article into the publish pipeline."
+            : "Building the latest image set for this article."
       );
       setError("");
       try {
@@ -1432,10 +1494,12 @@ export function WorkflowDashboard({
     }
 
     if (currentFloatingState.title) {
+      const expiresAt = Date.now() + 8000;
       const nextSnapshot = {
         visible: true,
         title: currentFloatingState.title,
-        detail: currentFloatingState.detail
+        detail: currentFloatingState.detail,
+        expiresAt
       };
 
       window.sessionStorage.setItem(
@@ -1443,7 +1507,7 @@ export function WorkflowDashboard({
         JSON.stringify({
           title: currentFloatingState.title,
           detail: currentFloatingState.detail,
-          expiresAt: Date.now() + 8000
+          expiresAt
         })
       );
 
@@ -1453,13 +1517,22 @@ export function WorkflowDashboard({
       return;
     }
 
+    if (floatingSnapshot.visible && floatingSnapshot.expiresAt > Date.now()) {
+      const timeout = window.setTimeout(() => {
+        setFloatingSnapshot((previous) => ({ ...previous, visible: false, expiresAt: 0 }));
+        window.sessionStorage.removeItem(floatingStatusStorageKey);
+      }, Math.max(300, floatingSnapshot.expiresAt - Date.now()));
+
+      return () => window.clearTimeout(timeout);
+    }
+
     const timeout = window.setTimeout(() => {
-      setFloatingSnapshot((previous) => ({ ...previous, visible: false }));
+      setFloatingSnapshot((previous) => ({ ...previous, visible: false, expiresAt: 0 }));
       window.sessionStorage.removeItem(floatingStatusStorageKey);
     }, 1400);
 
     return () => window.clearTimeout(timeout);
-  }, [currentFloatingState]);
+  }, [currentFloatingState, floatingSnapshot.expiresAt, floatingSnapshot.visible]);
 
   return (
     <main className={styles.page}>
@@ -1513,6 +1586,10 @@ export function WorkflowDashboard({
             <article className={styles.compactCard}>
               <span className={styles.label}>System</span>
               <strong>{systemState}</strong>
+            </article>
+            <article className={styles.compactCard}>
+              <span className={styles.label}>Plan</span>
+              <strong>{currentPlanLabel}</strong>
             </article>
             <article className={styles.compactCard}>
               <span className={styles.label}>Latest</span>
