@@ -47,7 +47,10 @@ function shortenHeadline(value: string, fallback: string) {
     return withoutPunctuation;
   }
 
-  const segments = withoutPunctuation.split(/[:|,-]/).map((segment) => segment.trim()).filter(Boolean);
+  const segments = withoutPunctuation
+    .split(/[:|,-]/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
   const candidate = segments[0] || withoutPunctuation;
   return candidate.length <= 52 ? candidate : `${candidate.slice(0, 49).trim()}...`;
 }
@@ -96,6 +99,8 @@ export function buildArticleImagePrompt(input: {
   conclusion?: string;
   textMode?: ArticleImageTextMode;
   overlayText?: string;
+  layoutHint?: string;
+  styleNote?: string;
 }) {
   const subject = input.sectionHeading ? `${input.title} - ${input.sectionHeading}` : input.title;
   const visualCue = extractVisualCue(
@@ -134,6 +139,8 @@ export function buildArticleImagePrompt(input: {
       `Article angle: ${input.angle}.`,
       `Visual cue: ${visualCue}.`,
       `Placement: ${input.placement}.`,
+      input.layoutHint ? `Typography layout hint: ${input.layoutHint}.` : "",
+      input.styleNote ? `Design note: ${input.styleNote}.` : "",
       "Keep the scene modern, realistic, visually clear, commercially polished, and tightly aligned with the article.",
       textMode === "text_overlay"
         ? overlayText

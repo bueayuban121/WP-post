@@ -44,6 +44,7 @@ type PendingAction =
   | "save-draft"
   | "save-images"
   | "generate-images"
+  | "suggest-image-copy"
   | "regenerate-image"
   | "regenerate-pattern"
   | "approve"
@@ -881,6 +882,8 @@ export function WorkflowDashboard({
   function rebuildImagePrompt(image: ArticleImageAsset, overrides?: {
     textMode?: ArticleImageTextMode;
     overlayText?: string;
+    layoutHint?: string;
+    styleNote?: string;
   }) {
     if (!job) {
       return image.prompt;
@@ -897,6 +900,8 @@ export function WorkflowDashboard({
       intro: draftIntro || job.draft.intro,
       conclusion: draftConclusion || job.draft.conclusion,
       textMode: overrides?.textMode ?? inferArticleImageTextMode(image.prompt),
+      layoutHint: overrides?.layoutHint,
+      styleNote: overrides?.styleNote,
       overlayText: (
         overrides?.overlayText ??
         inferArticleImageOverlayText(image.prompt) ??
@@ -951,6 +956,63 @@ export function WorkflowDashboard({
           : image
       )
     );
+  }
+
+  async function suggestImageCopy(index: number) {
+    if (!job) return;
+
+    startTransition(async () => {
+      setPendingAction("suggest-image-copy");
+      setStatusMessage(`Generating AI copy for image ${index + 1}`);
+      setError("");
+
+      try {
+        const response = await fetch(`/api/jobs/${job.id}/images/copy`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            imageIndex: index
+          })
+        });
+        const data = (await response.json()) as {
+          error?: string;
+          overlayText?: string;
+          layoutHint?: string;
+          styleNote?: string;
+          prompt?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(data.error ?? "AI image copy generation failed.");
+        }
+
+        setEditableImages((current) =>
+          current.map((image, imageIndex) =>
+            imageIndex === index
+              ? {
+                  ...image,
+                  prompt:
+                    data.prompt ??
+                    rebuildImagePrompt(image, {
+                      textMode: "text_overlay",
+                      overlayText: data.overlayText ?? inferArticleImageOverlayText(image.prompt),
+                      layoutHint: data.layoutHint,
+                      styleNote: data.styleNote
+                    })
+                }
+              : image
+          )
+        );
+
+        setStatusMessage(`AI copy ready for image ${index + 1}`);
+      } catch (suggestError) {
+        setError(suggestError instanceof Error ? suggestError.message : "AI image copy generation failed");
+      } finally {
+        setPendingAction("");
+      }
+    });
   }
 
   function removeImageAsset(index: number) {
@@ -1595,6 +1657,7 @@ export function WorkflowDashboard({
                   inferImageOverlayText={(image) => inferArticleImageOverlayText(image.prompt)}
                   applyImageTextMode={applyImageTextMode}
                   applyImageOverlayText={applyImageOverlayText}
+                  suggestImageCopy={suggestImageCopy as any}
                   replaceImageFromFile={replaceImageFromFile as any}
                   downloadImageAsset={downloadImageAsset as any}
                   removeImageAsset={removeImageAsset}

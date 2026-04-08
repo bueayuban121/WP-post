@@ -44,6 +44,14 @@ type FacebookPostResponse = {
   hashtags: string[];
 };
 
+type ImageCopyResponse = {
+  headline: string;
+  supportLine: string;
+  overlayText: string;
+  layoutHint: string;
+  styleNote: string;
+};
+
 export type ArticlePromptConfig = {
   systemArticlePrompt?: string;
   clientArticlePrompt?: string;
@@ -707,6 +715,76 @@ export async function generateFacebookPostWithOpenAi(input: {
       }),
       8
     )
+  };
+}
+
+export async function generateImageCopyWithOpenAi(input: {
+  seedKeyword: string;
+  title: string;
+  angle: string;
+  audience: string;
+  placement: string;
+  sectionHeading?: string;
+  sectionBody?: string;
+  intro?: string;
+  conclusion?: string;
+}) {
+  const prompt = [
+    `Seed keyword: ${input.seedKeyword}`,
+    `Article title: ${input.title}`,
+    `Audience: ${input.audience}`,
+    `Angle: ${input.angle}`,
+    `Placement: ${input.placement}`,
+    `Section heading: ${input.sectionHeading ?? "-"}`,
+    "",
+    "Intro context:",
+    input.intro?.trim() || "-",
+    "",
+    "Section body:",
+    input.sectionBody?.trim() || "-",
+    "",
+    "Conclusion context:",
+    input.conclusion?.trim() || "-",
+    "",
+    'Return JSON only in this shape: {"headline":"","supportLine":"","overlayText":"","layoutHint":"","styleNote":""}',
+    "",
+    "Rules:",
+    "- Think like a premium editorial art director writing copy for an article image.",
+    "- The text must be tightly aligned with this exact article section, not generic.",
+    "- headline: short, striking, and readable on image, ideally under 42 characters.",
+    "- supportLine: optional secondary line, ideally under 34 characters.",
+    '- overlayText: combine the final copy exactly as it should appear in the image. Use "Headline | Support line" when a support line genuinely helps, otherwise headline only.',
+    "- layoutHint: one short sentence describing where and how the typography should sit in the frame.",
+    "- styleNote: one short sentence describing the visual typography mood.",
+    "- Prefer Thai as the main language when the article context is Thai. English is allowed when it improves clarity, brand feel, or bilingual presentation.",
+    "- Avoid clickbait, hype, and generic marketing filler.",
+    "- Avoid quotation marks in the final headline or support line unless absolutely necessary.",
+    "- Make the copy feel premium, human, and designed for a polished blog cover or section image."
+  ].join("\n");
+
+  const content = await complete(
+    [
+      {
+        role: "system",
+        content:
+          "You are a bilingual Thai-English editorial image copywriter and art director. Create concise overlay copy and typography direction for premium article images. Return JSON only."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    0.55,
+    700
+  );
+
+  const parsed = parseJson<ImageCopyResponse>(content);
+  return {
+    headline: cleanText(parsed.headline).slice(0, 80),
+    supportLine: cleanText(parsed.supportLine).slice(0, 80),
+    overlayText: cleanText(parsed.overlayText).slice(0, 120),
+    layoutHint: cleanText(parsed.layoutHint).slice(0, 160),
+    styleNote: cleanText(parsed.styleNote).slice(0, 160)
   };
 }
 

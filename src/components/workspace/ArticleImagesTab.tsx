@@ -1,4 +1,3 @@
-import * as React from "react";
 import Image from "next/image";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,7 @@ interface ArticleImagesTabProps {
   inferImageOverlayText: (image: ArticleImageAsset) => string;
   applyImageTextMode: (index: number, mode: ArticleImageTextMode) => void;
   applyImageOverlayText: (index: number, text: string) => void;
+  suggestImageCopy: (index: number) => Promise<void>;
   replaceImageFromFile: (index: number, file: File) => Promise<void>;
   downloadImageAsset: (image: ArticleImageAsset, index: number) => Promise<void>;
   removeImageAsset: (index: number) => void;
@@ -41,6 +41,7 @@ export function ArticleImagesTab({
   inferImageOverlayText,
   applyImageTextMode,
   applyImageOverlayText,
+  suggestImageCopy,
   replaceImageFromFile,
   downloadImageAsset,
   removeImageAsset,
@@ -203,6 +204,17 @@ export function ArticleImagesTab({
                       className="bg-background/50 text-sm"
                       placeholder="เช่น โปรตีนถั่วเหลือง | Soy Protein"
                     />
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        disabled={Boolean(pendingAction)}
+                        onClick={() => void suggestImageCopy(index)}
+                      >
+                        {pendingAction === "suggest-image-copy" ? "Thinking..." : "Suggest AI Copy"}
+                      </Button>
+                    </div>
                   </label>
                 ) : null}
 
