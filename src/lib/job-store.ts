@@ -1089,7 +1089,8 @@ export async function regenerateJobImages(jobId: string, options?: Partial<Workf
 export async function regenerateJobImageAt(
   jobId: string,
   imageIndex: number,
-  options?: Partial<WorkflowGenerationSettings> | null
+  options?: Partial<WorkflowGenerationSettings> | null,
+  promptOverride?: string | null
 ) {
   const job = await getJob(jobId);
   if (!job) return null;
@@ -1117,20 +1118,26 @@ export async function regenerateJobImageAt(
       : promptImages.map((image, index) => job.images[index] ?? image);
 
   const targetImage = promptImages[imageIndex];
+  const existingImage = job.images[imageIndex];
+  const resolvedPrompt = promptOverride?.trim() || existingImage?.prompt?.trim() || targetImage.prompt;
+  const resolvedTargetImage = {
+    ...targetImage,
+    prompt: resolvedPrompt
+  };
 
   if (isManagedImageGenerationConfigured()) {
     const generated = await generateManagedImage({
-      prompt: targetImage.prompt,
-      width: targetImage.kind === "featured" ? 1600 : 1400,
-      height: targetImage.kind === "featured" ? 900 : 840
+      prompt: resolvedTargetImage.prompt,
+      width: resolvedTargetImage.kind === "featured" ? 1600 : 1400,
+      height: resolvedTargetImage.kind === "featured" ? 900 : 840
     });
 
     nextImages[imageIndex] = {
-      ...targetImage,
+      ...resolvedTargetImage,
       src: generated.src
     };
   } else {
-    nextImages[imageIndex] = targetImage;
+    nextImages[imageIndex] = resolvedTargetImage;
   }
 
   if (!isDatabaseConfigured()) {

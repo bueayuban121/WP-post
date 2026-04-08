@@ -14,7 +14,7 @@ interface ArticleImagesTabProps {
   articleImages: ArticleImageAsset[]
   imageStatusLabel: string
   imageErrorCount: number
-  updateImageAsset: (index: number, field: "caption" | "alt" | "placement" | "src", value: string) => void
+  updateImageAsset: (index: number, field: "caption" | "alt" | "placement" | "src" | "prompt", value: string) => void
   replaceImageFromFile: (index: number, file: File) => Promise<void>
   downloadImageAsset: (image: ArticleImageAsset, index: number) => Promise<void>
   removeImageAsset: (index: number) => void
@@ -171,12 +171,19 @@ export function ArticleImagesTab({
                 />
               </label>
               
-              {image.prompt && (
-                <div className="p-3 bg-background/60 border border-white/5 rounded-md mt-1">
-                  <span className="text-xs text-muted-foreground block mb-1">AI Prompt:</span>
-                  <code className="text-xs text-accent font-mono block max-h-20 overflow-y-auto custom-scroll leading-relaxed">{image.prompt}</code>
-                </div>
-              )}
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-foreground">AI prompt</span>
+                <textarea
+                  rows={6}
+                  className="flex w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 custom-scroll leading-relaxed"
+                  value={image.prompt}
+                  onChange={(event) => updateImageAsset(index, "prompt", event.target.value)}
+                  placeholder="Describe the exact visual you want. You can include Thai or English text directions here if needed."
+                />
+                <span className="text-xs text-muted-foreground">
+                  You can request exact Thai or English text overlays here when needed. Regenerate will use this prompt.
+                </span>
+              </label>
 
               <div className="mt-2 grid grid-cols-2 gap-2 border-t border-white/5 pt-4 sm:grid-cols-4">
                 <Button

@@ -25,6 +25,7 @@ export async function POST(
         generationSettings?: Partial<WorkflowGenerationSettings>;
         images?: ArticleImageAsset[];
         imageIndex?: number;
+        promptOverride?: string;
       }
     | null;
   const hasImagePayload = Array.isArray(body?.images);
@@ -71,7 +72,7 @@ export async function POST(
   try {
     const job =
       imageIndex !== undefined
-        ? await regenerateJobImageAt(jobId, imageIndex, generationSettings)
+        ? await regenerateJobImageAt(jobId, imageIndex, generationSettings, body?.promptOverride)
         : await regenerateJobImages(jobId, generationSettings);
 
     if (!job) {

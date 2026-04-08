@@ -965,7 +965,8 @@ export function WorkflowDashboard({
           `/api/jobs/${job.id}/images`,
           {
             generationSettings: getGenerationSettings(),
-            imageIndex: index
+            imageIndex: index,
+            promptOverride: editableImages[index]?.prompt ?? ""
           },
           `Image ${index + 1} ready`,
           "images"

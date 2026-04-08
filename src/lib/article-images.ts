@@ -5,7 +5,7 @@ type BuildImageInput = {
   seedKeyword: string;
   title: string;
   brief: Pick<ContentBrief, "angle" | "audience">;
-  draft: Pick<ArticleDraft, "sections">;
+  draft: Pick<ArticleDraft, "intro" | "sections" | "conclusion">;
   imageCount?: number;
 };
 
@@ -25,6 +25,15 @@ function trimSentence(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function extractVisualCue(value?: string, fallback?: string) {
+  const cleaned = trimSentence((value ?? "").replace(/[#*_`>\-\u2022]/g, " "));
+  if (!cleaned) {
+    return fallback ?? "";
+  }
+
+  return cleaned.slice(0, 180);
+}
+
 function buildPrompt(input: {
   seedKeyword: string;
   title: string;
@@ -32,19 +41,38 @@ function buildPrompt(input: {
   audience: string;
   placement: string;
   sectionHeading?: string;
+  sectionBody?: string;
+  intro?: string;
+  conclusion?: string;
 }) {
-  const subject = input.sectionHeading ? `${input.title}, ${input.sectionHeading}` : input.title;
+  const subject = input.sectionHeading ? `${input.title} - ${input.sectionHeading}` : input.title;
+  const visualCue = extractVisualCue(
+    input.sectionBody,
+    input.placement === "Hero"
+      ? extractVisualCue(input.intro, input.title)
+      : input.placement === "Conclusion"
+        ? extractVisualCue(input.conclusion, input.title)
+        : input.title
+  );
+  const shotDirection =
+    input.placement === "Hero"
+      ? "hero image, striking focal subject, premium editorial cover composition"
+      : input.placement === "Conclusion"
+        ? "closing visual, calm polished composition, summary mood"
+        : "supporting article visual, realistic context, informative scene";
 
   return trimSentence(
     [
-      "Editorial blog image, premium realistic photography, high-end commercial composition, clean professional layout.",
+      "Premium editorial image for a blog article.",
+      shotDirection + ".",
       `Main topic: ${subject}.`,
-      `Seed keyword: ${input.seedKeyword}.`,
-      `Audience: ${input.audience}.`,
-      `Story angle: ${input.angle}.`,
-      `Placement in article: ${input.placement}.`,
-      "Do not include any text, letters, typography, captions, signage text, subtitles, headline overlays, watermark, UI, collage, or label design in this image.",
-      "The final image must be purely visual with no readable words or characters anywhere in the frame."
+      `Seed keyword focus: ${input.seedKeyword}.`,
+      `Audience intent: ${input.audience}.`,
+      `Article angle: ${input.angle}.`,
+      `Visual cue: ${visualCue}.`,
+      `Placement: ${input.placement}.`,
+      "Keep the scene modern, realistic, visually clear, commercially polished, and tightly aligned with the article.",
+      "Default rule: no text, no logo, no watermark, no UI overlay, unless the prompt is manually edited to request specific wording."
     ].join(" ")
   );
 }
@@ -87,6 +115,7 @@ function buildAsset(
   input: BuildImageInput,
   placement: string,
   sortKey: string,
+  sectionBody?: string,
   sectionHeading?: string,
   kind: "featured" | "inline" = "inline"
 ): ArticleImageAsset {
@@ -96,7 +125,10 @@ function buildAsset(
     angle: input.brief.angle,
     audience: input.brief.audience,
     placement,
-    sectionHeading
+    sectionHeading,
+    sectionBody,
+    intro: input.draft.intro,
+    conclusion: input.draft.conclusion
   });
   const seed = hashSeed(`${input.seedKeyword}:${input.title}:${sortKey}:${sectionHeading ?? ""}`);
 
@@ -126,6 +158,7 @@ export function generateArticleImages(input: BuildImageInput): ArticleImageAsset
         input,
         index === sections.length - 1 ? "Conclusion" : `Section ${index + 1}`,
         `section-${index + 1}`,
+        section.body,
         section.heading,
         "inline"
       )
