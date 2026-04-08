@@ -20,6 +20,7 @@ export async function PATCH(
     clientExpertisePrompt?: string;
     clientBrandVoicePrompt?: string;
     clientResearchProvider?: "tavily" | "dataforseo";
+    clientPlan?: "normal" | "premium" | "pro";
     clientWordpressUrl?: string;
     clientWordpressUsername?: string;
     clientWordpressAppPassword?: string;

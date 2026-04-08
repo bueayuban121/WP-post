@@ -1,0 +1,2 @@
+ALTER TABLE "Client"
+ADD COLUMN "clientPlan" TEXT NOT NULL DEFAULT 'normal';

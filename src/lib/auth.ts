@@ -25,6 +25,7 @@ export type AppUserSession = {
   clientWordpressUsername: string | null;
   clientWordpressAppPassword: string | null;
   clientWordpressPublishStatus: string | null;
+  clientPlan: "normal" | "premium" | "pro" | null;
 };
 
 type StoredUser = User & {
@@ -105,6 +106,7 @@ function toAppSession(user: StoredUser): AppUserSession {
         expertisePrompt?: string;
         brandVoicePrompt?: string;
         researchProvider?: string;
+        clientPlan?: string;
         wordpressUrl?: string;
         wordpressUsername?: string;
         wordpressAppPassword?: string;
@@ -130,7 +132,11 @@ function toAppSession(user: StoredUser): AppUserSession {
     clientWordpressUsername: typeof client?.wordpressUsername === "string" ? client.wordpressUsername : null,
     clientWordpressAppPassword: typeof client?.wordpressAppPassword === "string" ? client.wordpressAppPassword : null,
     clientWordpressPublishStatus:
-      typeof client?.wordpressPublishStatus === "string" ? client.wordpressPublishStatus : null
+      typeof client?.wordpressPublishStatus === "string" ? client.wordpressPublishStatus : null,
+    clientPlan:
+      client?.clientPlan === "premium" || client?.clientPlan === "pro" || client?.clientPlan === "normal"
+        ? client.clientPlan
+        : null
   };
 }
 
@@ -373,6 +379,7 @@ export async function createClientUser(input: {
   expertisePrompt?: string;
   brandVoicePrompt?: string;
   researchProvider?: "tavily" | "dataforseo";
+  clientPlan?: "normal" | "premium" | "pro";
   wordpressUrl?: string;
   wordpressUsername?: string;
   wordpressAppPassword?: string;
@@ -405,6 +412,8 @@ export async function createClientUser(input: {
   const expertisePrompt = input.expertisePrompt?.trim() ?? "";
   const brandVoicePrompt = input.brandVoicePrompt?.trim() ?? "";
   const researchProvider = input.researchProvider === "dataforseo" ? "dataforseo" : "tavily";
+  const clientPlan =
+    input.clientPlan === "premium" || input.clientPlan === "pro" ? input.clientPlan : "normal";
   const wordpressUrl = input.wordpressUrl?.trim() ?? "";
   const wordpressUsername = input.wordpressUsername?.trim() ?? "";
   const wordpressAppPassword = input.wordpressAppPassword?.trim() ?? "";
@@ -414,10 +423,11 @@ export async function createClientUser(input: {
 
   await prisma.$executeRawUnsafe(
     `
-      INSERT INTO "Client" ("id", "name", "articlePrompt", "expertisePrompt", "brandVoicePrompt", "researchProvider", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      INSERT INTO "Client" ("id", "name", "clientPlan", "articlePrompt", "expertisePrompt", "brandVoicePrompt", "researchProvider", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
       ON CONFLICT ("name")
       DO UPDATE SET
+        "clientPlan" = EXCLUDED."clientPlan",
         "articlePrompt" = EXCLUDED."articlePrompt",
         "expertisePrompt" = EXCLUDED."expertisePrompt",
         "brandVoicePrompt" = EXCLUDED."brandVoicePrompt",
@@ -426,6 +436,7 @@ export async function createClientUser(input: {
     `,
     clientRecordId,
     clientName,
+    clientPlan,
     articlePrompt,
     expertisePrompt,
     brandVoicePrompt,
@@ -490,6 +501,7 @@ export async function updateManagedUser(
     clientExpertisePrompt?: string;
     clientBrandVoicePrompt?: string;
     clientResearchProvider?: "tavily" | "dataforseo";
+    clientPlan?: "normal" | "premium" | "pro";
     clientWordpressUrl?: string;
     clientWordpressUsername?: string;
     clientWordpressAppPassword?: string;
@@ -518,6 +530,7 @@ export async function updateManagedUser(
       input.clientExpertisePrompt !== undefined ||
       input.clientBrandVoicePrompt !== undefined ||
       input.clientResearchProvider !== undefined ||
+      input.clientPlan !== undefined ||
       input.clientWordpressUrl !== undefined ||
       input.clientWordpressUsername !== undefined ||
       input.clientWordpressAppPassword !== undefined ||
@@ -531,10 +544,11 @@ export async function updateManagedUser(
           "expertisePrompt" = COALESCE($3, "expertisePrompt"),
           "brandVoicePrompt" = COALESCE($4, "brandVoicePrompt"),
           "researchProvider" = COALESCE($5, "researchProvider"),
-          "wordpressUrl" = COALESCE($6, "wordpressUrl"),
-          "wordpressUsername" = COALESCE($7, "wordpressUsername"),
-          "wordpressAppPassword" = COALESCE($8, "wordpressAppPassword"),
-          "wordpressPublishStatus" = COALESCE($9, "wordpressPublishStatus"),
+          "clientPlan" = COALESCE($6, "clientPlan"),
+          "wordpressUrl" = COALESCE($7, "wordpressUrl"),
+          "wordpressUsername" = COALESCE($8, "wordpressUsername"),
+          "wordpressAppPassword" = COALESCE($9, "wordpressAppPassword"),
+          "wordpressPublishStatus" = COALESCE($10, "wordpressPublishStatus"),
           "updatedAt" = NOW()
         WHERE "id" = $1
       `,
@@ -543,6 +557,7 @@ export async function updateManagedUser(
       input.clientExpertisePrompt !== undefined ? input.clientExpertisePrompt.trim() : null,
       input.clientBrandVoicePrompt !== undefined ? input.clientBrandVoicePrompt.trim() : null,
       input.clientResearchProvider !== undefined ? input.clientResearchProvider : null,
+      input.clientPlan !== undefined ? input.clientPlan : null,
       input.clientWordpressUrl !== undefined ? input.clientWordpressUrl.trim() : null,
       input.clientWordpressUsername !== undefined ? input.clientWordpressUsername.trim() : null,
       input.clientWordpressAppPassword !== undefined ? input.clientWordpressAppPassword.trim() : null,

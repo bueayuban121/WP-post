@@ -69,6 +69,7 @@ model User {
 model Client {
   id                 String       @id @default(cuid())
   name               String       @unique
+  clientPlan         String       @default("normal")
   articlePrompt      String       @default("")
   expertisePrompt    String       @default("")
   brandVoicePrompt   String       @default("")

@@ -19,6 +19,7 @@ type ManagedAccountDraft = {
   clientExpertisePrompt: string;
   clientBrandVoicePrompt: string;
   clientResearchProvider: "tavily" | "dataforseo";
+  clientPlan: "normal" | "premium" | "pro";
   clientWordpressUrl: string;
   clientWordpressUsername: string;
   clientWordpressAppPassword: string;
@@ -34,6 +35,7 @@ type NewAccountState = {
   expertisePrompt: string;
   brandVoicePrompt: string;
   researchProvider: "tavily" | "dataforseo";
+  clientPlan: "normal" | "premium" | "pro";
   wordpressUrl: string;
   wordpressUsername: string;
   wordpressAppPassword: string;
@@ -57,6 +59,7 @@ function createAccountDraft(user: AppUserSession): ManagedAccountDraft {
     clientExpertisePrompt: user.clientExpertisePrompt ?? "",
     clientBrandVoicePrompt: user.clientBrandVoicePrompt ?? "",
     clientResearchProvider: user.clientResearchProvider === "dataforseo" ? "dataforseo" : "tavily",
+    clientPlan: user.clientPlan === "premium" || user.clientPlan === "pro" ? user.clientPlan : "normal",
     clientWordpressUrl: user.clientWordpressUrl ?? "",
     clientWordpressUsername: user.clientWordpressUsername ?? "",
     clientWordpressAppPassword: user.clientWordpressAppPassword ?? "",
@@ -74,6 +77,7 @@ const emptyNewAccount: NewAccountState = {
   expertisePrompt: "",
   brandVoicePrompt: "",
   researchProvider: "tavily",
+  clientPlan: "normal",
   wordpressUrl: "",
   wordpressUsername: "",
   wordpressAppPassword: "",
@@ -226,6 +230,7 @@ export function SettingsPage({
       clientExpertisePrompt?: string;
       clientBrandVoicePrompt?: string;
       clientResearchProvider?: "tavily" | "dataforseo";
+      clientPlan?: "normal" | "premium" | "pro";
       clientWordpressUrl?: string;
       clientWordpressUsername?: string;
       clientWordpressAppPassword?: string;
@@ -281,6 +286,7 @@ export function SettingsPage({
           clientExpertisePrompt: null,
           clientBrandVoicePrompt: null,
           clientResearchProvider: null,
+          clientPlan: null,
           clientWordpressUrl: null,
           clientWordpressUsername: null,
           clientWordpressAppPassword: null,
@@ -448,6 +454,24 @@ export function SettingsPage({
             </label>
 
             <label>
+              Plan
+              <small>กำหนดระดับแพ็กของลูกค้ารายนี้เพื่อใช้คุม feature และ workflow ในรอบถัดไป</small>
+              <select
+                value={newAccount.clientPlan}
+                onChange={(event) =>
+                  setNewAccount((current) => ({
+                    ...current,
+                    clientPlan: event.target.value as "normal" | "premium" | "pro"
+                  }))
+                }
+              >
+                <option value="normal">normal</option>
+                <option value="premium">premium</option>
+                <option value="pro">pro</option>
+              </select>
+            </label>
+
+            <label>
               WordPress URL
               <small>โดเมนปลายทางของลูกค้ารายนี้ เช่น https://example.com</small>
               <input
@@ -563,6 +587,7 @@ export function SettingsPage({
                 </p>
                 <div className={styles.projectMeta}>
                   <span className={styles.pill}>{account.status}</span>
+                  <span className={styles.pill}>{accountDrafts[account.id]?.clientPlan ?? "normal"}</span>
                   <span className={styles.pill}>
                     {account.contractEnd ? `Ends ${new Date(account.contractEnd).toLocaleDateString("en-GB")}` : "No expiry"}
                   </span>
@@ -612,6 +637,24 @@ export function SettingsPage({
                           value={accountDrafts[account.id]?.contractEnd ?? ""}
                           onChange={(event) => updateAccountDraft(account.id, "contractEnd", event.target.value)}
                         />
+                      </label>
+
+                      <label>
+                        Plan
+                        <select
+                          value={accountDrafts[account.id]?.clientPlan ?? "normal"}
+                          onChange={(event) =>
+                            updateAccountDraft(
+                              account.id,
+                              "clientPlan",
+                              event.target.value as "normal" | "premium" | "pro"
+                            )
+                          }
+                        >
+                          <option value="normal">normal</option>
+                          <option value="premium">premium</option>
+                          <option value="pro">pro</option>
+                        </select>
                       </label>
 
                       <label>
@@ -719,6 +762,7 @@ export function SettingsPage({
                             clientExpertisePrompt: accountDrafts[account.id]?.clientExpertisePrompt ?? "",
                             clientBrandVoicePrompt: accountDrafts[account.id]?.clientBrandVoicePrompt ?? "",
                             clientResearchProvider: accountDrafts[account.id]?.clientResearchProvider ?? "tavily",
+                            clientPlan: accountDrafts[account.id]?.clientPlan ?? "normal",
                             clientWordpressUrl: accountDrafts[account.id]?.clientWordpressUrl ?? "",
                             clientWordpressUsername: accountDrafts[account.id]?.clientWordpressUsername ?? "",
                             clientWordpressAppPassword: accountDrafts[account.id]?.clientWordpressAppPassword ?? "",
