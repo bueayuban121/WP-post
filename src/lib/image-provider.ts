@@ -38,17 +38,11 @@ export async function generateManagedImage(
   input: GenerateManagedImageInput
 ): Promise<ManagedGeneratedImage> {
   if (isGeminiImageConfigured()) {
-    try {
-      const generated = await generateImageWithGemini(input);
-      return {
-        src: generated.src,
-        provider: "gemini-banana"
-      };
-    } catch (error) {
-      if (!isPhayaConfigured()) {
-        throw error;
-      }
-    }
+    const generated = await generateImageWithGemini(input);
+    return {
+      src: generated.src,
+      provider: "gemini-banana"
+    };
   }
 
   if (isPhayaConfigured()) {
